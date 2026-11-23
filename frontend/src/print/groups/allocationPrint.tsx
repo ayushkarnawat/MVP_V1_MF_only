@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { AllocationSectionPrint } from "./allocation/AllocationSections";
 
-// Print versions of the allocation sections: one entry per section id, `() => ReactNode`. Empty until that group's task fills it;
-// every id not listed here keeps the placeholder in sectionRegistry.ts. Each group edits only its own file.
-export const allocationPrintSections: Record<string, () => ReactNode> = {};
+export const allocationPrintSections: Record<string, () => ReactNode> = {
+  "allocation-asset-class": () => <AllocationSectionPrint id="allocation-asset-class" />,
+  "allocation-market-cap": () => <AllocationSectionPrint id="allocation-market-cap" />,
+  "allocation-category-amc": () => <AllocationSectionPrint id="allocation-category-amc" />,
+  "allocation-fund-manager": () => <AllocationSectionPrint id="allocation-fund-manager" />,
+};

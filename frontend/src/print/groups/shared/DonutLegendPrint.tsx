@@ -1,3 +1,4 @@
+import { chartPct } from "../../../features/mutual-funds/allocation/allocationLogic";
 import { SlicedDonut } from "../../../features/mutual-funds/common/charts";
 import type { Slice } from "../../../features/mutual-funds/types";
 import { formatPercent, formatRupees } from "../../../lib/format";
@@ -20,11 +21,14 @@ const noop = () => {};
 export function DonutLegendPrint({ slices, centreLabel, centreValue }: DonutLegendPrintProps) {
   if (slices.length === 0) return null;
 
+  const percentByKey = new Map(slices.map(item => [item.key, item.percent]));
   const donutSlices: Slice[] = slices.map((item, index) => ({
     key: item.key,
     label: item.label,
     value: item.value,
-    pct: item.percent,
+    // Geometry never takes a negative share (a negative exposure such as an arbitrage offset would break the arcs): the
+    // screens clamp it with chartPct and so do we. The legend below still shows the signed figure.
+    pct: chartPct(item.percent),
     color: `var(--c${(index % 8) + 1})`,
   }));
 
@@ -60,7 +64,7 @@ export function DonutLegendPrint({ slices, centreLabel, centreValue }: DonutLege
                   </div>
                 </td>
                 <td className="w-16 py-1.5 pr-3 text-right align-top font-semibold tabular-nums whitespace-nowrap text-[var(--ui-text)]">
-                  {formatPercent(slice.pct, { digits: 1 })}
+                  {formatPercent(percentByKey.get(slice.key) ?? slice.pct, { digits: 1 })}
                 </td>
                 <td className="w-28 py-1.5 text-right align-top tabular-nums whitespace-nowrap text-[var(--ui-text-muted)]">
                   {formatRupees(slice.value)}

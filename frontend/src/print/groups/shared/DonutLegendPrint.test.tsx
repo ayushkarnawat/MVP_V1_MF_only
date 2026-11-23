@@ -115,3 +115,16 @@ describe("DonutLegendPrint", () => {
     expect(source).not.toMatch(/\bonMouse|\bonClick|\bhover:/);
   });
 });
+
+describe("DonutLegendPrint with a negative share", () => {
+  it("keeps the signed percent in the legend and clamps only the drawn geometry", () => {
+    const view = renderWithPrint(<DonutLegendPrint slices={[
+      { key: "eq", label: "Equity", value: "900000", percent: "103.0" },
+      { key: "cash", label: "Cash and offsets", value: "-30000", percent: "-3.0" },
+    ]} centreLabel="Total" centreValue="9L" />);
+    expect(screen.getByTestId("legend-cash")).toHaveTextContent(formatPercent("-3.0", { digits: 1 }));
+    expect(view.container.innerHTML).not.toContain("NaN");
+    // No drawn attribute of the donut takes a negative number (the arcs are clamped).
+    expect(view.container.querySelector("svg")!.outerHTML).not.toMatch(/="-\d/);
+  });
+});

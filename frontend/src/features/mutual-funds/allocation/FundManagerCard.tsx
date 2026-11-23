@@ -2,6 +2,7 @@ import { ChevronRight, LayoutGrid, Table2 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent, formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import { ChartTypeToggle } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -20,6 +21,7 @@ export interface FundManagerCardProps extends AnalyticsCardProps<FundManagerAllo
 }
 
 export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: FundManagerCardProps) {
+  const printMode = usePrintMode();
   const [view, setView] = useState<"cards" | "table">("cards");
   const [openKey, setOpenKey] = useState<string | null>(null);
   const groups = data?.manager_groups ?? [];
@@ -28,6 +30,7 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
   const updating = groups.some(group => group.main_source == null);
 
   const toggle = (group: ManagerGroup) => {
+    if (printMode) return <span className="font-medium text-[var(--ui-text)]">{group.manager_name}</span>;
     const key = managerKey(group);
     return <button type="button" aria-expanded={openKey === key} data-clickable="" data-effect="expand"
       onClick={() => setOpenKey(openKey === key ? null : key)}
@@ -40,9 +43,9 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
     {group.funds.map(fund => <li key={fund.scheme_id} data-testid={`manager-fund-${managerKey(group)}-${fund.scheme_id}`}
       className="flex flex-wrap items-center justify-between gap-2 text-xs">
       <div className="flex items-center gap-2 min-w-0">
-        <SchemeLogo amcName={group.amc_name} schemeName={fund.scheme_name} size="sm" />
-        <span title={fund.scheme_name} className="font-medium text-[var(--ui-text)] truncate max-w-md">
-          <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>
+        {printMode ? <span aria-hidden="true">{fund.scheme_name.slice(0, 1)}</span> : <SchemeLogo amcName={group.amc_name} schemeName={fund.scheme_name} size="sm" />}
+        <span title={printMode ? undefined : fund.scheme_name} className={printMode ? "font-medium text-[var(--ui-text)]" : "font-medium text-[var(--ui-text)] truncate max-w-md"}>
+          {printMode ? fund.scheme_name : <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>}
         </span>
       </div>
       <span className="text-[var(--ui-text-muted)]">{formatRupees(fund.household_value)} · XIRR {formatXirr(xirrByScheme[fund.scheme_id])}</span>
@@ -57,8 +60,8 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
           <p className="font-medium text-[var(--ui-text)]">No fund manager data available</p>
           <p>We haven't matched fund manager records for your current holdings yet.</p>
         </div> : <div className="flex flex-col gap-4">
-          <ChartTypeToggle label="Chart type" value={view} options={VIEW_OPTIONS} onChange={setView} />
-          {view === "cards" ? <>
+          {!printMode && <ChartTypeToggle label="Chart type" value={view} options={VIEW_OPTIONS} onChange={setView} />}
+          {view === "cards" && !printMode ? <>
             <ul aria-label="Fund manager cards" className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {groups.map(group => {
                 const key = managerKey(group);
@@ -77,8 +80,8 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
               })}
             </ul>
             <p className="text-xs text-[var(--ui-text-muted)]">Covered by manager data: <span data-testid="covered-value">{formatRupees(data.covered_value)}</span> · <span data-testid="covered-pct">{formatPercent(data.covered_percentage, { digits: 1 })}</span></p>
-          </> : <div className="overflow-x-auto">
-            <table aria-label="Fund manager allocation" className="w-full text-left text-xs">
+          </> : <div className={printMode ? undefined : "overflow-x-auto"}>
+            <table aria-label="Fund manager allocation" className={printMode ? "w-full table-fixed text-left text-xs" : "w-full text-left text-xs"}>
               <caption className="text-left text-xs text-[var(--ui-text-muted)] pb-2">Each fund's full value is counted under its main manager.</caption>
               <thead><tr className="border-b border-[var(--ui-divider)] text-[var(--ui-text-muted)]">
                 <th className="pb-2 font-medium">Fund manager</th><th className="pb-2 font-medium">AMC</th>
@@ -92,14 +95,14 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
                       <th scope="row" className="py-2.5 font-normal text-[var(--ui-text)]">{toggle(group)}</th>
                       <td className="py-2.5 text-[var(--ui-text-muted)]">
                         <div className="flex items-center gap-2">
-                          <SchemeLogo amcName={group.amc_name} size="sm" />
+                          {!printMode && <SchemeLogo amcName={group.amc_name} size="sm" />}
                           <span>{group.amc_name || "—"}</span>
                         </div>
                       </td>
                       <td className="py-2.5 text-[var(--ui-text)] font-medium">{formatRupees(group.total_household_value)}</td>
                       <td className="py-2.5 text-[var(--ui-text-muted)] font-medium">{formatPercent(group.percentage, { digits: 1 })}</td>
                     </tr>
-                    {openKey === key && <tr data-testid={`manager-detail-${key}`} className="bg-[var(--ui-card)]"><td colSpan={4} className="p-3">{funds(group)}</td></tr>}
+                    {(printMode || openKey === key) && <tr data-testid={`manager-detail-${key}`} className="bg-[var(--ui-card)]"><td colSpan={4} className="p-3">{funds(group)}</td></tr>}
                   </Fragment>;
                 })}
               </tbody>
@@ -112,7 +115,7 @@ export function FundManagerCard({ state, data, onRetry, xirrByScheme, anchor }: 
           </div>}
           {unavailable.length > 0 && <div className="rounded-xl border border-[var(--ui-divider)] bg-[var(--warn-bg)] p-3 text-xs text-[var(--warn-text)]">
             <p className="font-semibold">{unavailable.length} {unavailable.length === 1 ? "fund has" : "funds have"} no manager data yet.</p>
-            <ul className="mt-1.5 space-y-1">{unavailable.map(scheme => <li key={scheme.scheme_id} className="flex items-center gap-2"><SchemeLogo amcName={scheme.amc_name} schemeName={scheme.scheme_name} size="sm" /><span>{scheme.scheme_name} ({scheme.amc_name})</span></li>)}</ul>
+            <ul className="mt-1.5 space-y-1">{unavailable.map(scheme => <li key={scheme.scheme_id} className="flex items-center gap-2">{!printMode && <SchemeLogo amcName={scheme.amc_name} schemeName={scheme.scheme_name} size="sm" />}<span>{scheme.scheme_name} ({scheme.amc_name})</span></li>)}</ul>
           </div>}
         </div>}
     </div>
