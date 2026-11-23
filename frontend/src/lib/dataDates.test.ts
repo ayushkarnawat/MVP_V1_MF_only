@@ -19,6 +19,18 @@ function collectSourceFiles(dir: string): string[] {
 const SCAN_ALLOWLIST = new Set<string>([
   "lib/format.ts",
   "lib/dataDates.ts",
+  // An event date the person chooses (the opening balance date), not a data date.
+  "components/mf/OpeningBalanceModal.tsx",
+  // The pop-up's note uses the weekday form ("Prices as on Friday 23 Oct 2026"), which the module does not format (owner decision, 23 Nov).
+  "features/home/components/DayChangeDialog.tsx",
+  // The legacy print and PDF-export surface: its wording waits for Batch I (owner decision, 23 Nov).
+  "features/analytics/AssetAllocationSection.tsx",
+  "features/analytics/CapAllocationSection.tsx",
+  "features/analytics/OverlapSection.tsx",
+  "features/analytics/StockHoldingsSection.tsx",
+  "features/analytics/ValuationSection.tsx",
+  // Temporary: E-9 removes the "As on" column and the footnote; delete this line then.
+  "features/mutual-funds/other/ValuationByFund.tsx",
 ]);
 
 describe("formatDataDate", () => {
@@ -146,8 +158,8 @@ describe("olderDataMarker", () => {
     expect(olderDataMarker("holdings", null as unknown as string, today)).toEqual({ older: false, label: null });
   });
 
-  // enabled by task E-6 (the label replacement)
-  it.skip("a source file scan finds no hard-coded 'as on' or 'as of' outside dataDates.ts and its tests", () => {
+  // enabled by task E-6 (the label replacement); the allowlist holds the weekday forms and the legacy print surface (Batch I)
+  it("a source file scan finds no hard-coded 'as on' or 'as of' outside dataDates.ts and its tests", () => {
     const srcRoot = resolve("src");
     const targets = [
       ...collectSourceFiles(resolve("src/features")),
