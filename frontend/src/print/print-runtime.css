@@ -1,0 +1,3 @@
+html[data-print="true"], html[data-print="true"] body { background: #fff; }
+[data-print-root] tr, [data-print-root] li { break-inside: avoid; }
+[data-print-root] thead { display: table-header-group; }
