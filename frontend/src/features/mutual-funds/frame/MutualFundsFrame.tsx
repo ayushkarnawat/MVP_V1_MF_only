@@ -3,8 +3,10 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { Button } from "../../../components/ui/button";
 import { PageLayout } from "../../../shell/layout/PageLayout";
@@ -77,6 +79,7 @@ export const TAB_DEFS: ReadonlyArray<TabDef> = [
 
 interface MfFrameContextValue {
   openMira: () => void;
+  scrollRoot: RefObject<HTMLElement | null>;
 }
 
 const MfFrameContext = createContext<MfFrameContextValue | null>(null);
@@ -99,7 +102,11 @@ export interface MutualFundsFrameProps {
 export function MutualFundsFrame({ tab, children, utility }: MutualFundsFrameProps) {
   const [miraOpen, setMiraOpen] = useState(false);
   const openMira = useCallback(() => setMiraOpen(true), []);
-  const contextValue = useMemo(() => ({ openMira }), [openMira]);
+  const scrollRoot = useRef<HTMLElement | null>(null);
+  const frameRef = useCallback((element: HTMLDivElement | null) => {
+    scrollRoot.current = element?.closest("main") ?? null;
+  }, []);
+  const contextValue = useMemo(() => ({ openMira, scrollRoot }), [openMira]);
 
   const { viewMode, memberId } = useScope();
   const { openImport } = useImport();
@@ -154,14 +161,16 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
 
   return (
     <MfFrameContext.Provider value={contextValue}>
-      <PageLayout
-        title={currentTab.title}
-        subtitle={currentTab.subtitle}
-        actions={actions}
-        tabs={tabs}
-      >
-        {children}
-      </PageLayout>
+      <div ref={frameRef} className="contents">
+        <PageLayout
+          title={currentTab.title}
+          subtitle={currentTab.subtitle}
+          actions={actions}
+          tabs={tabs}
+        >
+          {children}
+        </PageLayout>
+      </div>
       <MiraComingSoonDialog open={miraOpen} onOpenChange={setMiraOpen} />
     </MfFrameContext.Provider>
   );
