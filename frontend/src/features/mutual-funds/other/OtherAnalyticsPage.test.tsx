@@ -145,7 +145,8 @@ describe("failure, loading and retry", () => {
     mocks.getAnalyticsScope.mockResolvedValue(response);
     mount();
     await screen.findByRole("status", { name: "Loading Rank in your fund's category" });
-    expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label"))).toEqual([
+    // The search box keeps its own unnamed live region mounted (it announces result counts); only the named loading statuses are the cards'.
+    expect(screen.getAllByRole("status").map(status => status.getAttribute("aria-label")).filter(Boolean)).toEqual([
       "Loading Total Expense Ratio (TER) & Cost Analysis", "Loading Portfolio Valuation vs. Benchmarks", "Loading Fund Quality Scores", "Loading Returns against the category average", "Loading Rank in your fund's category",
     ]);
     expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
