@@ -1,11 +1,35 @@
 import { expect, it } from "vitest";
 import { clearFragment, parsePrintFragment } from "./printFragment";
 
-const options = { scope: "family", sectionIds: ["overview-sips"], cover: true, dataDates: false, showFolios: "masked", jobId: "job-demo" };
+const member = { id: "11111111-1111-4111-8111-111111111111", name: "Demo Member" };
+const options = { scope: "family", sectionIds: ["overview-sips"], cover: true, dataDates: false, showFolios: "masked", jobId: "job-demo", members: [member], meta: { holderName: "Demo Holder", scopeName: "Demo Family", memberCount: 1 } };
 const fragment = (value: unknown = options, pass = "invented-pass") => `#pass=${pass}&opts=${btoa(JSON.stringify(value)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
 
 it("parses a valid fragment and ignores unknown keys", () => {
-  expect(parsePrintFragment(fragment({ ...options, ignored: true }))).toEqual({ pass: "invented-pass", options });
+  expect(parsePrintFragment(fragment({ ...options, ignored: true, members: [{ ...member, profile: "discard" }], meta: { ...options.meta, ignored: true } }))).toEqual({ pass: "invented-pass", options });
+});
+it("accepts null holder names, UTF-8 names and the member/name limits", () => {
+  const value = { ...options, members: Array.from({ length: 50 }, () => ({ ...member, name: "न".repeat(120) })), meta: { holderName: null, scopeName: "x".repeat(160), memberCount: 50 } };
+  const utf8 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(value)))).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  expect(parsePrintFragment(`#pass=demo&opts=${utf8}`)?.options).toEqual(value);
+});
+it.each([
+  ["missing members", undefined], ["empty members", []], ["51 members", Array.from({ length: 51 }, () => member)],
+  ["non-UUID id", [{ ...member, id: "member-demo" }]], ["empty name", [{ ...member, name: "" }]],
+  ["blank name", [{ ...member, name: "  " }]], ["over-long name", [{ ...member, name: "x".repeat(121) }]],
+  ["null member", [null]], ["wrong members type", {}],
+])("rejects %s", (_label, members) => {
+  expect(parsePrintFragment(fragment({ ...options, members }))).toBeNull();
+});
+it.each([
+  ["missing meta", undefined], ["missing memberCount", { holderName: null, scopeName: "Family" }],
+  ["non-integer memberCount", { ...options.meta, memberCount: 1.5 }],
+  ["zero memberCount", { ...options.meta, memberCount: 0 }], ["51 memberCount", { ...options.meta, memberCount: 51 }],
+  ["missing scopeName", { holderName: null, memberCount: 1 }], ["empty scopeName", { ...options.meta, scopeName: " " }],
+  ["over-long scopeName", { ...options.meta, scopeName: "x".repeat(161) }],
+  ["missing holderName", { scopeName: "Family", memberCount: 1 }], ["wrong holderName type", { ...options.meta, holderName: 1 }],
+])("rejects %s", (_label, meta) => {
+  expect(parsePrintFragment(fragment({ ...options, meta }))).toBeNull();
 });
 it.each(["none", "masked", "full"])("accepts %s folios", showFolios => {
   expect(parsePrintFragment(fragment({ ...options, showFolios }))?.options.showFolios).toBe(showFolios);

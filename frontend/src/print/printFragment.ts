@@ -7,6 +7,34 @@ export interface PrintOptions {
   dataDates: boolean;
   showFolios: "full" | "masked" | "none";
   jobId: string;
+  members: { id: string; name: string }[];
+  meta: { holderName: string | null; scopeName: string; memberCount: number };
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function parseMembers(value: unknown): PrintOptions["members"] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 50) return null;
+  const members: PrintOptions["members"] = [];
+  for (const item of value) {
+    const member = record(item);
+    if (!member || typeof member.id !== "string" || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(member.id) ||
+      typeof member.name !== "string" || !member.name.trim() || member.name.length > 120) return null;
+    members.push({ id: member.id, name: member.name });
+  }
+  return members;
+}
+
+function parseMeta(value: unknown): PrintOptions["meta"] | null {
+  const meta = record(value);
+  if (!meta) return null;
+  const { holderName, scopeName, memberCount } = meta;
+  if ((holderName !== null && typeof holderName !== "string") ||
+    typeof scopeName !== "string" || !scopeName.trim() || scopeName.length > 160 ||
+    typeof memberCount !== "number" || !Number.isInteger(memberCount) || memberCount < 1 || memberCount > 50) return null;
+  return { holderName, scopeName, memberCount };
 }
 
 export function parsePrintFragment(hash: string): { pass: string; options: PrintOptions } | null {
@@ -20,12 +48,14 @@ export function parsePrintFragment(hash: string): { pass: string; options: Print
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const options = value as Record<string, unknown>;
     const { scope, sectionIds, cover, dataDates, showFolios, jobId } = options;
+    const members = parseMembers(options.members);
+    const meta = parseMeta(options.meta);
     if (typeof scope !== "string" || !scope.trim() ||
       !Array.isArray(sectionIds) || !sectionIds.every((id: unknown) => typeof id === "string" && Object.hasOwn(PRINT_SECTIONS, id)) ||
       typeof cover !== "boolean" || typeof dataDates !== "boolean" ||
       (showFolios !== "full" && showFolios !== "masked" && showFolios !== "none") ||
-      typeof jobId !== "string" || !jobId.trim()) return null;
-    return { pass, options: { scope, sectionIds, cover, dataDates, showFolios, jobId } };
+      typeof jobId !== "string" || !jobId.trim() || !members || !meta) return null;
+    return { pass, options: { scope, sectionIds, cover, dataDates, showFolios, jobId, members, meta } };
   } catch {
     return null;
   }

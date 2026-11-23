@@ -9,12 +9,17 @@ import { usePrintSettled } from "./usePrintSettled";
 import { SectionCard } from "../features/mutual-funds/common/SectionCard";
 import { getToken, setTokenOverride } from "../features/auth/session";
 import { useScope } from "../shell/scope/ScopeContext";
+import { usePrintOptions } from "./printOptionsContext";
+import { useMfAnalytics, analyticsStore } from "../features/mutual-funds/data/analyticsStore";
+import { analyticsMfC } from "../features/mutual-funds/fixtures/mfC";
 
 const ids = ["overview-sips", "performance-returns"];
 const original = { ...PRINT_SECTIONS };
 const fetchSpy = vi.fn<typeof fetch>();
+const members = [{ id: "11111111-1111-4111-8111-111111111111", name: "Demo Member" }];
+const meta = { holderName: "Demo Holder", scopeName: "Demo Family", memberCount: 1 };
 function open(sectionIds = ids, scope = "family") {
-  const opts = btoa(JSON.stringify({ scope, sectionIds, cover: false, dataDates: true, showFolios: "masked", jobId: "demo-job" })).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  const opts = btoa(JSON.stringify({ scope, sectionIds, cover: false, dataDates: true, showFolios: "masked", jobId: "demo-job", members, meta })).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
   history.replaceState(null, "", `/print/report#pass=demo-print-pass&opts=${opts}`);
 }
 function Pending({ settled, failed = false }: { settled: boolean; failed?: boolean }) {
@@ -23,13 +28,15 @@ function Pending({ settled, failed = false }: { settled: boolean; failed?: boole
 }
 beforeEach(() => {
   fetchSpy.mockReset();
-  fetchSpy.mockImplementation(async () => new Response(JSON.stringify([{ id: "member-demo", name: "Demo Member" }]), { status: 200 }));
+  analyticsStore.invalidate();
+  fetchSpy.mockImplementation(async () => new Response(JSON.stringify(analyticsMfC()), { status: 200 }));
   vi.stubGlobal("fetch", fetchSpy);
   Object.defineProperty(document, "fonts", { configurable: true, value: { ready: Promise.resolve() } });
   open();
 });
 afterEach(() => {
   cleanup();
+  analyticsStore.invalidate();
   Object.assign(PRINT_SECTIONS, original);
   setTokenOverride(null);
   for (const key of ["print", "printReady", "printError", "theme"]) delete document.documentElement.dataset[key];
@@ -91,14 +98,50 @@ it("no sticky or fixed elements and no buttons in the rendered sections", async 
   expect(container.textContent).not.toMatch(/\bPAN\b/);
 });
 it("uses only read requests", async () => {
+  function ReadSection() {
+    const result = useMfAnalytics("ter");
+    usePrintSettled(ids[0], result.status !== "loading");
+    return null;
+  }
+  PRINT_SECTIONS[ids[0]] = { ...original[ids[0]], render: () => <ReadSection /> };
   render(<PrintReport />);
   await waitFor(() => expect(document.documentElement).toHaveAttribute("data-print-ready", "true"));
   expect(fetchSpy).toHaveBeenCalled();
   for (const [url, init] of fetchSpy.mock.calls) {
     expect(["GET", "HEAD"]).toContain(init?.method ?? "GET");
-    expect(String(url)).toMatch(/\/household-members$/);
+    expect(String(url)).not.toMatch(/\/household-members(?:[/?]|$)/);
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer demo-print-pass");
   }
+});
+it("makes no request for the member list", async () => {
+  open([], members[0].id);
+  render(<PrintReport />);
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-print-ready", "true"));
+  expect(fetchSpy).not.toHaveBeenCalled();
+});
+it("the scope provider exposes the members from the fragment", async () => {
+  function MemberProbe() {
+    const scope = useScope();
+    usePrintSettled(ids[0], true);
+    return <output data-testid="fragment-members">{JSON.stringify(scope.members)}</output>;
+  }
+  PRINT_SECTIONS[ids[0]] = { ...original[ids[0]], render: () => <MemberProbe /> };
+  open([ids[0]]);
+  render(<PrintReport />);
+  expect(await screen.findByTestId("fragment-members")).toHaveTextContent(JSON.stringify(members));
+  expect(fetchSpy).not.toHaveBeenCalled();
+});
+it("usePrintOptions returns the options including meta", async () => {
+  function OptionsProbe() {
+    const options = usePrintOptions();
+    usePrintSettled(ids[0], true);
+    return <output data-testid="print-options">{JSON.stringify(options)}</output>;
+  }
+  PRINT_SECTIONS[ids[0]] = { ...original[ids[0]], render: () => <OptionsProbe /> };
+  open([ids[0]]);
+  render(<PrintReport />);
+  expect(JSON.parse((await screen.findByTestId("print-options")).textContent!)).toEqual({ scope: "family", sectionIds: [ids[0]], cover: false, dataDates: true, showFolios: "masked", jobId: "demo-job", members, meta });
+  expect(fetchSpy).not.toHaveBeenCalled();
 });
 it("the pass is never written to localStorage, sessionStorage or document.cookie", async () => {
   const localWrite = vi.spyOn(localStorage, "setItem");
@@ -163,9 +206,9 @@ it("waits for fonts, images and two animation frames", async () => {
 it("sets the requested member scope without writing the saved scope", async () => {
   function ScopeProbe() { const scope = useScope(); usePrintSettled(ids[0], true); return <output>{scope.viewMode}:{scope.memberId}:{scope.members[0]?.name}:{scope.scopeKey}</output>; }
   PRINT_SECTIONS[ids[0]] = { ...original[ids[0]], render: () => <ScopeProbe /> };
-  open([ids[0]], "member-demo");
+  open([ids[0]], members[0].id);
   render(<PrintReport />);
-  expect(await screen.findByText("member:member-demo:Demo Member:member:member-demo")).toBeInTheDocument();
+  expect(await screen.findByText(`member:${members[0].id}:Demo Member:member:${members[0].id}`)).toBeInTheDocument();
 });
 it("releases the memory-only override on unmount", async () => {
   const view = render(<PrintReport />);

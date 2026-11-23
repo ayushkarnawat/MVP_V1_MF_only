@@ -25,11 +25,11 @@ it("fonts load from the bundle, not Google", () => {
 it("no parseFloat, toFixed, Intl, console, any in print/", () => {
   expect(source.filter(file => /parseFloat|toFixed|\bIntl\b|\bconsole\b|\bany\b/.test(read(file)))).toEqual([]);
 });
-it("no import from another feature except the section components, session and required member-list API", () => {
+it("no import from another feature except the section components and session", () => {
   const offenders: string[] = [];
   for (const file of source) for (const match of read(file).matchAll(/(?:from\s+|import\(\s*)["']([^"']*)["']/g)) {
     const target = resolve(dirname(file), match[1]).replaceAll("\\", "/");
-    if (target.includes("/features/") && !/\/features\/(?:mutual-funds\/|auth\/(?:session|api)$)/.test(target)) offenders.push(target);
+    if (target.includes("/features/") && !/\/features\/(?:mutual-funds\/|auth\/session$)/.test(target)) offenders.push(target);
   }
   expect(offenders).toEqual([]);
 });

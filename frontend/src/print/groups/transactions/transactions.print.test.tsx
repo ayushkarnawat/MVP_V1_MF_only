@@ -44,8 +44,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); analyticsStore.invalidate(); });
 
-it("registers every available section of the group and leaves cash flow waiting", async () => {
-  expect(Object.keys(transactionsPrintSections)).toEqual([id]);
+it("registers both sections of the group (cash flow joined once its chart component was merged)", async () => {
+  expect(Object.keys(transactionsPrintSections).sort()).toEqual(["transactions-cash-flow", id]);
   const view = mount();
   await waitFor(() => expect(view.settled).toHaveBeenCalledWith(id, true));
   expect(view.container.textContent).not.toContain("This section is not in the PDF yet.");
