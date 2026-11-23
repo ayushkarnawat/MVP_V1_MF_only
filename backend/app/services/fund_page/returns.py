@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import bisect
+import calendar
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -164,7 +165,7 @@ def inception_returns(
             if any(value is not None and fund.get(period) is not None for period, value in values.items()):
                 benchmark = {column: (plain(values[column], 4) if column in values and values[column] is not None and fund.get(column) is not None else None) for column in _INCEPTION_COLUMNS}
                 printed_date = row.printed_as_of
-                note = benchmark_note("benchmark_note_printed", date=printed_date.isoformat())
+                note = benchmark_note("benchmark_note_printed", date=f"{calendar.month_name[printed_date.month]} {printed_date.year}")
                 benchmark_reason = None
     return ReturnsResponse(
         benchmark_label=BENCHMARK_LABELS.get(choice.index_key) if choice.index_key is not None else None,

@@ -30,7 +30,7 @@ REASON_TEMPLATES: dict[Kind, str] = {
     "general": "General market and economy news",
 }
 
-_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+_MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
 _ONE_DECIMAL = Decimal("0.1")
 
 
@@ -56,5 +56,5 @@ def exposure_text(
         if coverage_pct is not None and coverage_pct < Decimal("100"):
             text += ", from the holdings we can see"
         if holdings_as_of is not None:
-            text += f" (holdings as of {_MONTHS[holdings_as_of.month - 1]} {holdings_as_of.year})"
+            text += f" (holdings as on {_MONTHS[holdings_as_of.month - 1]} {holdings_as_of.year})"
     return text

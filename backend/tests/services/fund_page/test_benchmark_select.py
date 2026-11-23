@@ -70,7 +70,7 @@ def test_returns_table_shows_printed_returns_when_no_series_is_held_and_says_so(
     assert result.rows["benchmark"]["3Y"] == "6.5000"
     assert result.rows["benchmark"]["5Y"] == "6.7500"
     assert result.printed_as_of == date(2026, 9, 30)
-    assert result.benchmark_note == "Benchmark returns are as printed in the fund house's factsheet for 2026-09-30."
+    assert result.benchmark_note == "Benchmark returns are as printed in the fund house's factsheet for September 2026."
 
 
 def test_chart_and_xirr_never_use_printed_returns(db_session):
