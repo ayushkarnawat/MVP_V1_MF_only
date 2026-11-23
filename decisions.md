@@ -975,3 +975,6 @@ Answered by the owner after the M3 lane plan (`Docs/orchestration/2026-11-20-m3-
 - Not yet done for T04: the screens check (light and dark, four widths) from a harness; I will do it with the top bar and the box together.
 
 - 2026-11-23: E-7 decision where the plan was silent: InfoMark keeps role="img", aria-label and data-tooltip (about 15 existing tests read them; changing the role would touch 15 files), and gains popover behaviour. A better role (button) is a later cleanup if the owner wants it.
+
+## 2026-11-23 - First browser check (top bar and section rail), orchestrator
+- Built a throwaway static harness (not in the repo) from `batch/k-search` and looked at it in the in-app browser at 1280x600 and 1000 px, light and dark: the top bar (Ask Mira pill, selector, + Add data, divider, theme toggle), and the section rail on a Performance page (closed ticks, open panel, Pin, a jump that scrolls and moves the highlight, the corner pill below 1100 px). Result: arrangement and look as specified. **One defect found and fixed:** the divider used the page divider token and was almost invisible; it now uses the input-border token (commit 34c0623c). **Not checked:** the 1440x810 and 1536x730 widths, the blur fallback, reduced motion, the popover and the date strip (not yet in this branch), keyboard use by eye.
