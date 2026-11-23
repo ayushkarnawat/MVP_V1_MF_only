@@ -7,6 +7,7 @@ import { deleteHouseholdImport, getHouseholdImportHistory } from "../import/api"
 import type { DeleteImportResponse, HouseholdImportHistoryItem } from "../import/types";
 import { DeleteImportDialog, type DeleteScope } from "./DeleteImportDialog";
 import { groupKey, removalNames } from "./historyGroups";
+import { filterImportGroups } from "./importHistorySearch";
 
 interface ImportHistorySectionProps {
   loadImportHistory?: () => Promise<HouseholdImportHistoryItem[]>;
@@ -37,6 +38,7 @@ export function ImportHistorySection({
   const [deletePending, setDeletePending] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -49,6 +51,8 @@ export function ImportHistorySection({
     for (const item of imports) byKey.set(groupKey(item), [...(byKey.get(groupKey(item)) ?? []), item]);
     return [...byKey.values()];
   }, [imports]);
+
+  const visibleGroups = useMemo(() => filterImportGroups(groups, query), [groups, query]);
 
   const runDelete = async (item: HouseholdImportHistoryItem, scope: DeleteScope) => {
     setDeletePending(true);
@@ -81,14 +85,29 @@ export function ImportHistorySection({
 
   return (
     <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
-      <h2 className="font-display text-lg font-semibold">Import History</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold">Import History</h2>
+        {imports.length > 0 ? (
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search imports"
+            placeholder="Search imports"
+            className="h-8 w-48 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm focus:outline-none focus:ring-1"
+          />
+        ) : null}
+      </div>
       {loading ? <p className="text-sm text-[var(--color-text-secondary)]">Loading imports…</p> : null}
       {error ? <p className="text-sm text-[var(--color-negative)]">{error}</p> : null}
       {!loading && !error && imports.length === 0 ? (
         <p className="text-sm text-[var(--color-text-secondary)]">No imports yet.</p>
       ) : null}
+      {!loading && !error && imports.length > 0 && visibleGroups.length === 0 ? (
+        <p className="text-sm text-[var(--color-text-secondary)]">{`No imports match "${query}".`}</p>
+      ) : null}
       <div className="divide-y divide-[var(--color-border)]">
-        {groups.map((group) => {
+        {visibleGroups.map((group) => {
           const first = group[0];
           const multi = group.length > 1;
           return (
