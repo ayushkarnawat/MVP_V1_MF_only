@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { CLICK_ROW, DISABLED } from "@/lib/clickable";
+import { formatDataDateTail } from "@/lib/dataDates";
 import { fundPageApi } from "../api";
 import { SectionState } from "../components/SectionState";
 import {
@@ -208,10 +209,10 @@ export function FundManagerCard({ schemeId }: FundManagerCardProps) {
                 className="flex justify-between gap-3 py-2 text-sm"
               >
                 <dt className="text-[var(--ui-text-muted)]">
-                  Details as of
+                  Manager details
                 </dt>
                 <dd className="font-semibold text-[var(--ui-text)]">
-                  {formatDate(manager.data!.reference_period)}
+                  {formatDataDateTail("managerDetails", manager.data!.reference_period)}
                 </dd>
               </div>
             )}

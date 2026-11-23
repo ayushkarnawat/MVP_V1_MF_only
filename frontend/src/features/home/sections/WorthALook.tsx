@@ -2,13 +2,13 @@ import { ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLink } from "@/shell/nav/AppLink";
 import { paths } from "@/shell/nav/paths";
+import { formatDataDate } from "../../../lib/dataDates";
 import { formatPercent, formatSignedPercent } from "../homeFormat";
 import type { WorthCardOut, WorthResponse } from "../types";
 import {
   comparisonBars,
   concentrationTrend,
   costScale,
-  formatMonthYear,
   scoreChip,
   worthChip,
   worthDetail,
@@ -185,7 +185,7 @@ function ConcentrationVisual({
   return (
     <div className="space-y-3 pt-1">
       <div className="text-xs text-[var(--ui-text-muted)]">
-        {`Approximate · holdings as of ${formatMonthYear(holdingsAsOf)}`}
+        {`Approximate · ${formatDataDate("holdings", holdingsAsOf)}`}
       </div>
 
       <div className="flex flex-wrap items-baseline gap-2">

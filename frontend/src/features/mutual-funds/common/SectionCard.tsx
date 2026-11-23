@@ -1,24 +1,34 @@
 import { useId, type ReactNode } from "react";
+import { InfoPopover } from "../../../components/info/InfoPopover";
 import { Skeleton } from "../../../components/ui/skeleton";
 
 export interface InfoMarkProps {
   text: string;
   testId?: string;
+  /** Richer popover content (for example one paragraph per line). The name and tooltip attribute stay `text`. */
+  content?: ReactNode;
 }
 
-export function InfoMark({ text, testId }: InfoMarkProps) {
+export function InfoMark({ text, testId, content }: InfoMarkProps) {
   return (
-    <span
-      role="img"
-      tabIndex={0}
-      aria-label={text}
-      title={text}
-      data-tooltip={text}
-      data-testid={testId}
-      className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] font-semibold text-[var(--ui-text-muted)] hover:border-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+    <InfoPopover
+      label={text}
+      trigger={
+        <span
+          role="img"
+          tabIndex={0}
+          aria-label={text}
+          title={text}
+          data-tooltip={text}
+          data-testid={testId}
+          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] font-semibold text-[var(--ui-text-muted)] hover:border-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+        >
+          i
+        </span>
+      }
     >
-      i
-    </span>
+      {content ?? text}
+    </InfoPopover>
   );
 }
 

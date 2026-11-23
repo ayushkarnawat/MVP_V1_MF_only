@@ -1,13 +1,11 @@
 import { useId, useState } from "react";
-import { Portal as TooltipPortal } from "@radix-ui/react-tooltip";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../components/ui/tooltip";
+import { InfoPopover } from "../../../components/info/InfoPopover";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../components/mf/lookthroughDisplay";
 import { compareDecimalStrings } from "../../../lib/decimal";
-import { formatDate } from "../../../lib/format";
 import { SectionCard } from "../common/SectionCard";
 import type { ValuationFund, ValuationSummary, ValuationValue } from "../types";
-import { CARD_TITLES, ratioText, type ValuationKind } from "./otherLogic";
+import { CARD_TITLES, ratioText, sourceSentence, type ValuationKind } from "./otherLogic";
 import { filterFundRows } from "./otherSearch";
 
 const LABEL = { pe: "P/E", pb: "P/B" };
@@ -29,26 +27,6 @@ function position(value: string, maximum: string): string {
   return `${percent / 100n}.${String(percent % 100n).padStart(2, "0")}`;
 }
 
-function Source({ value, kind, name }: { value: ValuationValue; kind: ValuationKind; name: string }) {
-  const [open, setOpen] = useState(false);
-  const label = value.source === "factsheet" ? (value.basis === "forward" ? "Factsheet fwd" : "Factsheet") : "NSE/BSE";
-  const basis = value.basis === "forward" ? "forward earnings" : value.basis === "trailing"
-    ? (kind === "pe" ? "trailing earnings" : "trailing book value") : "not stated";
-  const method = value.method === "harmonic" ? "harmonic mean" : value.method === "weighted_average" ? "weighted average" : "not stated";
-  const note = `Basis: ${basis}. Method: ${method}.`;
-  return <TooltipProvider delayDuration={0}><Tooltip open={open} onOpenChange={setOpen}>
-    <TooltipTrigger asChild><button type="button" aria-label={`${LABEL[kind]} source for ${name}`} aria-expanded={open}
-      title={note} data-tooltip={note}
-      data-clickable="" data-effect="expand" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-      onClick={event => { event.preventDefault(); setOpen(true); }}
-      className="min-h-8 rounded-full border border-[var(--ui-divider)] px-2 text-[10px] font-medium text-[var(--ui-text-muted)]">
-      {label}
-    </button></TooltipTrigger>
-    <TooltipPortal><TooltipContent className="max-w-64">{note}</TooltipContent></TooltipPortal>
-  </Tooltip></TooltipProvider>;
-}
-
 function RatioCell({ value, kind, fund, benchmark, maximum }: {
   value: ValuationValue; kind: ValuationKind; fund: ValuationFund; benchmark: string | null; maximum: string;
 }) {
@@ -65,7 +43,6 @@ function RatioCell({ value, kind, fund, benchmark, maximum }: {
   return <td className="p-3 align-top">
     <div className="flex flex-wrap items-center gap-1.5">
       <strong className="text-sm tabular-nums text-[var(--ui-text)]">{ratioText(value.value)}</strong>
-      <Source value={value} kind={kind} name={fund.scheme_name} />
     </div>
     <div aria-label={`${LABEL[kind]} range for ${fund.scheme_name}`} className="relative mt-3 h-2 rounded-full bg-[var(--ui-divider)]">
       {usable(benchmark) && <span aria-label={`${LABEL[kind]} Nifty 500 tick for ${fund.scheme_name}`}
@@ -111,14 +88,6 @@ function StockList({ label, stocks }: { label: string; stocks: ListedStock[] }) 
   </div>;
 }
 
-function AsOn({ fund }: { fund: ValuationFund }) {
-  const pe = usable(fund.pe.value), pb = usable(fund.pb.value);
-  if (pe && pb && fund.pe.as_of !== fund.pb.as_of) return <>
-    <p>P/E {formatDate(fund.pe.as_of)}</p><p className="mt-1">P/B {formatDate(fund.pb.as_of)}</p>
-  </>;
-  return <span>{pe ? formatDate(fund.pe.as_of) : pb ? formatDate(fund.pb.as_of) : "—"}</span>;
-}
-
 export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; query?: string }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const infoId = useId();
@@ -140,20 +109,26 @@ export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] table-fixed text-left">
           <thead className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-            <tr><th scope="col" className="w-[30%] p-3">Fund</th><th scope="col" className="w-[25%] p-3">P/E</th><th scope="col" className="w-[25%] p-3">P/B</th><th scope="col" className="w-[20%] p-3">As on</th></tr>
+            <tr><th scope="col" className="w-[30%] p-3">Fund</th><th scope="col" className="w-[35%] p-3">P/E</th><th scope="col" className="w-[35%] p-3">P/B</th></tr>
           </thead>
           <tbody>{funds.map(fund => <tr key={fund.scheme_id} className="border-b border-[var(--ui-divider)]">
             <th scope="row" className="p-3 align-top text-xs font-semibold text-[var(--ui-text)]">
-              <span className="flex items-center gap-2"><SchemeLogo schemeName={fund.scheme_name} size="sm" />{fund.scheme_name}</span>
+              <span className="flex items-center gap-2">
+                <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                {fund.scheme_name}
+                <InfoPopover label={`P/E and P/B for ${fund.scheme_name}`} title={fund.scheme_name} side="bottom">
+                  <p>P/E: {sourceSentence(fund.pe, "pe")}</p>
+                  <p className="mt-1.5">P/B: {sourceSentence(fund.pb, "pb")}</p>
+                  <p className="mt-1.5 text-[var(--ui-text-muted)]">Indicators, not a recommendation.</p>
+                </InfoPopover>
+              </span>
             </th>
             <RatioCell fund={fund} value={fund.pe} kind="pe" benchmark={benchmarks.pe} maximum={maxima.pe} />
             <RatioCell fund={fund} value={fund.pb} kind="pb" benchmark={benchmarks.pb} maximum={maxima.pb} />
-            <td className="p-3 align-top text-xs text-[var(--ui-text-muted)]"><AsOn fund={fund} /></td>
           </tr>)}</tbody>
         </table>
       </div>
       {funds.length === 0 && <p className="text-xs text-[var(--ui-text-muted)]">No fund valuation figures are available yet.</p>}
-      <p className="text-xs text-[var(--ui-text-muted)]">Factsheet: printed by the fund house; fwd means forward earnings. NSE/BSE: calculated from published holdings. Indicators, not a recommendation.</p>
       <button type="button" aria-label="How the portfolio average works" aria-expanded={infoOpen} aria-controls={infoId}
         data-clickable="" data-effect="expand" onClick={() => setInfoOpen(!infoOpen)}
         className="rounded-lg border border-[var(--ui-divider)] px-3 py-2 text-xs font-medium text-[var(--ui-text)]">i · How the portfolio average works</button>

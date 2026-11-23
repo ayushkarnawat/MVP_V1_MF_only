@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { CoverageBanner } from "../../../components/mf/CoverageBanner";
 import { compareDecimalStrings } from "../../../lib/decimal";
-import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
 import { BarList, ChartTypeToggle } from "../common/charts";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -87,10 +87,6 @@ export function AssetClassCard({
         </p>
       ) : (
         <div className="flex flex-col gap-4">
-          <p data-testid="as-on" className="text-xs text-[var(--ui-text-muted)]">
-            Values as on {formatDate(data.nav_as_of)} · Holdings as on {formatDate(data.holdings_as_of)}
-          </p>
-
           <p className="text-xs text-[var(--ui-text-muted)]">
             Percentages describe the five asset classes in your published fund holdings.
           </p>

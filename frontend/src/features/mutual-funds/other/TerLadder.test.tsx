@@ -20,7 +20,7 @@ describe("the hero", () => {
     expect(screen.getByTestId("ter-weighted")).toHaveTextContent("0.64%");
     expect(screen.getByText("AUM-Wtd TER")).toBeInTheDocument();
     expect(screen.getByTestId("ter-hero-sub")).toHaveTextContent("₹24,505/yr at today's value · covers ₹38.30 L of ₹46.49 L portfolio value");
-    expect(screen.getByTestId("ter-ref")).toHaveTextContent("Ref: 31 Mar 2026");
+    expect(screen.queryByTestId("ter-ref")).not.toBeInTheDocument();
     expect(screen.getByText(/Projected annual cost if your value and each fund's TER stay as they are today — not a forecast of returns\./)).toBeInTheDocument();
   });
   it("draws the gauge arc as the weighted TER's share of the 2.5 percent scale", () => {

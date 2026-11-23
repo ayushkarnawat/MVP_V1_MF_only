@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DataDateLabel } from "@/components/DataDateLabel";
 import { FolioNumber } from "@/components/mf/FolioNumber";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CLICK_ROW, DISABLED } from "@/lib/clickable";
@@ -94,7 +95,7 @@ export function InvestmentDetails({
             data-testid="detail-current-nav-asof"
             className="text-xs font-normal text-[var(--ui-text-muted)]"
           >
-            {`as of ${formatDate(summary.nav_as_of)}`}
+            <DataDateLabel kind="prices" iso={summary.nav_as_of} />
           </span>
         </>
       ),

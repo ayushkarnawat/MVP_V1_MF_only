@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Modal } from "@/components/Modal";
 import { compareDecimalStrings } from "@/lib/decimal";
-import { formatDate, formatPercent } from "@/lib/format";
+import { formatDataDateTail } from "@/lib/dataDates";
+import { formatPercent } from "@/lib/format";
 import { fundPageApi } from "../api";
 import { SectionState } from "../components/SectionState";
 import { ageTagText } from "../fundCopy";
@@ -74,7 +75,7 @@ export function AllHoldingsDialog({
   if (!isOpen) return null;
 
   const title = holdings.data
-    ? `All holdings, as of ${formatDate(holdings.data.holdings_as_of)}`
+    ? `All holdings, ${formatDataDateTail("holdings", holdings.data.holdings_as_of)}`
     : "All holdings";
 
   return (

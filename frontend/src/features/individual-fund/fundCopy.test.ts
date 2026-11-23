@@ -120,12 +120,12 @@ describe("fundCopy: holdings and allocation", () => {
   });
 
   it("allocationNote words each tab, and the market-cap note names the unclassified share only when there is one", () => {
-    expect(allocationNote("market_cap", "30 Sep 2026", "3.6%")).toBe(
-      "Share of the classified equity part. Not shown: 3.6% of the fund (cash, debt, unlisted). Disclosure as of 30 Sep 2026."
+    expect(allocationNote("market_cap", "2026-09-30", "3.6%")).toBe(
+      "Share of the classified equity part. Not shown: 3.6% of the fund (cash, debt, unlisted). Disclosure as on September 2026."
     );
-    expect(allocationNote("market_cap", "30 Sep 2026", null)).toBe("Share of the classified equity part. Disclosure as of 30 Sep 2026.");
-    expect(allocationNote("sector", "30 Sep 2026", "3.6%")).toBe("Sector from the fund's disclosure, as of 30 Sep 2026.");
-    expect(allocationNote("asset_type", "30 Sep 2026", null)).toBe("Share of the fund's portfolio, as of 30 Sep 2026.");
+    expect(allocationNote("market_cap", "2026-09-30", null)).toBe("Share of the classified equity part. Disclosure as on September 2026.");
+    expect(allocationNote("sector", "2026-09-30", "3.6%")).toBe("Sector from the fund's disclosure, as on September 2026.");
+    expect(allocationNote("asset_type", "2026-09-30", null)).toBe("Share of the fund's portfolio, as on September 2026.");
   });
 
   it("the slice dialog names the share by tab", () => {

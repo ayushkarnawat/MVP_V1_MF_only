@@ -32,33 +32,14 @@ const card = () => screen.getByRole("region", { name: "Valuation by Fund" });
 const fundRow = (name: string) => within(card()).getByRole("row", { name: new RegExp(name) });
 
 describe("Valuation by Fund", () => {
-  it("renders one row per fund with logo, P/E, P/B and as-on date", () => {
+  it("renders one row per fund with logo, P/E and P/B", () => {
     mount();
     expect(within(card()).getAllByRole("row")).toHaveLength(4);
     const row = within(fundRow("Invesco India Midcap Fund"));
     expect(row.getByRole("img", { name: "Invesco India Midcap Fund logo" })).toBeInTheDocument();
     expect(row.getByText("30.6x")).toBeInTheDocument();
     expect(row.getByText("4.7x")).toBeInTheDocument();
-    expect(row.getByText("12 Oct 2026")).toBeInTheDocument();
-    expect(within(fundRow("Kotak Flexicap Fund")).getByText(/10 Oct 2026/)).toBeInTheDocument();
     expect(within(card()).getAllByLabelText(/Nifty 500 tick/)).toHaveLength(5);
-  });
-  it("label shows Factsheet, Factsheet fwd or NSE/BSE", () => {
-    mount();
-    expect(within(card()).getByRole("button", { name: "P/E source for Invesco India Midcap Fund" })).toHaveTextContent("Factsheet fwd");
-    expect(within(card()).getByRole("button", { name: "P/B source for Invesco India Midcap Fund" })).toHaveTextContent("Factsheet");
-    expect(within(card()).getByRole("button", { name: "P/E source for Kotak Flexicap Fund" })).toHaveTextContent("NSE/BSE");
-  });
-  it("hover note names basis and method, and tapping also opens it", () => {
-    mount();
-    const source = within(card()).getByRole("button", { name: "P/E source for Invesco India Midcap Fund" });
-    fireEvent.mouseEnter(source);
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Basis: forward earnings. Method: weighted average.");
-    fireEvent.mouseLeave(source);
-    fireEvent.focus(source);
-    fireEvent.click(source);
-    expect(source).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("tooltip")).toHaveTextContent("forward earnings");
   });
   it("fund without unavailable_reason keeps today's behaviour (shows 'Not enough data' with the reason)", () => {
     mount();

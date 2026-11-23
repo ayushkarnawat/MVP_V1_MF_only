@@ -1,5 +1,6 @@
 import { FolioNumber } from "@/components/mf/FolioNumber";
 import { Modal } from "@/components/Modal";
+import { formatDataDateTail } from "@/lib/dataDates";
 import { formatDate, formatPercent, formatRupees } from "@/lib/format";
 import { formatNav, formatSignedPercent, formatSignedRupees, formatXirr } from "../fundFormat";
 import { TILE_TITLES, type TileId } from "../fundCopy";
@@ -40,9 +41,9 @@ export function TileDialog({ tile, summary, onClose }: TileDialogProps) {
               </dd>
             </div>
             <div className="flex justify-between py-2 text-sm">
-              <dt className="text-[var(--ui-text-muted)]">NAV as of</dt>
+              <dt className="text-[var(--ui-text-muted)]">NAV</dt>
               <dd className="font-semibold text-[var(--ui-text)]">
-                {formatDate(summary.nav_as_of)}
+                {formatDataDateTail("prices", summary.nav_as_of) || "—"}
               </dd>
             </div>
             {details.folios.map((folio) => (
@@ -164,10 +165,10 @@ export function TileDialog({ tile, summary, onClose }: TileDialogProps) {
               </dd>
             </div>
             <div className="flex justify-between py-2 text-sm">
-              <dt className="text-[var(--ui-text-muted)]">As of</dt>
+              <dt className="text-[var(--ui-text-muted)]">Expense ratio</dt>
               <dd className="font-semibold text-[var(--ui-text)]">
                 {tiles.expense_ratio?.reference_period
-                  ? formatDate(tiles.expense_ratio.reference_period)
+                  ? formatDataDateTail("fees", tiles.expense_ratio.reference_period) || "—"
                   : "—"}
               </dd>
             </div>
