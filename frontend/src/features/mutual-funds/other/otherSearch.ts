@@ -1,5 +1,5 @@
 import { matchesItem, type SearchableField } from "../../../components/search/matcher";
-import { parseQuery } from "../../../components/search/queryParser";
+import { plainWords } from "../../../components/search/queryParser";
 
 export interface SearchableFundRow {
   scheme_name: string;
@@ -19,7 +19,7 @@ function rowFields(row: SearchableFundRow): SearchableField[] {
 }
 
 export function filterFundRows<T extends SearchableFundRow>(rows: T[], text: string): T[] {
-  const { words } = parseQuery(text);
+  const words = plainWords(text);
   if (words.length === 0) return rows;
   return rows.filter((row) => matchesItem(words, { fields: rowFields(row) }) > 0);
 }

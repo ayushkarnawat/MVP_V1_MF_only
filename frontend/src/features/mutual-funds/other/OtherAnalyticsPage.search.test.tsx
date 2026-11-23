@@ -133,7 +133,10 @@ describe("OtherAnalyticsPage search", () => {
   it("headings and explanations stay with ?q=", async () => {
     const baseline = mount();
     await ready();
-    const titles = screen.getAllByRole("heading").map(heading => heading.textContent);
+    // A fund's own card heading goes with the fund when it is filtered out; the page, group and card headings stay.
+    const isFundHeading = (text: string | null) => /^Example (Growth|Income) Fund$/.test(text ?? "");
+    const headings = () => screen.getAllByRole("heading").map(heading => heading.textContent).filter(text => !isFundHeading(text));
+    const titles = headings();
     const explanations = [
       "How expensive your funds are to hold, and how richly their holdings are priced.",
       "Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size.",
@@ -142,7 +145,7 @@ describe("OtherAnalyticsPage search", () => {
     baseline.unmount();
     const matching = mount("?q=growth");
     await ready();
-    expect(screen.getAllByRole("heading").map(heading => heading.textContent)).toEqual(titles);
+    expect(headings()).toEqual(titles);
     for (const text of explanations) expect(screen.getByText(text)).toBeInTheDocument();
     expect(screen.queryByTestId("group-scorer")).not.toBeInTheDocument();
     expect(screen.getByTestId("page-search-stub")).toBeInTheDocument();
