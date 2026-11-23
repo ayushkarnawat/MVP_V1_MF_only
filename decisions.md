@@ -968,3 +968,8 @@ Answered by the owner after the M3 lane plan (`Docs/orchestration/2026-11-20-m3-
 - **F-6 delivers the three hooks and `scrollRoot` only**; the rail (F-7) does not exist yet, so Claude mounts it afterwards.
 - **E-6b (the two back-end sentences) is done by Claude** (tiny, service-level tests), logged as worker = orchestrator.
 - **T08 (the search box) waits** until T04 and T05 are in: its red tests are Claude's (eight box states) and need the mockups of the search spec.
+
+## 2026-11-23 - K T04 and T05 built (orchestrator)
+- **T04:** `PageLayout` has an optional `search` slot before `actions`; the top bar has no search box; Ask Mira is a wide soft green-tint pill at the left with its hint (button keeps the accessible name "Ask Mira" so existing tests and screen readers are unchanged); right group: family selector, + Add data, divider, theme toggle; logout also clears the search state and the GET cache. Tokens only. Shell contract change-log line v1.8 added.
+- **T05 Undo design (orchestrator, adjustable):** `scopeJump { label, undo }` on the scope value; set when a search jump changed the selector; cleared by undo, by a manual selector change, and by moving to another page. **Decision where the plan was silent:** the provider removes only the `scope` part of `searchIntent` from the history entry and leaves `section` and `open` (and other keys such as `importNotice`) for the page hooks (T09/T11+), so the page can still read them; `readScopeIntent` returns null once the scope is gone, which is what makes it apply once. If the owner vetoes the Undo, remove `scopeJump` and the notice only.
+- Not yet done for T04: the screens check (light and dark, four widths) from a harness; I will do it with the top bar and the box together.

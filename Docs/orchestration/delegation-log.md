@@ -808,3 +808,4 @@ fix" rule.
 - 2026-11-23 | E-4 strip red tests | Codex (worktree unifolio-e-dates) | handoff written, relay pending | orchestrator
 - 2026-11-23 | E-6a tabs labels | Antigravity ag-e6a | packet written, relay pending | orchestrator
 - 2026-11-23 | E-6c Home and fund page labels | Antigravity ag-e6c | packet written, relay pending | orchestrator
+- 2026-11-23 | K T04 (layout, top bar, logout) and T05 (scope intent, Undo) | orchestrator (not delegable) | DONE on batch/k-search: shell+auth+search+home 161 files / 1903 tests green, types and lint clean (4 old lint warnings, none mine); commits 8eab96b4, 5cbcfdd6 and the T05 commit | orchestrator
