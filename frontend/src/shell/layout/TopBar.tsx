@@ -1,23 +1,30 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { Button } from "../../components/ui/button";
 import { useImport } from "../scope/ScopeContext";
 import { MiraComingSoonDialog } from "../mira/MiraComingSoonDialog";
 import { FamilySelector } from "./FamilySelector";
 
+// The pill is a soft green tint built from the shell tokens (no solid green, so no label-colour clash with the palette rule).
+const MIRA_PILL = "group flex h-11 min-w-64 flex-1 items-center gap-3 rounded-xl border px-4 text-left text-sm text-[var(--shell-text)] "
+  + "border-[color-mix(in_srgb,var(--shell-accent)_28%,var(--shell-card))] bg-[color-mix(in_srgb,var(--shell-accent)_10%,var(--shell-card))] "
+  + "hover:bg-[color-mix(in_srgb,var(--shell-accent)_16%,var(--shell-card))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--shell-accent)]";
+
 export function TopBar() {
   const { openImport } = useImport();
   const [miraOpen, setMiraOpen] = useState(false);
-  return <header className="flex flex-wrap items-center gap-3 border-b border-[var(--shell-divider)] bg-[var(--shell-card)] px-6 py-4 font-body text-[var(--shell-text)]">
-    <div className="relative mr-auto min-w-40 max-w-md flex-1">
-      <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-3 top-3 text-[var(--shell-icon-muted)]" />
-      <input aria-label="Search" placeholder="Search" readOnly aria-haspopup="dialog" aria-expanded={miraOpen} onClick={() => setMiraOpen(true)} onKeyDown={event => { if (event.key === "Enter") setMiraOpen(true); }} className="h-10 w-full cursor-pointer rounded-lg border border-[var(--shell-border-input)] bg-[var(--shell-page)] pl-9 pr-3 text-sm text-[var(--shell-text)] placeholder:text-[var(--shell-text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--shell-accent)]" />
+  return <header className="flex flex-wrap items-center gap-3 border-b border-[var(--shell-divider)] bg-[var(--shell-card)] px-6 py-5 font-body text-[var(--shell-text)]">
+    <button type="button" aria-label="Ask Mira" onClick={() => setMiraOpen(true)} className={MIRA_PILL}>
+      <span data-testid="mira-spark" aria-hidden="true" className="text-[var(--shell-accent)]">✦</span>
+      <span className="font-semibold">Ask Mira</span>
+      <span className="truncate text-[var(--shell-text-secondary)]">Ask anything about your funds…</span>
+    </button>
+    <div className="ml-auto flex flex-wrap items-center gap-3">
+      <FamilySelector />
+      <Button variant="outline" onClick={() => openImport()} className="rounded-xl border-[var(--shell-border-input)] text-[var(--shell-text)] hover:bg-[var(--shell-page)] focus-visible:ring-[var(--shell-accent)]">+ Add data</Button>
+      <span role="separator" aria-orientation="vertical" className="h-6 w-px bg-[var(--shell-divider)]" />
+      <ThemeToggle />
     </div>
-    <Button variant="outline" onClick={() => openImport()} className="border-[var(--shell-border-input)] text-[var(--shell-text)] hover:bg-[var(--shell-page)] focus-visible:ring-[var(--shell-accent)]">+ Add data</Button>
-    <Button variant="outline" onClick={() => setMiraOpen(true)} className="border-[var(--shell-border-input)] text-[var(--shell-text)] hover:bg-[var(--shell-page)] focus-visible:ring-[var(--shell-accent)]">Ask Mira</Button>
-    <FamilySelector />
-    <ThemeToggle />
     <MiraComingSoonDialog open={miraOpen} onOpenChange={setMiraOpen} />
   </header>;
 }
