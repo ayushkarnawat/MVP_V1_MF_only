@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Floating checklist spike</title>
+  <link rel="stylesheet" href="spike.css">
+  <style>.checklist h2 { margin-top: 0; }</style>
+  <script src="spike.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>Floating checklist spike</h1>
+    <p>Throwaway browser test. Use invented details only. No form details are read or saved.</p>
+    <p id="environment"></p>
+    <label for="delay">Fake request delay</label>
+    <select id="delay">
+      <option value="300">0.3 seconds</option>
+      <option value="1000">1 second</option>
+      <option value="3000">3 seconds</option>
+      <option value="6000">6 seconds</option>
+    </select>
+    <div class="controls">
+      <button id="checklist-first">Request Statement (open the checklist first)</button>
+      <button id="request-first">Request Statement (call the request first)</button>
+      <button id="cams-first">Request Statement (open the CAMS tab first, then the checklist)</button>
+      <button id="checklist-only">Open the checklist only</button>
+      <button id="close">Close</button>
+    </div>
+    <p><label><input id="refuse" type="checkbox"> Simulate a refused request (NotAllowedError)</label></p>
+    <p id="location" role="status"></p>
+    <p id="shared-state" aria-live="polite"></p>
+    <div id="checklist-home"></div>
+    <section aria-labelledby="observations-title">
+      <h2 id="observations-title">Record what you see</h2>
+      <p>After switching to the stand-in, return here to record the result. These are manual observations.</p>
+      <label for="observation">Check</label>
+      <select id="observation">
+        <option>Q4: Floating window stays on top and ticks work over stand-in</option>
+        <option>Q6: Floating styles match main page and remain light in dark mode</option>
+        <option>Q8: Reload closed the old floating window and restored ticks and step</option>
+      </select>
+      <label for="outcome">Result</label>
+      <select id="outcome"><option>PASS</option><option>FAIL</option><option>NOT CHECKED</option></select>
+      <button id="record">Record observation</button>
+    </section>
+    <section aria-labelledby="results-title">
+      <h2 id="results-title">Results</h2>
+      <button id="copy">Copy results</button>
+      <pre id="results" role="log" aria-live="polite"></pre>
+    </section>
+  </main>
+</body>
+</html>
