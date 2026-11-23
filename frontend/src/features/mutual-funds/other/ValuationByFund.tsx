@@ -8,6 +8,7 @@ import { formatDate } from "../../../lib/format";
 import { SectionCard } from "../common/SectionCard";
 import type { ValuationFund, ValuationSummary, ValuationValue } from "../types";
 import { CARD_TITLES, ratioText, type ValuationKind } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 
 const LABEL = { pe: "P/E", pb: "P/B" };
 
@@ -118,11 +119,11 @@ function AsOn({ fund }: { fund: ValuationFund }) {
   return <span>{pe ? formatDate(fund.pe.as_of) : pb ? formatDate(fund.pb.as_of) : "—"}</span>;
 }
 
-export function ValuationByFund({ data }: { data: ValuationSummary }) {
+export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; query?: string }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const infoId = useId();
   if (data.funds === undefined) return null;
-  const funds = data.funds;
+  const funds = filterFundRows(data.funds, query);
   const index = data.indices.find(row => row.index_name === "nifty_500");
   const benchmarks = { pe: index?.pe_ratio ?? null, pb: index?.pb_ratio ?? null };
   const comparable = funds.filter(fund => usable(fund.pe.value));

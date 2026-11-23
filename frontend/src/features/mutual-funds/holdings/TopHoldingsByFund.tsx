@@ -17,7 +17,8 @@ export function TopHoldingsByFund({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<StockHoldingsSummary>) {
+  anchor,
+}: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string }) {
   const rows = useMemo(() => equityRows(data), [data]);
   const chips = useMemo(() => fundChips(rows), [rows]);
 
@@ -38,6 +39,7 @@ export function TopHoldingsByFund({
     <SectionCard
       title="Top Holdings by Fund"
       info="Each fund's top 10 stock positions by weight — re-sorted on your device from the same per-fund breakdown used in the portfolio-wide table below, not a separate computation."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

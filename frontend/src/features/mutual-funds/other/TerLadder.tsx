@@ -16,21 +16,29 @@ import {
   terText,
   terTotals,
 } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 
 export interface TerLadderProps {
   ter: WeightedTerSummary;
   comparison: DirectRegularTerComparison | null;
   ranking: CategoryRankingSummary | null;
+  query?: string;
 }
 
 function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-export function TerLadder({ ter, comparison, ranking }: TerLadderProps) {
+export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderProps) {
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const rows = terLadderRows(ter);
+  const allRows = terLadderRows(ter);
+  const rows = query
+    ? (() => {
+        const matchedFunds = new Set(filterFundRows(allRows.map(r => r.fund), query));
+        return allRows.filter(r => matchedFunds.has(r.fund));
+      })()
+    : allRows;
   const max = terScaleMax(ter, comparison);
 
   const circumference = 2 * Math.PI * 38;

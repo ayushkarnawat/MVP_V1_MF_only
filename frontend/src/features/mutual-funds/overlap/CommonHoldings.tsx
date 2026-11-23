@@ -18,7 +18,8 @@ export function CommonHoldings({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<StockHoldingsSummary>) {
+  anchor,
+}: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string }) {
   const [showAll, setShowAll] = useState(false);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ export function CommonHoldings({
     <SectionCard
       title="1. Common Holdings"
       info="Stocks held by more than one of your funds, and how much of your total portfolio they represent combined."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

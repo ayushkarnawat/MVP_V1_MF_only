@@ -61,6 +61,7 @@ function AllocationBody() {
     <div data-testid="allocation-cards" className="flex flex-col gap-[18px]">
       <div id="asset-allocation" data-testid="card-asset-class">
         <AssetClassCard
+          anchor="allocation-asset-class"
           state={asset.status}
           data={asset.data}
           onRetry={asset.retry}
@@ -68,6 +69,7 @@ function AllocationBody() {
       </div>
       <div id="market-cap" data-testid="card-market-cap">
         <MarketCapCard
+          anchor="allocation-market-cap"
           state={cap.status}
           data={cap.data}
           onRetry={cap.retry}
@@ -75,6 +77,7 @@ function AllocationBody() {
       </div>
       <div data-testid="card-category-amc">
         <CategoryAmcCard
+          anchor="allocation-category-amc"
           state={alloc.status}
           data={alloc.data}
           onRetry={alloc.retry}
@@ -83,6 +86,7 @@ function AllocationBody() {
       </div>
       <div data-testid="card-fund-manager">
         <FundManagerCard
+          anchor="allocation-fund-manager"
           state={manager.status}
           data={manager.data}
           onRetry={manager.retry}

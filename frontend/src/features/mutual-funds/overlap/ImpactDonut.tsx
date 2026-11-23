@@ -17,7 +17,8 @@ export function ImpactDonut({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<OverlapSummary>) {
+  anchor,
+}: AnalyticsCardProps<OverlapSummary> & { anchor?: string }) {
   const [selectedKey, setSelectedKey] = useState<string | null>("top3");
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export function ImpactDonut({
     <SectionCard
       title="4. Overlap Impact"
       info="How much of your portfolio sits in funds that overlap with another fund, and how much sits in funds that do not."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

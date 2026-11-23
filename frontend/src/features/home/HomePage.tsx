@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageSearch } from "@/components/search/PageSearch";
 import { useWealthSeries } from "@/components/wealth-graph/useWealthSeries";
 import { useImport, useScope } from "../../shell/scope/ScopeContext";
 import { MiraComingSoonDialog } from "../../shell/mira/MiraComingSoonDialog";
@@ -36,7 +37,7 @@ import { useStaleWhileLoading } from "./useStaleWhileLoading";
 
 export function HomePage({ today }: { today?: string } = {}) {
   const todayIso = today ?? istToday();
-  const { viewMode, memberId, scopeKey, selectedMember, setMember, setAggregate } = useScope();
+  const { viewMode, memberId, scopeKey, selectedMember, userId, setMember, setAggregate } = useScope();
   const { openImport } = useImport();
   const scope: HomeScopeArg = { viewMode, memberId };
 
@@ -128,6 +129,17 @@ export function HomePage({ today }: { today?: string } = {}) {
           summary={summary.data}
           onImport={openImport}
           onTopMover={handleTopMover}
+          search={
+            <PageSearch
+              pageKey="home"
+              noun="funds"
+              total={0}
+              matched={0}
+              chipsAllowed={[]}
+              jumpOnly
+              userId={userId ?? null}
+            />
+          }
         />
       </div>
 

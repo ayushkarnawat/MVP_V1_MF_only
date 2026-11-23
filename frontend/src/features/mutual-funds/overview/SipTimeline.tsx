@@ -8,7 +8,9 @@ import { InfoMark } from "../common/SectionCard";
 import { FundLink } from "../common/FundLink";
 import { useMfSection } from "../data/useMfDashboard";
 import { MONTHS_LONG, dayMonth, monthlySipTotal } from "../mfCopy";
+import type { SearchChip } from "../../../components/search/usePageSearchState";
 import type { SipMonthlyRow, SipRow } from "../types";
+import { filterSipRows } from "./overviewSearch";
 
 export interface SipTimelineProps {
   sips: {
@@ -16,6 +18,8 @@ export interface SipTimelineProps {
     data: SipRow[] | null;
     retry: () => void;
   };
+  query?: string;
+  chips?: SearchChip[];
 }
 
 // India has no daylight saving, so a fixed +05:30 offset is exact. (Intl is off-limits in this
@@ -25,7 +29,7 @@ function currentIstYearMonth(): { year: number; month: number } {
   return { year: ist.getUTCFullYear(), month: ist.getUTCMonth() + 1 };
 }
 
-export function SipTimeline({ sips }: SipTimelineProps) {
+export function SipTimeline({ sips, query = "", chips = [] }: SipTimelineProps) {
   const { viewMode, memberId } = useScope();
   const [activeTab, setActiveTab] = useState<"upcoming" | "month" | "stopped">("upcoming");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -88,8 +92,9 @@ export function SipTimeline({ sips }: SipTimelineProps) {
     );
   }
 
-  const activeSips = sips.data.filter(s => (s.status ?? "active") === "active");
-  const stoppedSips = sips.data.filter(s => s.status === "stopped");
+  const filteredSips = filterSipRows(sips.data, query, chips);
+  const activeSips = filteredSips.filter(s => (s.status ?? "active") === "active");
+  const stoppedSips = filteredSips.filter(s => s.status === "stopped");
 
   const sortedActive = [...activeSips].sort((a, b) => a.next_due_date.localeCompare(b.next_due_date));
   const nextSip = sortedActive[0] ?? null;
@@ -102,7 +107,7 @@ export function SipTimeline({ sips }: SipTimelineProps) {
   const sipsForDate = effectiveDate ? activeSips.filter(s => s.next_due_date === effectiveDate) : [];
 
   return (
-    <section className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
+    <section id="overview-sips" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
           <h3 id="sip-title" className="text-base font-semibold text-[var(--ui-text)]">
@@ -129,7 +134,7 @@ export function SipTimeline({ sips }: SipTimelineProps) {
             data-testid="sip-total"
             className="rounded-full bg-[var(--ui-card)] px-3 py-1 font-medium text-[var(--ui-text)] border border-[var(--ui-divider)]"
           >
-            Monthly SIP total {formatRupees(monthlySipTotal(sips.data))}
+            Monthly SIP total {formatRupees(monthlySipTotal(filteredSips))}
           </span>
         </div>
       </div>

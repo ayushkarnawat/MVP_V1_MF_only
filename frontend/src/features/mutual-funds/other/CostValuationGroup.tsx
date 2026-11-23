@@ -5,7 +5,7 @@ import { TerLadder } from "./TerLadder";
 import { ValuationByFund } from "./ValuationByFund";
 import { ValuationSpectrum } from "./ValuationSpectrum";
 
-export function CostValuationGroup() {
+export function CostValuationGroup({ query = "" }: { query?: string }) {
   const ter = useMfAnalytics("ter");
   const comparison = useMfAnalytics("ter_direct_regular");
   const ranking = useMfAnalytics("category_ranking");
@@ -25,6 +25,7 @@ export function CostValuationGroup() {
               ter={ter.data}
               comparison={comparison.data}
               ranking={ranking.data}
+              query={query}
             />
           )}
         </SectionCard>
@@ -41,7 +42,7 @@ export function CostValuationGroup() {
         </SectionCard>
       </div>
 
-      {valuation.data && <ValuationByFund data={valuation.data} />}
+      {valuation.data && <ValuationByFund data={valuation.data} query={query} />}
     </div>
   );
 }

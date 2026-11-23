@@ -19,17 +19,28 @@ import {
   type StockSort,
   stockKey,
 } from "./holdingsLogic";
+import { filterStockRows, stockSearchNote } from "./stockSearch";
 
 export function AllStocksTable({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<StockHoldingsSummary>) {
+  anchor,
+  query,
+}: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string; query?: string }) {
   const [sort, setSort] = useState<StockSort>("weight");
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const rawRows = useMemo(() => equityRows(data), [data]);
-  const sortedRows = useMemo(() => sortStocks(rawRows, sort), [rawRows, sort]);
+  const filteredRows = useMemo(
+    () => (query ? filterStockRows(rawRows, query) : rawRows),
+    [rawRows, query],
+  );
+  const sortedRows = useMemo(() => sortStocks(filteredRows, sort), [filteredRows, sort]);
+  const searchNote =
+    data && query && query.trim().length > 0
+      ? stockSearchNote(data, rawRows.length)
+      : null;
 
   const activeOpenKey =
     openKey && sortedRows.some(r => stockKey(r) === openKey) ? openKey : null;
@@ -38,11 +49,15 @@ export function AllStocksTable({
     <SectionCard
       title="All Holdings Across Your Portfolio"
       info="Every distinct stock your funds hold, looked through to the underlying company — the same stock can appear in several funds and is counted once here, at its combined weight."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >
       {data && (
         <div className="flex flex-col gap-4">
+          {searchNote && (
+            <p className="text-xs text-[var(--ui-text-muted)]">{searchNote}</p>
+          )}
           {/* Sort stocks controls */}
           <div
             role="group"

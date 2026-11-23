@@ -1,11 +1,24 @@
+import { useMemo } from "react";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState } from "../../../components/search/usePageSearchState";
 import { Button } from "../../../components/ui/button";
+import { useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { AllStocksTable } from "./AllStocksTable";
+import { equityRows } from "./holdingsLogic";
+import { filterStockRows } from "./stockSearch";
 import { TopHoldingsByFund } from "./TopHoldingsByFund";
 
-function HoldingsBody() {
-  const stocks = useMfAnalytics("stock_holdings");
+const NO_CHIPS: Array<"period" | "member" | "category"> = [];
+
+function HoldingsBody({
+  stocks,
+  query,
+}: {
+  stocks: ReturnType<typeof useMfAnalytics<"stock_holdings">>;
+  query: string;
+}) {
 
   if (stocks.status === "error") {
     return (
@@ -36,6 +49,7 @@ function HoldingsBody() {
     <div data-testid="holdings-cards" className="flex flex-col gap-[18px]">
       <div data-testid="card-top-holdings">
         <TopHoldingsByFund
+          anchor="holdings-top-by-fund"
           state={stocks.status}
           data={stocks.data}
           onRetry={stocks.retry}
@@ -43,9 +57,11 @@ function HoldingsBody() {
       </div>
       <div id="all-holdings" data-testid="card-all-stocks">
         <AllStocksTable
+          anchor="holdings-all-stocks"
           state={stocks.status}
           data={stocks.data}
           onRetry={stocks.retry}
+          query={query}
         />
       </div>
     </div>
@@ -53,9 +69,30 @@ function HoldingsBody() {
 }
 
 export default function HoldingsPage() {
+  const { text } = usePageSearchState("holdings");
+  const { userId } = useScope();
+  const stocks = useMfAnalytics("stock_holdings");
+  const allRows = useMemo(() => equityRows(stocks.data), [stocks.data]);
+  const matchedRows = useMemo(
+    () => filterStockRows(allRows, text),
+    [allRows, text],
+  );
+
   return (
-    <MutualFundsFrame tab="holdings">
-      <HoldingsBody />
+    <MutualFundsFrame
+      tab="holdings"
+      utility={
+        <PageSearch
+          pageKey="holdings"
+          noun="stocks"
+          chipsAllowed={NO_CHIPS}
+          total={allRows.length}
+          matched={matchedRows.length}
+          userId={userId ?? null}
+        />
+      }
+    >
+      <HoldingsBody stocks={stocks} query={text} />
     </MutualFundsFrame>
   );
 }

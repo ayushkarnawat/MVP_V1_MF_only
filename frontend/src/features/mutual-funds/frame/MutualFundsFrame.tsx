@@ -3,8 +3,10 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { Button } from "../../../components/ui/button";
 import { PageLayout } from "../../../shell/layout/PageLayout";
@@ -13,6 +15,11 @@ import { AppLink } from "../../../shell/nav/AppLink";
 import { paths } from "../../../shell/nav/paths";
 import { useImport, useScope } from "../../../shell/scope/ScopeContext";
 import type { MfTabId } from "../types";
+import { sectionsForTab } from "../../../lib/pageSections";
+import { SectionRail } from "./SectionRail";
+import { useRenderedSections } from "./useRenderedSections";
+import { useSectionJump } from "./useSectionJump";
+import { useSectionSpy } from "./useSectionSpy";
 
 export interface TabDef {
   id: MfTabId;
@@ -77,6 +84,7 @@ export const TAB_DEFS: ReadonlyArray<TabDef> = [
 
 interface MfFrameContextValue {
   openMira: () => void;
+  scrollRoot: RefObject<HTMLElement | null>;
 }
 
 const MfFrameContext = createContext<MfFrameContextValue | null>(null);
@@ -99,7 +107,16 @@ export interface MutualFundsFrameProps {
 export function MutualFundsFrame({ tab, children, utility }: MutualFundsFrameProps) {
   const [miraOpen, setMiraOpen] = useState(false);
   const openMira = useCallback(() => setMiraOpen(true), []);
-  const contextValue = useMemo(() => ({ openMira }), [openMira]);
+  const scrollRoot = useRef<HTMLElement | null>(null);
+  const frameRef = useCallback((element: HTMLDivElement | null) => {
+    scrollRoot.current = element?.closest("main") ?? null;
+  }, []);
+  const contextValue = useMemo(() => ({ openMira, scrollRoot }), [openMira]);
+
+  // The section index follows what is actually on the page (a lazy or failed section keeps its anchor), not the static list alone.
+  const renderedSections = useRenderedSections(scrollRoot, sectionsForTab(tab));
+  const { activeId } = useSectionSpy(scrollRoot, renderedSections);
+  const { jumpTo } = useSectionJump(scrollRoot, renderedSections);
 
   const { viewMode, memberId } = useScope();
   const { openImport } = useImport();
@@ -154,14 +171,17 @@ export function MutualFundsFrame({ tab, children, utility }: MutualFundsFramePro
 
   return (
     <MfFrameContext.Provider value={contextValue}>
-      <PageLayout
-        title={currentTab.title}
-        subtitle={currentTab.subtitle}
-        actions={actions}
-        tabs={tabs}
-      >
-        {children}
-      </PageLayout>
+      <div ref={frameRef} className="contents">
+        <PageLayout
+          title={currentTab.title}
+          subtitle={currentTab.subtitle}
+          actions={actions}
+          tabs={tabs}
+        >
+          {children}
+        </PageLayout>
+        <SectionRail sections={renderedSections} activeId={activeId} onJump={jumpTo} />
+      </div>
       <MiraComingSoonDialog open={miraOpen} onOpenChange={setMiraOpen} />
     </MfFrameContext.Provider>
   );

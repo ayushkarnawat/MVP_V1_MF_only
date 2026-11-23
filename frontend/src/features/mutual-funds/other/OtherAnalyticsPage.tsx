@@ -1,26 +1,32 @@
 import React from "react";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState } from "../../../components/search/usePageSearchState";
+import { useScope } from "../../../shell/scope/ScopeContext";
 import { useMfAnalytics } from "../data/analyticsStore";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { CategoryRankingGroup } from "./CategoryRankingGroup";
 import { CostValuationGroup } from "./CostValuationGroup";
 import { PerformanceRankingGroup } from "./PerformanceRankingGroup";
 import { GROUP_TITLES, SHOW_FUND_QUALITY_SCORES } from "./otherLogic";
+import { filterFundRows } from "./otherSearch";
 import { ScorerGroup } from "./ScorerGroup";
 
 interface GroupProps {
   id: string;
+  anchor?: string;
   index: number;
   title: string;
   description: string;
   children: React.ReactNode;
 }
 
-function Group({ id, index, title, description, children }: GroupProps) {
+function Group({ id, anchor, index, title, description, children }: GroupProps) {
   return (
     <section
+      id={anchor}
       data-testid={`group-${id}`}
       aria-labelledby={`heading-${id}`}
-      className="space-y-3"
+      className={anchor ? "scroll-mt-6 space-y-3" : "space-y-3"}
     >
       <div className="space-y-1">
         <h2 id={`heading-${id}`} className="flex items-center gap-2 text-base font-semibold text-[var(--ui-text)]">
@@ -39,7 +45,7 @@ function Group({ id, index, title, description, children }: GroupProps) {
   );
 }
 
-function OtherAnalyticsBody() {
+function OtherAnalyticsBody({ query }: { query: string }) {
   const ter = useMfAnalytics("ter");
 
   if (ter.status === "error") {
@@ -71,11 +77,12 @@ function OtherAnalyticsBody() {
     <div data-testid="analytics-groups" className="flex flex-col gap-6">
       <Group
         id="cost"
+        anchor="analytics-cost"
         index={0}
         title={GROUP_TITLES.cost}
         description="How expensive your funds are to hold, and how richly their holdings are priced."
       >
-        <CostValuationGroup />
+        <CostValuationGroup query={query} />
       </Group>
 
       {SHOW_FUND_QUALITY_SCORES && (
@@ -91,29 +98,49 @@ function OtherAnalyticsBody() {
 
       <Group
         id="category"
+        anchor="analytics-category"
         index={SHOW_FUND_QUALITY_SCORES ? 2 : 1}
         title={GROUP_TITLES.category}
         description="Your fund returns compared with the average of funds in the same category and plan type, weighted by fund size."
       >
-        <CategoryRankingGroup />
+        <CategoryRankingGroup query={query} />
       </Group>
 
       <Group
         id="ranking"
+        anchor="analytics-ranking"
         index={SHOW_FUND_QUALITY_SCORES ? 3 : 2}
         title={GROUP_TITLES.ranking}
         description="Each period compares funds in the same SEBI category and plan type."
       >
-        <PerformanceRankingGroup />
+        <PerformanceRankingGroup query={query} />
       </Group>
     </div>
   );
 }
 
 export default function OtherAnalyticsPage() {
+  const { userId } = useScope();
+  const { text } = usePageSearchState("analytics");
+  const ter = useMfAnalytics("ter");
+  const costFunds = ter.data?.funds ?? [];
+  const matched = filterFundRows(costFunds, text).length;
+
   return (
-    <MutualFundsFrame tab="analytics">
-      <OtherAnalyticsBody />
+    <MutualFundsFrame
+      tab="analytics"
+      utility={
+        <PageSearch
+          pageKey="analytics"
+          noun="funds"
+          total={costFunds.length}
+          matched={matched}
+          chipsAllowed={[]}
+          userId={userId ?? null}
+        />
+      }
+    >
+      <OtherAnalyticsBody query={text} />
     </MutualFundsFrame>
   );
 }

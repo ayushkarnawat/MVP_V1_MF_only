@@ -4,17 +4,20 @@ import { formatPercent } from "../../../lib/format";
 import { FundLink } from "../common/FundLink";
 import type { OverlapPair } from "../types";
 import { type Band, BAND_WORD, fundInitials } from "./overlapLogic";
+import { filterCommonStocks } from "./overlapSearch";
 
 export interface PairDetailProps {
   pair: OverlapPair;
   band: Band;
+  query?: string;
 }
 
-export function PairDetail({ pair, band }: PairDetailProps) {
+export function PairDetail({ pair, band, query }: PairDetailProps) {
   const a = pair.fund_a.scheme_name;
   const b = pair.fund_b.scheme_name;
   const initA = fundInitials(a);
   const initB = fundInitials(b);
+  const stocks = query ? filterCommonStocks(pair.common_stocks, query) : pair.common_stocks;
 
   const stockLabel = pair.common_total === 1 ? "stock" : "stocks";
 
@@ -67,7 +70,7 @@ export function PairDetail({ pair, band }: PairDetailProps) {
       ) : (
         <>
           <ul aria-label="Shared stocks" className="divide-y divide-[var(--ui-divider)] max-h-80 overflow-y-auto">
-            {pair.common_stocks.map(stock => (
+            {stocks.map(stock => (
               <li
                 key={stock.isin}
                 data-testid={`shared-${stock.isin}`}
