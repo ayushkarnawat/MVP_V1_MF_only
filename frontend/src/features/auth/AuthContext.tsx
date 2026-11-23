@@ -10,6 +10,8 @@ import {
   verifyContactChange as apiVerifyContactChange,
 } from "./api";
 import { clearToken, getToken, setToken } from "./session";
+import { clearSearchState } from "../../components/search/searchIndexStore";
+import { invalidateApiCache } from "../../lib/apiClient";
 import type { AccountDeletionReason, ContactChangeChannel, MeResponse, OtpRequestResponse, UpdateMeBody } from "./types";
 
 interface AuthContextValue {
@@ -79,6 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setTokenState(null);
     setMe(null);
+    // Nothing of the signed-out person may stay for the next one: recents, the search index and cached GETs.
+    clearSearchState();
+    invalidateApiCache();
     // Desktop only; the mobile app keeps its own behaviour (same test App.tsx uses to detect a mobile route).
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/mobile") && !window.location.hash.startsWith("#/mobile")) {
       window.history.replaceState(null, "", "/");
