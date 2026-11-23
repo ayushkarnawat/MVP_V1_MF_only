@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ChevronRight, Moon, Sun } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildStatusSentence } from "../homeCopy";
@@ -10,9 +10,10 @@ export interface GreetingProps {
   summary: SummaryResponse | null;
   onImport: (memberId?: string) => void;
   onTopMover?: () => void;
+  search?: ReactNode;
 }
 
-export function Greeting({ status, summary, onImport, onTopMover }: GreetingProps) {
+export function Greeting({ status, summary, onImport, onTopMover, search }: GreetingProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLButtonElement>(null);
@@ -105,8 +106,11 @@ export function Greeting({ status, summary, onImport, onTopMover }: GreetingProp
           />{greetingLine(summary.greeting, summary.display_name)}
         </h1>
 
-        {summary.data_line && (
-          <div className="relative" ref={wrapperRef}>
+        {(search || summary.data_line) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {search}
+            {summary.data_line && (
+              <div className="relative" ref={wrapperRef}>
             <button
               type="button"
               ref={chipRef}
@@ -157,6 +161,8 @@ export function Greeting({ status, summary, onImport, onTopMover }: GreetingProp
                 </ul>
               </div>
             )}
+          </div>
+        )}
           </div>
         )}
       </div>

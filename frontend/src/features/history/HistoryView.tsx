@@ -3,7 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getMemberMonthDetail, getAggregateMonthDetail } from "../dashboard/api";
 import type { MonthDetail } from "../dashboard/types";
 import { HistoryDetailModal } from "./HistoryDetailModal";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useInRouterContext } from "react-router";
+import { PageSearch } from "@/components/search/PageSearch";
+import { ScopeContext } from "@/shell/scope/ScopeContext";
 import { formatMonthYear } from "@/lib/dateRange";
 import { cn } from "@/lib/utils";
 import { fetchHistory, type HistoryPoint } from "./api";
@@ -25,6 +28,8 @@ export interface HistoryViewProps {
 
 /** #12: the Portfolio history page (desktop tab; reused full-screen on mobile). */
 export function HistoryView({ viewMode, memberId, memberName, ranges = ["1Y", "3Y", "5Y", "All"] }: HistoryViewProps) {
+  const scope = useContext(ScopeContext);
+  const inRouter = useInRouterContext();
   const [points, setPoints] = useState<HistoryPoint[] | null>(null);
   const [error, setError] = useState(false);
   const scopeKey = JSON.stringify([viewMode, memberId]);
@@ -78,6 +83,17 @@ export function HistoryView({ viewMode, memberId, memberName, ranges = ["1Y", "3
           <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--color-ink)]">Portfolio history</h1>
           <p className="text-sm text-[var(--color-text-secondary)]">{who} · monthly value at each month-end</p>
         </div>
+        {scope && inRouter && (
+          <PageSearch
+            pageKey="history"
+            noun="months"
+            total={0}
+            matched={0}
+            chipsAllowed={[]}
+            jumpOnly
+            userId={scope.userId ?? null}
+          />
+        )}
         <div className="flex gap-1.5" role="group" aria-label="Range">
           {ranges.map((r) => (
             <button key={r} type="button" onClick={() => setRange(r)} aria-pressed={range === r}
