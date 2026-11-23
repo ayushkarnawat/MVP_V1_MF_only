@@ -183,8 +183,8 @@ describe("every control on the page", () => {
     expect(screen.getByTestId("comparison-S-JM-3y")).toBeInTheDocument();
     expect(screen.getByTestId("performance-row-S-JM")).toBeInTheDocument();
     expectInteractivity(container, 15);
-    // 15 buttons plus the 4 "i" marks, which are clickable since E-7 (they open a popover).
-    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(19);
+    // 15 buttons plus the "i" marks, which are clickable since E-7 (they open a popover): 4 on the cards and 1 on the date strip (E-5b).
+    expect(container.querySelectorAll("[data-clickable]")).toHaveLength(20);
   });
 });
 
