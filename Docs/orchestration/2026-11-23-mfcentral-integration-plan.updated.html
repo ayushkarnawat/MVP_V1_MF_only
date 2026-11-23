@@ -1,0 +1,545 @@
+<title>MFCentral Integration Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky section nav + single reading column; mockups reuse Unifolio app tokens (fixed light, they depict the app). */
+:root{--bg:#FCFCFC;--surface:#FFFFFF;--ink:#111111;--muted:#717171;--line:#ECECEC;--accent:#22C55E;--accent-ink:#15803D;--accent-soft:#E9F9EF;--warn:#92400E;--warn-soft:#FEF3E2;--neg:#C1272D;--neg-soft:#FDECEC;--code:#F5F5F5;--head:'DM Sans',system-ui,sans-serif;--body:'Manrope',system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111111;--surface:#1A1A1A;--ink:#FCFCFC;--muted:#A3A3A3;--line:#2E2E2E;--accent:#22C55E;--accent-ink:#34D399;--accent-soft:#14281D;--warn:#FBBF24;--warn-soft:#2B2310;--neg:#F87171;--neg-soft:#2E1717;--code:#212121;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111111;--surface:#1A1A1A;--ink:#FCFCFC;--muted:#A3A3A3;--line:#2E2E2E;--accent:#22C55E;--accent-ink:#34D399;--accent-soft:#14281D;--warn:#FBBF24;--warn-soft:#2B2310;--neg:#F87171;--neg-soft:#2E1717;--code:#212121;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--body);margin:0;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto}
+nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);border-bottom:1px solid var(--line);z-index:5;display:flex;gap:4px 14px;flex-wrap:wrap;padding:10px 0;font-size:13px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+nav a{color:var(--muted);text-decoration:none;white-space:nowrap}nav a:hover{color:var(--accent-ink)}
+h1{font:700 34px/1.15 var(--head);margin:36px 0 8px;text-wrap:balance}
+h2{font:700 24px/1.25 var(--head);margin:52px 0 12px;padding-top:8px;text-wrap:balance}
+h3{font:700 16px/1.3 var(--head);margin:26px 0 8px}
+p{margin:8px 0;max-width:72ch}.lead{color:var(--muted);font-size:16px;max-width:70ch}
+ul,ol{margin:8px 0;padding-left:22px}li{margin:3px 0;max-width:80ch}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font:12.5px ui-monospace,Menlo,Consolas,monospace}
+pre{background:var(--code);padding:12px;border-radius:8px;overflow-x:auto;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0}
+pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--surface)}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:700 12px var(--head);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.box{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 16px;margin:12px 0}
+.box.warn{background:var(--warn-soft);border-color:var(--warn)}.box.neg{background:var(--neg-soft);border-color:var(--neg)}.box.ok{background:var(--accent-soft);border-color:var(--accent)}
+.box p:first-child{margin-top:0}.box p:last-child{margin-bottom:0}
+.tag{display:inline-block;font:600 11px var(--head);letter-spacing:.04em;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted);white-space:nowrap}
+.tag.h{background:var(--warn-soft);color:var(--warn)}.tag.c{background:var(--accent-soft);color:var(--accent-ink)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.grid2>*{min-width:0}
+.mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:16px;margin:14px 0}
+.mk{background:#FCFCFC;color:#111A14;border:1px solid #D9DED9;border-radius:14px;padding:16px;font:13px/1.45 'Manrope',system-ui,sans-serif;min-width:0}
+.mk h4{font:700 15px 'DM Sans',system-ui,sans-serif;margin:0 0 4px}
+.mk small{color:#5B6760;display:block}.mk .lab{font:700 10px 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#7A867F;margin:12px 0 4px}
+.mk .card{border:1px solid #D9DED9;border-radius:10px;padding:10px;margin:8px 0;background:#fff}
+.mk .card.on{border-color:#22C55E;box-shadow:0 0 0 2px #E7F6EC}
+.mk .btn{background:#22C55E;color:#111111;font-weight:700;text-align:center;border-radius:8px;padding:9px;margin-top:10px}
+.mk .btn.g{background:#fff;border:1px solid #D9DED9;color:#111A14}
+.mk .inp{border:1px solid #D9DED9;border-radius:8px;padding:8px 10px;background:#fff;margin:4px 0;color:#444}
+.mk .note{background:#FDF3E3;border-radius:8px;padding:8px 10px;color:#7A4A06;margin-top:8px}
+.mk .err{background:#FCEBEA;border-radius:8px;padding:8px 10px;color:#8E1B1B;margin-top:8px}
+.mk .drop{border:2px dashed #B5BEB7;border-radius:10px;padding:22px 8px;text-align:center;color:#5B6760;margin:8px 0}
+.mk .steps{display:flex;gap:4px;margin-bottom:10px}.mk .steps i{flex:1;height:4px;border-radius:2px;background:#D9DED9}.mk .steps i.d{background:#22C55E}
+.cap{font-size:12px;color:var(--muted);margin-top:6px;display:block}
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.tabs button{font:600 13px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#111111}
+.tabs button:focus-visible,.q label:focus-within,.act button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scr{overflow-x:auto;padding-bottom:6px}
+/* Mockups mirror the real app: FocusLayout header, centered max-w-xl column, tokens from shell-tokens.css and the 18 Nov palette. */
+.bw{--pg:#FCFCFC;--hd:#F5F5F5;--dv:#ECECEC;--ink:#111111;--s2:#717171;--sf:#FFFFFF;--bd:#E5E5E5;--sel:#E9F9EF;--wb:#FEF3E2;--wt:#92400E;--wl:#FCE0B0;min-width:900px;background:var(--pg);border:1px solid #CBD2CC;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.14);color:var(--ink);font:13px/1.5 'Manrope',system-ui,sans-serif}
+.bw[data-t="dark"]{--pg:#111111;--hd:#1A1A1A;--dv:#2E2E2E;--ink:#FCFCFC;--s2:#A3A3A3;--sf:#1A1A1A;--bd:#2E2E2E;--sel:#14281D;--wb:#2B2310;--wt:#FBBF24;--wl:#4A3A12}
+.bw .bar{display:flex;align-items:center;gap:6px;background:#EEF1EE;padding:9px 12px;border-bottom:1px solid #D9DED9}
+.bw .bar i{width:11px;height:11px;border-radius:50%;background:#C9CFCA}
+.bw .url{margin-left:12px;flex:1;max-width:420px;background:#fff;border:1px solid #D9DED9;border-radius:99px;padding:3px 14px;font-size:12px;color:#5B6760}
+.bw svg{display:block;flex:none}
+.bw .hd{height:64px;background:var(--hd);border-bottom:1px solid var(--dv);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.bw .back{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--s2);padding:6px 12px}
+.bw .hr{display:flex;align-items:center;gap:10px}
+.bw .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dv);background:var(--pg);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--s2)}
+.bw .chip b{color:var(--ink);font-weight:700}
+.bw .tg{width:34px;height:34px;border-radius:9px;border:1px solid var(--dv);display:grid;place-items:center;color:var(--s2);cursor:pointer;background:transparent}
+.bw .main{padding:24px;min-height:600px;position:relative}
+.bw .col{max-width:576px;margin:0 auto}
+.bw .ill{width:128px;height:128px;margin:0 auto 10px;display:block}
+.bw h1{font:700 28px/1.14 'DM Sans',system-ui,sans-serif;letter-spacing:-.01em;margin:0 0 6px;color:var(--ink)}
+.bw h2{padding:0;font:700 20px/1.3 'DM Sans',system-ui,sans-serif;letter-spacing:-.01em;margin:0;color:var(--ink)}
+.bw .lead{font-size:14px;color:var(--s2);margin:6px 0 0}
+.bw .rows{margin-top:12px}.bw .rw{display:flex;align-items:center;gap:14px;padding:16px 12px;border-top:1px solid color-mix(in srgb,var(--dv) 60%,transparent);border-radius:12px;position:relative}
+.bw .rw:first-child{border-top:0}.bw .rw.hv{background:color-mix(in srgb,var(--ink) 3%,transparent)}
+.bw .tile{width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,#22C55E 10%,transparent);display:grid;place-items:center;flex:none}
+.bw .rw.hv .tile{background:color-mix(in srgb,#22C55E 15%,transparent)}
+.bw .rw strong{display:block;font:700 14px 'DM Sans',system-ui,sans-serif;color:var(--ink)}
+.bw .rw.hv strong{color:#22C55E}
+.bw .rw span.d{display:block;font-size:12px;color:var(--s2);line-height:1.4}
+.bw .nw{font:600 10px 'Manrope',sans-serif;letter-spacing:.04em;text-transform:uppercase;background:#E9F9EF;color:#15803D;border:1px solid #BAEFCC;padding:1px 7px;border-radius:99px;margin-left:8px;vertical-align:middle}
+.bw[data-t="dark"] .nw{background:#14281D;color:#34D399;border-color:#1F4A30}
+.bw .card{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:32px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.bw .card.big{border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:32px}
+.bw .bk{display:inline-flex;align-items:center;gap:6px;font-weight:500;font-size:12px;color:var(--s2);margin-bottom:20px}
+.bw .ref{background:var(--pg);border:1px solid color-mix(in srgb,var(--bd) 80%,transparent);border-radius:12px;padding:18px;margin-top:20px}
+.bw .ref>span{display:block;font-size:11px;font-weight:600;color:var(--s2);margin-bottom:10px}
+.bw .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bw .g3 div{background:var(--sf);border:1px solid color-mix(in srgb,var(--bd) 60%,transparent);border-radius:8px;padding:10px;font-size:12px}
+.bw .g3 em{display:block;font-style:normal;font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--s2)}
+.bw .g3 b{display:block;margin-top:2px;font-weight:700;color:var(--ink)}
+.bw .choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.bw .ch{border:1px solid var(--bd);background:var(--sf);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--s2)}
+.bw .ch b{display:block;font-size:13px;color:var(--ink);font-weight:700}
+.bw .ch.on{border:2px solid #22C55E;padding:9px 13px;background:var(--sel)}
+.bw .lbl{font:600 11px 'Manrope',sans-serif;color:var(--s2);margin-top:20px;display:block}
+.bw .stp{position:relative;padding-left:28px;margin-top:22px}
+.bw .stp:before{content:"";position:absolute;left:11px;top:8px;bottom:8px;width:1.5px;background:color-mix(in srgb,var(--bd) 80%,transparent)}
+.bw .stp div{position:relative;font-size:12px;font-weight:500;margin:0 0 18px;color:var(--ink)}.bw .stp div:last-child{margin:0}
+.bw .stp i{position:absolute;left:-28px;top:-1px;width:20px;height:20px;border-radius:50%;background:var(--sf);border:1px solid var(--bd);font:700 10px ui-monospace,Menlo,monospace;display:grid;place-items:center;font-style:normal}
+.bw .cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:#22C55E;color:#111111;font:600 14px 'Manrope',sans-serif;margin-top:24px}
+.bw .cta.g{background:var(--sf);border:1px solid var(--bd);color:var(--ink);margin-top:10px;height:44px}
+.bw .cta.dis{background:#DFDFDF;color:#9B9B9B}
+.bw .note{text-align:center;font-size:12px;line-height:1.5;color:var(--s2);margin-top:12px}.bw .note u{color:var(--ink)}
+.bw .drop{border:2px dashed var(--bd);background:color-mix(in srgb,#22C55E 2%,var(--pg));border-radius:16px;min-height:125px;display:grid;place-items:center;text-align:center;padding:18px;margin-top:20px}
+.bw .drop.on{border-color:#22C55E;background:color-mix(in srgb,#22C55E 4%,var(--sf));text-align:left;place-items:stretch}
+.bw .up{width:44px;height:44px;border-radius:16px;background:var(--sf);border:1px solid var(--bd);display:grid;place-items:center;margin:0 auto 8px}
+.bw .drop p{margin:0;font-size:14px;font-weight:600;color:var(--ink)}.bw .drop small{font-size:11px;color:var(--s2)}
+.bw .fl{display:flex;align-items:center;gap:12px}.bw .fl .th{width:40px;height:40px;border-radius:8px;background:var(--sf);border:1px solid var(--bd);display:grid;place-items:center;flex:none}
+.bw .fl b{display:block;font-size:13px;color:var(--ink)}.bw .fl small{font-size:11px;color:var(--s2)}
+.bw .pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;border:1px solid var(--bd);background:var(--pg);border-radius:99px;padding:6px 14px;color:var(--ink);margin-top:18px}
+.bw .dot{width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 4px color-mix(in srgb,#22C55E 25%,transparent)}
+.bw .al{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:12px 14px;font-size:12px;font-weight:500;margin-top:20px;background:var(--wb);color:var(--wt);border:1px solid var(--wl)}
+.bw .al.neg{background:#FDECEC;color:#C1272D;border-color:#F6C6C7}.bw[data-t="dark"] .al.neg{background:#2E1717;color:#F87171;border-color:#4A2323}
+.bw .oth{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}
+.bw .oth span{font-size:11px;padding:3px 10px;border-radius:99px;background:var(--hd);border:1px solid var(--dv);color:var(--s2)}
+.bw .oth em{font:600 11px 'Manrope',sans-serif;color:var(--s2);font-style:normal;width:100%}
+.bw .pop{position:absolute;right:20px;top:40px;width:300px;border:1px solid #BFC7C1;border-radius:10px;background:#fff;color:#1b2430;box-shadow:0 14px 34px rgba(0,0,0,.28);overflow:hidden;font-family:system-ui,sans-serif}
+.bw .pop .ph{background:#EEF1EE;padding:6px 10px;font-size:11px;color:#5B6760;display:flex;gap:5px;align-items:center}
+.bw .pop .ph i{width:8px;height:8px;border-radius:50%;background:#C9CFCA}
+.bw .pop .pb{padding:14px;font-size:12px}.bw .pop .pb small{color:#6b7280;display:block;margin-bottom:6px}
+.bw .otp{display:flex;gap:5px;margin:8px 0 12px}.bw .otp i{width:30px;height:36px;border:1px solid #BFC7C1;border-radius:6px;display:grid;place-items:center;font:700 14px ui-monospace,monospace;font-style:normal}
+.bw .seg{display:inline-flex;border:1px solid #BFC7C1;border-radius:8px;overflow:hidden}.bw .seg span{padding:5px 12px}.bw .seg .on{background:#1f4fbf;color:#fff;font-weight:700}
+.bw .qr{width:76px;height:76px;margin-top:12px;background:repeating-conic-gradient(#111 0 25%,#fff 0 50%) 0 0/9.5px 9.5px;border:5px solid #fff;outline:1px solid #D9DED9}
+.bw .pop .lb{position:absolute;right:8px;bottom:6px;font-size:9px;color:#9aa3ad}
+.thb{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 12px var(--body);padding:6px 12px;border-radius:99px;cursor:pointer;margin-left:auto}
+.tabs{align-items:center}
+.q{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:16px;margin:14px 0}
+.q h3{margin:0 0 4px}.q .ctx{color:var(--muted);font-size:14px;margin:0 0 10px}
+.q label{display:block;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;cursor:pointer;background:var(--bg)}
+.q label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.q label b{font-family:var(--head)}.q label span{display:block;color:var(--muted);font-size:13.5px;margin-top:3px}
+.q input[type=radio]{margin-right:8px;accent-color:var(--accent)}
+.q textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px;font:13px var(--body);margin-top:6px;resize:vertical}
+.rec{font:700 10.5px var(--head);letter-spacing:.05em;text-transform:uppercase;background:var(--accent);color:#111111;padding:2px 7px;border-radius:99px;margin-left:8px;vertical-align:middle}
+.ans,.cho{font:700 10.5px var(--head);letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;margin-left:8px;vertical-align:middle;white-space:nowrap}
+.ans{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent)}
+.cho{background:var(--ink);color:var(--bg)}
+.act{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.act button{font:700 14px var(--body);border-radius:9px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.act button.p{background:var(--accent);border-color:var(--accent);color:#111111}
+.out{width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;background:var(--code);color:var(--ink);padding:10px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.prog{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<nav><a href="#summary">Summary</a><a href="#how">How MFC works</a><a href="#arch">Architecture</a><a href="#security">Secrets: manual vs Claude</a><a href="#backend">Backend</a><a href="#db">Database</a><a href="#frontend">Frontend + mockups</a><a href="#adapter">Data mapping</a><a href="#tests">UAT tests</a><a href="#rollout">Phases + production</a><a href="#open">Open questions</a></nav>
+
+<h1>MFCentral CAS integration plan</h1>
+<p class="lead">Plan only, nothing built. Test mode (UAT) first, then production. Written against the three MFC files you gave me and a read of this codebase (<code>leapswitch-redesign</code>, Alembic head 0054). I read "tested in Mailer" as "tested in UAT"; tell me if you meant something else.</p>
+
+<h2 id="summary">1. Summary</h2>
+<div class="grid2">
+<div class="box ok"><h3 style="margin-top:0">What we build</h3>
+<p>A third import path, <b>Fetch from MF Central</b>, beside PDF upload and the CAMS mailback. The backend talks to MFC. The user does OTP consent on MFC's own screen, downloads a QR image, uploads it to us, and we exchange it for JSON. A new adapter turns that JSON into the same <code>ParseResult</code> the PDF parser makes, so the existing preview, prompts, PAN claims, dedup and confirm all run unchanged.</p></div>
+<div class="box"><h3 style="margin-top:0">Why it is safe to plan this way</h3>
+<p>Every secret (client secret, password, AES key, RSA private key, URL key) is used server-side only. The browser only ever sees an already-encrypted redirect URL. So Claude can build and test the whole thing without any real secret, and a human installs the real UAT secrets on the VM and runs the live checks.</p></div>
+</div>
+<div class="box ok"><p><b>Decisions made so far (3 of 12).</b> <span class="tag c">Decided</span> <b>Q2</b> v1 imports detailed statements only; a summary shows a "start again" screen. <span class="tag c">Decided</span> <b>Q6</b> popup on desktop, full redirect on mobile or when the popup is blocked; no iframe in v1. <span class="tag c">Decided</span> <b>Q11</b> MF Central appears as a third row on Add data and on the onboarding upload step. The other nine are still open in section 11 and the plan keeps my recommendation for them until you answer.</p></div>
+<h3>Five findings that shape the plan</h3>
+<ol>
+<li><b>Only a detailed CAS can feed the ledger.</b> <span class="tag c">Decided Q2: detailed only</span> The importer rejects summary CAS (<code>parser.py:406</code>) and a summary response has no transactions. The user must pick "Detailed" on MFC's screen, and we must catch the case where they do not. A summary is never imported; it shows the "start again" screen. Snapshot-only import stays parked in <code>DEFERRED_FEATURES.md</code>.</li>
+<li><b>Detailed rows have no running balance.</b> Our dedup (<code>_match_rows</code>) is strongest when each row carries <code>balance_units</code>. MFC rows do not, so it falls back to count matching. The per-scheme <code>closingBalance</code> in <code>dtSummary</code> becomes our reconciliation check.</li>
+<li><b>Transaction descriptions are free text</b> (<code>trxnDesc</code>), and <code>trxnTypeFlag</code> was blank in the sample. UAT data is fake, so the real vocabulary only shows up on real accounts. This is the biggest technical risk.</li>
+<li><b>One request means one PAN.</b> There is no multi-holder grouping like in a family PDF, which removes most of the member-detection prompts.</li>
+<li><b>Access is a business question first.</b> In September 2025 AMFI told MF Central to stop sharing data with third-party apps; the QR consent flow in your PDF is the replacement route, and MF Central said it will tighten third-party access further. Production approval, terms and any fee have to be settled with MFC before the production phase. See sources at the end.</li>
+</ol>
+<div class="box warn"><p><b>Credentials note.</b> You said test credentials were included. The PDF only contains one value, the URL encryption key (in plain text on page 1), plus the UAT OTP rule and test PANs. I did not copy that key into this page or anywhere else. No client id, secret, username, password, IV or RSA keys were in what I received. Keep it that way. The PDF is already in this session's context, so if you want to be strict, ask MFC to rotate that UAT key. Also scan <code>Docs/749204247-MFCentral-API-Integration-Document-CAS-v2-2-1-2.txt</code> for secrets, and keep the PDF out of the repo.</p></div>
+
+<h2 id="how">2. How MFC works (from your docs)</h2>
+<div class="tw"><table>
+<tr><th>Step</th><th>Who</th><th>What happens</th></tr>
+<tr><td>0 Token</td><td>Our backend</td><td><code>POST /oauth/token</code>, Basic auth (client id:secret), form body username, password, <code>grant_type=password</code>. Token lives about 30 days.</td></tr>
+<tr><td>1 newCasRequest</td><td>Our backend</td><td>Payload (clientRefNo, pan, email or mobile, fromDate, toDate, redirectUrl) is AES-256-CBC encrypted with <code>SHA256(key)</code> and a constant IV from MFC, base64, then JWS-signed (RS256). Response is verified with MFC's public key and decrypted. Gives <code>reqId</code> and <code>otpRef</code>.</td></tr>
+<tr><td>2 Redirect</td><td>Our backend builds, browser opens</td><td>Separate encryption: AES-256-CBC, URL key used raw, random 16-byte IV, format <code>IVhex:cipherhex</code>, URL-encoded, appended as <code>/api/auth/start?data=</code> on the MFC redirect host.</td></tr>
+<tr><td>3 Consent</td><td>MFC screen</td><td>OTP, then the user picks Summary or Detailed, then MFC makes a QR.</td></tr>
+<tr><td>4 Return</td><td>MFC to us</td><td>After QR download: iframe or popup sends <code>postMessage</code> <code>mfc-cas-complete</code>; standalone redirects to <code>redirectUrl?status=&reqId=&type=</code>; React Native uses <code>ReactNativeWebView.postMessage</code>.</td></tr>
+<tr><td>5 QR upload</td><td>User to us</td><td>User uploads the QR image to our app.</td></tr>
+<tr><td>6 validateQRCode</td><td>Our backend</td><td>Same encrypt and sign flow with <code>{reqId, clientRefNo, qrCode(base64)}</code>. Returns summary or detailed JSON.</td></tr>
+</table></div>
+<p><b>UAT facts:</b> API <code>uatservices.mfcentral.com</code>, redirect host <code>mfc-cas-uat.mfcentral.com</code>, test OTP is <code>00</code> plus the last 4 digits of the PAN, a shared test email and mobile, and nine test PANs (page 26 of the PDF). Errors: 400 business, 401 token or client id, 422 bad format, 404, 500, and 202 meaning accepted but not finished.</p>
+<h3>Gaps and contradictions in the MFC documents (confirm with MFC)</h3>
+<ul>
+<li>Page 5 says "either email or mobile, both cannot be provided", the field table says "email required if mobile not provided". We will send exactly one.</li>
+<li>The redirect sample uses a <code>token</code> variable it never defines; the field table says leave it blank. We send <code>""</code>.</li>
+<li>Base URL variable is <code>MFC_REDIRECT_BASE_URL</code> in config but <code>MFC_BASE_URL</code> in the sample.</li>
+<li>Origin to trust in <code>postMessage</code> differs across files (<code>cas-oauth.mfcentral.com</code> vs <code>cas.mfcentral.com</code> vs the UAT host). We make it a setting, never a literal.</li>
+<li>Completion <code>type</code> is "summary or transactions" in one file and "full" in another.</li>
+<li>jsonwebtoken adds an <code>iat</code> claim by default; the spec never says whether MFC needs or tolerates it.</li>
+<li>The older spec in <code>Docs/</code> (v2.2) may differ from this newer PDF. We treat the PDF as authoritative and ask MFC.</li>
+<li>The IV is constant and the API crypto is mandated by MFC, so we follow it exactly, but note it as a known weak point.</li>
+</ul>
+
+<h2 id="arch">3. Architecture and flow</h2>
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as User browser
+  participant F as Unifolio frontend
+  participant B as Unifolio backend
+  participant M as MFC API
+  participant C as MFC consent screen
+  U->>F: Choose Fetch from MF Central, pick email or mobile, tick notice
+  F->>B: POST /imports/mfc/requests
+  B->>B: record consent, create request row, build clientRefNo
+  B->>M: token (cached), then newCasRequest (encrypted + signed)
+  M-->>B: reqId, otpRef (verified + decrypted)
+  B-->>F: redirect_url (encrypted) + request id
+  F->>C: open popup or redirect
+  C->>U: OTP, choose Detailed, QR download
+  C-->>F: postMessage or redirect with status, reqId, type
+  F->>U: Show upload step
+  U->>F: Upload QR image
+  F->>B: POST /imports/mfc/requests/id/qr
+  B->>M: validateQRCode (encrypted + signed)
+  M-->>B: CAS JSON
+  B->>B: adapter to ParseResult, start_import_session
+  B-->>F: same response as /imports/parse
+  F->>U: Existing preview, prompts, confirm
+</pre>
+<h3>Key design decisions</h3>
+<ul>
+<li><b>The browser is never trusted for outcome.</b> The <code>postMessage</code> and redirect params are UI hints. Truth is a successful <code>validateQRCode</code> for a request we created, owned by that user.</li>
+<li><b>Reuse the CAMS placeholder pattern.</b> An <code>imports</code> row in <code>WAITING_FOR_USER</code> with an expiry is already hidden from history and already swept by the daily expiry job.</li>
+<li><b>Return mode</b> <span class="tag c">Decided Q6</span>. Desktop: popup, with a full redirect as the fallback if the popup is blocked or closed. Mobile web and any in-app WebView: full redirect (popups and downloads are unreliable there). No iframe in v1, so we do not need MFC to allow framing; we only need the completion-message origin and a registered return URL.</li>
+<li><b>Never store the QR image or log it.</b> The QR is the bearer credential for that consent. It is read, sent, and dropped.</li>
+<li><b>Environment lock.</b> Each request row stores <code>environment</code> (uat or prod). A request made in one is rejected in the other.</li>
+<li><b>Kill switch.</b> <code>MFC_ENABLED</code> (bool setting, same pattern as <code>news_enabled</code>) hides the card and rejects the routes.</li>
+</ul>
+
+<h2 id="security">4. Secrets: the manual plan and the Claude-safe plan</h2>
+<p>Rule for both: <b>no real secret ever enters a chat, a repo file, a log, a screenshot or an AI tool's read path.</b> The code reads secrets from the server's environment or mounted files only.</p>
+
+<h3>Track M: fully manual (you or your manager do everything touching secrets)</h3>
+<ol>
+<li><b>Custody.</b> MFC delivers credentials to one named owner. Put them in a password manager vault with two named people. Never email or paste them on chat.</li>
+<li><b>Out-of-repo sanity test first.</b> On your own machine, in a scratch folder outside the repo, run MFC's sample code (Node) with the UAT secrets to prove four things: token works, <code>newCasRequest</code> returns a <code>reqId</code>, the redirect URL opens MFC's UAT screen, and your RSA key pair and IV are correct. Do this before we write any app code; it separates credential problems from our bugs.</li>
+<li><b>Install on staging VM by hand.</b> SSH to the LeapSwitch VM and put the string values in <code>deploy/leapswitch/.env</code> (chmod 600, root only, same as today). Put the RSA private key and MFC public key as files in a root-only <code>secrets/</code> folder mounted read-only into the backend container; the app reads <code>MFC_PRIVATE_KEY_PATH</code> and <code>MFC_PUBLIC_KEY_PATH</code>, so no multi-line PEM lives in an env var.</li>
+<li><b>Run the live UAT smoke script yourself</b> (Claude writes it, you run it). It prints only status codes, field names and value types, never values.</li>
+<li><b>Rotation.</b> Production gets different secrets, installed the same way. Rotate UAT secrets after UAT ends and whenever someone who held them leaves.</li>
+<li><b>Hygiene.</b> Add a secret scan (gitleaks) to pre-commit, make logging redact PAN, otpRef, tokens, QR and encrypted blobs, and keep <code>.env</code> and <code>secrets/</code> in <code>.gitignore</code> (confirm they already are).</li>
+</ol>
+
+<h3>Track C: with Claude, safely (yes, this is possible)</h3>
+<p>The split is simple. Claude never needs the real values because the whole integration can be proven against a <b>local mock MFC server</b> that uses throwaway keys Claude generates itself (random AES key, random IV, a fresh RSA pair). The crypto is deterministic and fully specified, so a mock proves our code matches the spec. Only "does MFC accept it" needs the real UAT, and a human runs that.</p>
+<div class="tw"><table>
+<tr><th>Claude does (no secrets)</th><th>Human does (secrets)</th></tr>
+<tr><td>Writes crypto, JWS, client, service, adapter, routes, migration, frontend, docs</td><td>Holds and installs real UAT and production secrets</td></tr>
+<tr><td>Builds the mock MFC server and fixtures from the PDF's sample responses</td><td>Runs the live smoke script and the UAT test matrix on staging</td></tr>
+<tr><td>Writes known-answer tests (encrypt, decrypt, sign, verify, URL format) with throwaway keys</td><td>Pastes back a <b>redacted shape</b> of any real response: keys and value types only, PAN, names, folios, amounts replaced by placeholders</td></tr>
+<tr><td>Adjusts the adapter from the redacted shapes and MFC's error messages</td><td>Decides go or no-go for each phase</td></tr>
+</table></div>
+<h3>Guardrails for Claude (and Codex) sessions</h3>
+<ul>
+<li>Deny read access to the real env and secrets paths. Suggested rule for <code>.claude/settings.json</code>, which you apply, since I did not change any settings:</li>
+</ul>
+<pre><code>{ "permissions": { "deny": [
+  "Read(./deploy/leapswitch/.env)", "Read(./backend/.env)",
+  "Read(./secrets/**)", "Read(**/*.pem)", "Read(**/mfc-*)"
+] } }</code></pre>
+<ul>
+<li>Claude gets no SSH access to the VM for this work. Live checks are yours.</li>
+<li>Only <code>.env.example</code> files (placeholders) are edited by Claude. Handoff docs for Codex say "no secrets, use the mock" and the existing adversarial review gate in the model-orchestration skill adds a secrets-in-code and logging check for this feature.</li>
+<li>Test fixtures contain only fake data: the PDF's sample JSON with invented PANs, never a real investor's response.</li>
+<li>If a real response is ever pasted into chat by mistake, treat that investor's data as exposed: delete the message if possible and note it.</li>
+</ul>
+
+<h2 id="backend">5. Backend changes</h2>
+<h3>New module <code>backend/app/services/import_/mfc/</code></h3>
+<div class="tw"><table>
+<tr><th>File</th><th>Responsibility</th></tr>
+<tr><td><code>settings</code> (in <code>config.py</code>)</td><td><code>mfc_enabled</code>, <code>mfc_environment</code>, <code>mfc_api_base_url</code>, <code>mfc_redirect_base_url</code>, <code>mfc_redirect_origin</code> (for the frontend), <code>mfc_client_id</code>, <code>mfc_client_secret</code>, <code>mfc_username</code>, <code>mfc_password</code>, <code>mfc_encryption_key</code>, <code>mfc_iv</code>, <code>mfc_url_encryption_key</code>, <code>mfc_private_key_path</code>, <code>mfc_public_key_path</code>. Secrets default <code>""</code>; boot check fails fast outside development when enabled but incomplete (same idea as <code>_assert_pan_keys_configured</code>).</td></tr>
+<tr><td><code>crypto.py</code></td><td><code>api_encrypt / api_decrypt</code> (AES-256-CBC, key = first 32 bytes of SHA-256 of the shared key, IV = the MFC string as UTF-8 bytes, PKCS7, base64) and <code>url_encrypt</code> (raw 32-byte key, random IV, <code>hex:hex</code>). Uses the existing <code>cryptography</code> package.</td></tr>
+<tr><td><code>jws.py</code></td><td>RS256 compact JWS sign and verify with <code>cryptography</code> (about 30 lines). Payload <code>{"data": encrypted, "iat": now}</code> to mirror the reference code; verify also checks that the signed <code>data</code> equals the response string (the spec only checks the signature). Avoids adding PyJWT to the fully pinned <code>requirements.txt</code>; decide if you prefer the dependency.</td></tr>
+<tr><td><code>client.py</code></td><td><code>httpx</code> client (existing pattern, 30 s timeout). <code>get_token()</code>, <code>new_cas_request()</code>, <code>validate_qr()</code>. Rules: 401 then refresh token once and retry once; 5xx or network error on <code>newCasRequest</code> marks the row failed (retry makes a new <code>clientRefNo</code>); 202 on validate then up to 3 short retries and a "still preparing" state; 400 maps MFC's message to a user message; 422 is our bug and is logged with trace id.</td></tr>
+<tr><td><code>token_store.py</code></td><td>Token cached in the DB (encrypted with the existing <code>encrypt_bytes</code>), refreshed by a daily cron when under 3 days left and on 401, guarded by a lock so the 3 uvicorn workers do not each mint one. Depends on MFC's answer about whether a new token kills the old one.</td></tr>
+<tr><td><code>adapter.py</code>, <code>txn_map.py</code></td><td>JSON to <code>ParseResult</code>, see section 8.</td></tr>
+<tr><td><code>service.py</code></td><td>Orchestration: start, qr, cancel, expire. Enforces one active request per member, a daily cap per user (proposal 5), ownership, environment lock.</td></tr>
+<tr><td><code>errors.py</code></td><td>Codes: <code>mfc_unavailable, mfc_not_configured, mfc_request_failed, mfc_otp_pending, mfc_qr_invalid, mfc_qr_mismatch, mfc_summary_only, mfc_no_holdings, mfc_expired, mfc_rate_limited</code>. Same <code>detail={code,message}</code> shape as imports.</td></tr>
+</table></div>
+<h3>New routes (<code>backend/app/api/mfc_imports.py</code>, all behind <code>get_data_user</code>)</h3>
+<div class="tw"><table>
+<tr><th>Route</th><th>Behaviour</th></tr>
+<tr><td><code>POST /imports/mfc/requests</code></td><td>Body: <code>household_member_id, channel (email|mobile), contact (optional, defaults to profile), notice_version</code>. Validates the member's PAN exists (claimed via existing <code>pan_claims</code>), records consent, calls MFC, returns <code>{request_id, redirect_url, expires_at, mode_hint}</code>. If the member has no PAN yet, the UI asks for it first through the existing PAN claim step.</td></tr>
+<tr><td><code>GET /imports/mfc/requests/{id}</code></td><td>Status for the UI and for returning from a redirect.</td></tr>
+<tr><td><code>POST /imports/mfc/requests/{id}/return</code></td><td>Records the hint from <code>postMessage</code> or redirect (status, type, error code). Informational only; moves the row to <code>mfc_completed</code> or <code>failed</code>.</td></tr>
+<tr><td><code>POST /imports/mfc/requests/{id}/qr</code></td><td>Multipart image. Checks size (proposal 2 MB), PNG or JPEG magic bytes, ownership, state. Calls <code>validateQRCode</code> once, runs the adapter, calls <code>start_import_session</code>, returns the same body as <code>/imports/parse</code> so the existing prompts and preview work.</td></tr>
+<tr><td><code>POST /imports/mfc/requests/{id}/cancel</code></td><td>Sets cancelled, frees the "one active request" slot.</td></tr>
+</table></div>
+<h3>Changes to existing code</h3>
+<ul>
+<li><code>confirm_people.py</code>: <code>store_group_cas_file</code> must be skipped when there is no PDF (no <code>file_reference</code>). <code>start_import_session</code> needs a null-safe <code>pdf_bytes</code>.</li>
+<li><code>imports.py</code> <code>_UPLOAD_SURFACES</code> whitelist: add <code>mfc_start</code>. Frontend <code>UploadSurface</code> type likewise.</li>
+<li><code>preview_store._TYPES</code>: any new dataclass must live in a listed module or be added, or preview persistence breaks.</li>
+<li><code>expire_cas_files.py</code>: also expire stale MFC requests (as it already does for CAMS).</li>
+<li><code>deploy/leapswitch/crontab.leapswitch</code>: add <code>mfc-token-refresh-daily</code>; <code>.env.example</code> files get placeholders only.</li>
+<li>No general rate limiter exists for import routes; add a small per-user check inside <code>service.py</code> using the request table (no new infrastructure).</li>
+</ul>
+<h3>Logging rule</h3>
+<p>Log only: request id, <code>reqId</code>, <code>clientRefNo</code>, endpoint, HTTP status, MFC <code>traceId</code>, duration, error code. Never PAN, otpRef, token, QR, plaintext or encrypted bodies. A test asserts this by scanning captured log output.</p>
+
+<h2 id="db">6. Database changes (Alembic 0055)</h2>
+<p>Follow the 0010 style: frozen literals, no model imports, dialect-aware enum additions, and a test in <code>test_migrations.py</code>. Update <code>database.md</code> when it lands.</p>
+<div class="tw"><table>
+<tr><th>Change</th><th>Detail</th></tr>
+<tr><td>New table <code>mfc_requests</code></td><td><code>id</code>, <code>user_id</code>, <code>household_member_id</code>, <code>import_id</code> (nullable, links to the placeholder <code>imports</code> row), <code>client_ref_no</code> (unique, format <code>UNI-{env}-{uuid}</code>), <code>mfc_req_id</code>, <code>otp_ref_encrypted</code>, <code>environment</code>, <code>channel</code>, <code>cas_type</code> (summary or detailed, from the return hint), <code>from_date</code>, <code>to_date</code>, <code>status</code> (created, redirected, mfc_completed, qr_uploaded, validated, imported, failed, expired, cancelled), <code>error_code</code>, <code>mfc_trace_id</code>, <code>created_at</code>, <code>expires_at</code>, <code>redirected_at</code>, <code>validated_at</code>. Indexes on <code>(user_id, status)</code> and <code>household_member_id</code>. PAN and contact are not duplicated here; they come from the member.</td></tr>
+<tr><td>New table <code>mfc_api_calls</code></td><td><code>endpoint, http_status, mfc_trace_id, duration_ms, mfc_request_id, error_code, created_at</code>. No bodies. Gives us evidence for MFC support tickets and UAT debugging.</td></tr>
+<tr><td>New table <code>mfc_api_tokens</code></td><td>One row per environment: <code>environment, token_encrypted, expires_at, refreshed_at</code>. Only if MFC confirms tokens can coexist or refresh is safe; otherwise a lock row.</td></tr>
+<tr><td>Enum <code>SourceCasType</code></td><td>Add <code>mfcentral</code>.</td></tr>
+<tr><td>Enums for consent</td><td>Add <code>ConsentPurpose.cas_mfcentral_retrieval</code> and <code>ConsentDocumentType.mfc_data_sharing_notice</code>. Registry entry with version and SHA, new markdown document beside <code>pan_disclaimer.md</code>. <code>related_import_id</code> links the consent to the import; <code>related_file_sha256</code> stays empty (no file).</td></tr>
+<tr><td>No change</td><td>Transactions, folios, schemes, snapshots, holdings (computed on the fly). <code>imports.raw_parser_output</code> holds the PAN-redacted MFC JSON, as it does for casparser output today.</td></tr>
+</table></div>
+<div class="box warn"><p><b>Conflict with ADR-004 to decide first.</b> ADR-004 (as reopened on 18 Sep 2026) allows encrypted PAN per member and a 30-day raw PDF. It says nothing about receiving investor data from a third-party API. Proposal: store no raw MFC payload except the PAN-redacted JSON in <code>raw_parser_output</code> (as today), never the QR, and keep <code>mfc_requests</code> rows 90 days then purge ids. Needs your decision and a <code>decisions.md</code> entry before code.</p></div>
+
+<h2 id="frontend">7. Frontend changes and mockups</h2>
+<h3>Files (desktop and mobile)</h3>
+<ul>
+<li><span class="tag c">Decided Q11</span> <code>features/import/ImportPathChoice.tsx</code> and <code>TwoPathImportContainer</code>: add a third row (same icon tile, title, description and chevron as the others), shown only when <code>/config</code> reports MFC enabled, on Add data and on the onboarding upload step (<code>SoloCasUpload</code>). Mobile twin in <code>mobile/features/import/</code>.</li>
+<li>New: <code>MfcStartPath.tsx</code> (contact choice and notice), <code>MfcWaitingView.tsx</code> (popup open, instructions, reopen), <code>MfcQrUpload.tsx</code> (drag and drop, image preview), <code>MfcReturnPage.tsx</code> mounted at <code>/import/mfc/return</code> in <code>shell/routes/</code>, <code>useMfcFlow.ts</code> (state: start, redirected, waiting, qr, validating, then hands off to the existing <code>useImportFlow</code> prompts), <code>mfcApi.ts</code>, copy in <code>prompts/copy.ts</code>.</li>
+<li><b>postMessage listener:</b> accept only <code>event.origin === VITE_MFC_ORIGIN</code>, <code>data.type === "mfc-cas-complete"</code> and a <code>reqId</code> that matches the open request. Anything else is ignored. After a redirect, the return page reads query params, calls <code>/return</code>, then goes to the QR step.</li>
+<li><b>Summary guard (Q2):</b> if the hint says summary, show the "pick Detailed" screen with a one-tap restart. If the hint is missing, the backend still catches summary at <code>/qr</code> (<code>mfc_summary_only</code>).</li>
+<li><b>Popup blocked or closed (Q6):</b> detect <code>window.open</code> returning null or the popup closing without a message; show "Open MF Central again" and the redirect fallback.</li>
+<li><b>WebView note:</b> only needed if Unifolio is ever wrapped in an Android or iOS WebView. The platform guide's download listener, Web Share and <code>mfc-cas-download</code> handler are then native-app work. For the current web app, nothing from that file applies.</li>
+<li><code>UploadSurface</code> type gets <code>mfc_start</code>. Use the existing tokens (<code>--color-accent</code>, DM Sans headings, Manrope body).</li>
+</ul>
+<h3>Desktop screens (how it will look in the app)</h3>
+<p>These copy what <code>/import</code> looks like today. It uses <code>FocusLayout</code>, so there is no sidebar: a grey header with Back, an "Importing for" chip and the theme toggle, then one centered column about 576 px wide. The chooser is the existing divided list (icon tile, DM Sans title, grey description, chevron), not cards. The MFC screens reuse the <code>RequestCamsPath</code> card (reference tiles, numbered steps with a vertical rule, full-width 48 px button) and the <code>UploadForm</code> drop zone. Colours are from <code>shell-tokens.css</code> and the 18 Nov palette reference, fonts are DM Sans (headings) and Manrope (body). Switch light or dark with the button on the right.</p>
+<div class="box"><p><b>Two real conflicts to know about.</b> (1) The palette says text on the green button is dark <code>#111111</code> and the green is <code>#22C55E</code>; today's import buttons use white text. The mockups follow the palette. (2) Upload today has no tick box; clicking Upload is the agreement (7 Oct decision). The MFC screen therefore uses the same centred notice line, and Q4 below is reworded to match.</p></div>
+<div class="tabs" role="tablist" id="dm-tabs"></div>
+<div class="scr"><div id="dm-stage" role="tabpanel"></div></div>
+<div class="box warn"><p><b>Note: these mockups only visualise the additional changes.</b> They show the new "Fetch from MF Central" row and the new MF Central screens, drawn in today's look so you can judge fit. Everything else in the app stays exactly as it is today and nothing existing is changed: the header, theme toggle, the other two import paths, the PDF upload and CAMS screens, the preview and confirm screens, and the rest of the product. After "Import my funds" succeeds the user lands in the existing preview and confirm screens. No new review UI.</p></div>
+
+<h2 id="adapter">8. Data mapping: validateQRCode to ParseResult</h2>
+<div class="tw"><table>
+<tr><th>MFC field (detailed)</th><th>Our field</th><th>Note</th></tr>
+<tr><td>top-level <code>pan</code></td><td><code>ParsedInvestor.pan</code> and the single <code>ParsedPerson</code></td><td>Must equal the member's claimed PAN, else <code>member_pan_mismatch</code> prompt as today.</td></tr>
+<tr><td><code>investorDetails</code> names, email, mobile</td><td><code>ParsedInvestor.name, email</code></td><td>Name parts are joined; address is ignored (not stored).</td></tr>
+<tr><td><code>dtSummary[]</code> amc, folio, scheme, schemeName, isin, rtaCode, closingBalance, nav, lastNavDate, costValue, brokerCode</td><td><code>ParsedScheme</code> (close_units, valuation_*, arn_code, amc)</td><td><code>rtaCode</code> gives plan-type hints with ARN via <code>classify_folio_plan_type</code>.</td></tr>
+<tr><td><code>dtSummary.openingBal</code>, <code>fromDate</code></td><td><code>open_units</code>, <code>statement_from</code></td><td>Feeds the existing opening-balance rule. Need to confirm what <code>fromDate</code> an all-time request returns.</td></tr>
+<tr><td><code>dtTransaction[]</code> trxnDate, trxnAmount, trxnUnits, purchasePrice</td><td><code>NormalizedTransaction</code> txn_date, amount, units, nav</td><td>Our convention is unsigned values with <code>TransactionType</code> carrying direction. Whether MFC sends signed values must be checked on real data.</td></tr>
+<tr><td><code>trxnDesc</code>, <code>trxnTypeFlag</code></td><td><code>txn_type</code> via new <code>txn_map.py</code></td><td>Keyword rules into the 16 types. Unknown text becomes <code>MISC</code> with a warning and shows in the preview, never silently dropped. Zero-amount rows (address update, IDCW option change) are dropped as non-financial.</td></tr>
+<tr><td><code>stampDuty</code>, <code>sttTax</code>, <code>totalTax</code></td><td><code>stamp_duty</code>, STT handling</td><td>Mirror <code>_attach_stamp_duty</code>.</td></tr>
+<tr><td>(none)</td><td><code>balance</code></td><td>Not provided, so counting-based dedup applies.</td></tr>
+<tr><td>whole response</td><td><code>raw_json</code> (PAN redacted), <code>file_type = mfcentral</code>, <code>cas_type = DETAILED</code></td><td>Needs the new <code>SourceCasType</code> value.</td></tr>
+</table></div>
+<h3>Safety checks the adapter must run</h3>
+<ul>
+<li><b>Reconcile per folio and scheme:</b> opening plus signed transactions must equal <code>closingBalance</code>. A mismatch adds a visible warning on the preview and blocks silent import.</li>
+<li><b>Parity test in the pilot:</b> import the same investor by PDF and by MFC and diff the resulting ledger, XIRR and holdings.</li>
+<li><b>Summary response</b> (decided Q2) returns <code>mfc_summary_only</code> and nothing is imported. A snapshot-only import (holdings without history) is parked in <code>DEFERRED_FEATURES.md</code>.</li>
+</ul>
+
+<h2 id="tests">9. UAT test plan</h2>
+<p>Environment: staging VM with <code>MFC_ENVIRONMENT=uat</code>, redirect URL <code>https://ls-redesign.unifolio.in/import/mfc/return</code> (to be registered with MFC). Test PANs, the shared test email and mobile, and the OTP rule come from the PDF. Layers: (a) mock server tests in CI with no secrets, (b) the human-run live matrix below.</p>
+<div class="tw"><table>
+<tr><th>#</th><th>Case</th><th>Expected</th></tr>
+<tr><td>T1</td><td>Token fetch and reuse; token expiry (force 401)</td><td>One refresh, request succeeds, no duplicate token minting under 3 workers</td></tr>
+<tr><td>T2</td><td>Happy path detailed, popup mode, test PAN</td><td>Preview shows folios, schemes, transactions; confirm writes ledger; analytics recompute fires</td></tr>
+<tr><td>T3</td><td>Happy path, redirect mode (mobile browser)</td><td>Return page resumes the same request after navigation</td></tr>
+<tr><td>T4</td><td>User picks Summary</td><td><code>mfc_summary_only</code> screen, restart works</td></tr>
+<tr><td>T5</td><td>Wrong OTP; expired OTP; abandoned flow</td><td>MFC message surfaced; request expires; daily job cleans</td></tr>
+<tr><td>T6</td><td>QR from a different request or different user</td><td>Rejected as <code>mfc_qr_mismatch</code>, no import</td></tr>
+<tr><td>T7</td><td>Same QR uploaded twice</td><td>Second behaves per MFC rule (to confirm); no duplicate ledger rows</td></tr>
+<tr><td>T8</td><td>Non-QR image, huge file, wrong type, tampered image</td><td>Clean 4xx before any MFC call, or MFC 400 mapped to a message</td></tr>
+<tr><td>T9</td><td>MFC 202, 400, 401, 404, 422, 500, timeout</td><td>Each maps to the right code, retry rules hold, nothing hangs</td></tr>
+<tr><td>T10</td><td>Duplicate <code>clientRefNo</code>; double click on Start</td><td>One active request per member; second click returns the same request</td></tr>
+<tr><td>T11</td><td>Fake <code>postMessage</code> from another origin or wrong <code>reqId</code></td><td>Ignored</td></tr>
+<tr><td>T12</td><td>PAN already claimed by another account; PAN differs from member</td><td>Existing PAN conflict and mismatch prompts</td></tr>
+<tr><td>T13</td><td>Re-import the same data; overlap with an earlier PDF import</td><td><code>already_imported</code> or only new rows, counts match</td></tr>
+<tr><td>T14</td><td>UAT request used in prod config and the reverse</td><td>Blocked by the environment lock</td></tr>
+<tr><td>T15</td><td>Logs and DB inspection after a full run</td><td>No PAN, otpRef, token, QR, or ciphertext anywhere in logs; <code>mfc_api_calls</code> has no bodies</td></tr>
+<tr><td>T16</td><td>Kill switch off</td><td>Card hidden, routes return 404 or 403</td></tr>
+</table></div>
+<p><b>Known limit of UAT:</b> data is fake (for example "MFHMF Test Fund"), so T2 cannot prove the transaction description mapping. That proof only happens in the production pilot on real accounts with your own consent.</p>
+
+<h2 id="rollout">10. Phases, owners and the production step</h2>
+<div class="tw"><table>
+<tr><th>Phase</th><th>Owner</th><th>Work</th><th>Gate to leave</th></tr>
+<tr><td>P0</td><td><span class="tag h">Human</span></td><td>Credential custody, out-of-repo sanity test with MFC's sample code, send MFC the questions in section 11, register the UAT redirect URL.</td><td>Token and <code>newCasRequest</code> work; answers on IV, <code>iat</code>, token rules</td></tr>
+<tr><td>P1</td><td><span class="tag c">Claude</span></td><td>Decisions in <code>decisions.md</code> (ADR-004 follow-up, consent text, detailed-only), migration 0055, enums, settings, crypto and JWS with known-answer tests, mock MFC server.</td><td>Unit tests green; reviewed</td></tr>
+<tr><td>P2</td><td><span class="tag c">Claude</span></td><td>Client, token store, service, routes, adapter, txn map, expiry job, against the mock.</td><td>Backend tests green incl. log-redaction test</td></tr>
+<tr><td>P3</td><td><span class="tag c">Claude</span></td><td>Frontend desktop and mobile, return page, vitest tests, copy.</td><td>Type check and tests green</td></tr>
+<tr><td>P4</td><td><span class="tag h">Human</span> + <span class="tag c">Claude</span></td><td>Human installs UAT secrets on staging, runs smoke script, pastes redacted shapes; Claude adjusts adapter. Needs the staging deploy guide pattern.</td><td>T1 and T2 pass live</td></tr>
+<tr><td>P5</td><td><span class="tag h">Human</span></td><td>Run the full T1 to T16 matrix, record results in a deploy record doc.</td><td>All pass or accepted with notes</td></tr>
+<tr><td>P6</td><td>Reviewers</td><td>Adversarial review (model-orchestration gate) plus security review focused on secrets, logging, crypto and the postMessage origin check.</td><td>No open high findings</td></tr>
+<tr><td>P7</td><td><span class="tag h">Human</span></td><td>Production onboarding with MFC: agreement and terms, production secrets (new, installed by hand), IP allowlist if required, production redirect URL, legal text and privacy policy mention of MFC.</td><td>Written MFC approval</td></tr>
+<tr><td>P8</td><td>Both</td><td>Pilot with 3 internal PANs and consent, PDF vs MFC parity diff, then <code>MFC_ENABLED</code> on for a small user group, then everyone.</td><td>Parity accepted; error rate watched a week</td></tr>
+</table></div>
+<h3>Production checklist</h3>
+<ul>
+<li>Different secrets, different token, <code>MFC_ENVIRONMENT=prod</code>, environment lock verified.</li>
+<li>Outbound IP: ask MFC if they allowlist source IPs. The LeapSwitch VM's IP is stable; AWS staging's is not unless behind the NAT.</li>
+<li>Monitoring: alert on a spike of <code>mfc_request_failed</code> or 401s, and email on token-refresh job failure (existing <code>run-job.sh</code> SES mail).</li>
+<li>Rollback: flag off. Imported ledger rows stay and are marked by <code>source_cas_type=mfcentral</code>.</li>
+<li>Docs at the end: <code>decisions.md</code>, <code>backend.md</code>, <code>database.md</code>, <code>DEFERRED_FEATURES.md</code> rows 115 and 116, <code>session.md</code>, deploy guide and record.</li>
+</ul>
+
+<h2 id="open">11. Decisions for you, questions for MFC</h2>
+<p>Twelve decisions; <b>Q2, Q6 and Q11 are answered</b> and marked below. Each has options with detail and a recommended pick. Choose, add a note if you like, then press <b>Copy my answers</b> and paste the text back to me. I will update the plan from it. Your picks are remembered in this browser only. Answered questions show an Answered badge and a Chosen badge on the picked option.</p>
+<div class="act"><button type="button" id="q-rec">Select all recommended</button><button type="button" id="q-clear">Clear</button><span class="prog" id="q-prog" aria-live="polite"></span></div>
+<div id="qs"></div>
+<div class="act"><button type="button" class="p" id="q-copy">Copy my answers</button><span class="prog" id="q-msg" aria-live="polite"></span></div>
+<textarea class="out" id="q-out" readonly aria-label="Your answers" placeholder="Your answers appear here after you press Copy my answers."></textarea>
+
+<h3>Questions to send to MFC</h3>
+<p>These are not yours to answer, they go to MFC's onboarding contact. Copy and send as one email; answers decide token handling, the JWS, dedup and the return mode.</p>
+<div class="act"><button type="button" id="m-copy">Copy MFC questions</button><span class="prog" id="m-msg" aria-live="polite"></span></div>
+<ol id="mq"></ol>
+
+<h3>Sources</h3>
+<p style="font-size:13px">Your three files; this codebase; <a href="https://www.business-standard.com/markets/mutual-fund/amfi-asks-mf-central-to-stop-sharing-investor-data-with-third-party-apps-125091801057_1.html">Business Standard on the AMFI request</a> and <a href="https://www.business-standard.com/markets/mutual-fund/mf-central-to-tighten-third-party-data-access-says-cams-md-anuj-kumar-125111401771_1.html">on MF Central tightening access</a> (only the search summaries were readable; the pages blocked automated access); <a href="https://www.businesstoday.in/personal-finance/news/story/why-amfi-blocked-fintechs-access-to-investor-data-a-look-at-the-concerns-and-impact-494695-2025-09-18">Business Today</a>; <a href="https://www.mprofit.in/mfcentral-cas-api-terms/">MProfit's published MF Central CAS API terms</a> as a peer precedent. Public sources on MFC's onboarding were thin; MFC's onboarding team is the authority for sections 10 and 11.</p>
+</div>
+
+<script>
+(function(){
+var I={
+ back:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+ user:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+ sun:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+ chev:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+ ext:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14L21 3M18 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h5"/></svg>',
+ cloud:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16l-4-4-4 4M12 12v9"/><path d="M20.4 18.4A5 5 0 0018 9h-1.3A8 8 0 104 16.3"/></svg>',
+ warn:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01"/></svg>',
+ check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>',
+ qrg:'<svg width="22" height="22" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" fill="#22C55E" fill-opacity=".1"/><rect x="7" y="7" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="18" y="7" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="7" y="18" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M18 18h3v3h-3zM23 23h2" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round"/><circle cx="26.5" cy="5.5" r="1" fill="#F59E0B"/></svg>',
+ env:'<svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" fill="#22C55E" fill-opacity=".1"/><rect x="5" y="9" width="22" height="15" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 10l9.3 6.6c.7.5 1.7.5 2.4 0L26.5 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="16" cy="16.5" r="2" fill="#22C55E"/><circle cx="27.5" cy="5.5" r="1" fill="#F59E0B"/></svg>',
+ doc:'<svg width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" fill="#22C55E" fill-opacity=".1"/><path d="M8.5 7a2 2 0 012-2h8l5 5v15a2 2 0 01-2 2h-11a2 2 0 01-2-2V7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 21v-8M16 13l-3.5 3.5M16 13l3.5 3.5" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25.5" cy="6.5" r="1" fill="#F59E0B"/></svg>',
+ hero:'<svg class="ill" viewBox="0 0 128 128" fill="none"><circle cx="64" cy="64" r="52" fill="#22C55E" fill-opacity=".1"/><rect x="34" y="30" width="44" height="58" rx="6" stroke="currentColor" stroke-width="2.4" fill="var(--sf)"/><path d="M44 48h24M44 58h24M44 68h14" stroke="#9B9B9B" stroke-width="2.4" stroke-linecap="round"/><rect x="60" y="62" width="34" height="34" rx="6" fill="#22C55E"/><path d="M77 88V74M77 74l-6 6M77 74l6 6" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="96" cy="36" r="3" fill="#F59E0B"/></svg>'
+};
+var dark=false;
+function shell(inner,extra){
+ return '<div class="bw" data-t="'+(dark?'dark':'light')+'"><div class="bar"><i></i><i></i><i></i><span class="url">ls-redesign.unifolio.in/import</span></div>'+
+ '<div class="hd"><span class="back">'+I.back+'Back</span><div class="hr"><span class="chip">'+I.user+'Importing for <b>Anita Rao</b></span><span class="tg">'+I.sun+'</span></div></div>'+
+ '<div class="main"><div class="col">'+inner+'</div>'+(extra||'')+'</div></div>';
+}
+function row(ic,t,d,hv,nw){return '<div class="rw'+(hv?' hv':'')+'"><div class="tile">'+ic+'</div><div style="flex:1;min-width:0"><strong>'+t+(nw?'<span class="nw">New</span>':'')+'</strong><span class="d">'+d+'</span></div>'+I.chev+'</div>'}
+var S=[
+['1 Choose path',function(){return shell(I.hero+'<h1 style="text-align:center">How would you like to bring in your statement?</h1><div class="rows">'+
+ row(I.qrg,'Fetch from MF Central','Verify with an OTP on MF Central, then upload a small QR image. No PDF or password needed.',1,1)+
+ row(I.env,'Request from CAMS','Free, official, and covers every AMC automatically. Arrives by email in 5–10 min.')+
+ row(I.doc,'Already have a statement','Drop in a CAS PDF statement you already downloaded — done in seconds.')+'</div>')}],
+['2 Start request',function(){return shell('<div class="card"><span class="bk">'+I.back.replace('width="16" height="16"','width="14" height="14"')+'Back to import options</span><h2>Fetch from MF Central</h2><p class="lead">MF Central is the industry platform run by CAMS and KFintech. It sends you an OTP, then gives you a QR image that brings in your funds across every AMC.</p>'+
+ '<div class="ref"><span>On MF Central, these are set for you</span><div class="g3"><div><em>Statement</em><b>Detailed</b></div><div><em>OTP goes to</em><b>Mobile ••3210</b></div><div><em>For</em><b>Anita Rao</b></div></div></div>'+
+ '<span class="lbl">Send the OTP to</span><div class="choice"><div class="ch on"><b>Mobile</b>+91 98••••3210</div><div class="ch"><b>Email</b>an••••@mail.com</div></div>'+
+ '<div class="stp"><div><i>1</i>Tapping below opens MF Central in a new window.</div><div><i>2</i>Enter the OTP and make sure <b>Detailed</b> is selected.</div><div><i>3</i>Download the QR image, then come back here.</div></div>'+
+ '<div class="cta">Continue to MF Central '+I.ext+'</div>'+
+ '<p class="note">Your PAN and contact are shared with MF Central to find your funds. By continuing, you agree to our <u>privacy policy</u> and the <u>MF Central notice</u>.</p></div>')}],
+['3 On MF Central',function(){return shell('<div class="card"><h2>Finish on MF Central</h2><p class="lead">A MF Central window opened. Enter your OTP there, choose Detailed, and download the QR image.</p><div class="pill"><span class="dot"></span>Waiting for MF Central</div>'+
+ '<div class="stp"><div><i>1</i>Enter the OTP MF Central sent you.</div><div><i>2</i>Select <b>Detailed</b>.</div><div><i>3</i>Download the QR image.</div></div>'+
+ '<div class="al">'+I.warn+'<span>Window blocked or closed? Open MF Central again, or continue in this tab.</span></div>'+
+ '<div class="cta g">Open MF Central again '+I.ext+'</div><p class="note"><u>Cancel request</u></p></div>',
+ '<div class="pop"><div class="ph"><i></i><i></i><i></i>&nbsp;mfcentral.com</div><div class="pb"><b>Verify with OTP</b><small>Their screen, not ours. Shown for context.</small><div class="otp"><i>0</i><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i></div><div class="seg"><span>Summary</span><span class="on">Detailed</span></div><br><div class="qr"></div><span class="lb">MF Central</span></div></div>')}],
+['4 Upload QR',function(){return shell('<div class="card big"><span class="bk">'+I.back.replace('width="16" height="16"','width="14" height="14"')+'Back to import options</span><div style="text-align:center"><svg viewBox="0 0 128 128" width="96" height="96" fill="none" style="margin:0 auto"><circle cx="64" cy="64" r="52" fill="#22C55E" fill-opacity=".1"/><rect x="38" y="38" width="52" height="52" rx="8" stroke="currentColor" stroke-width="2.4" fill="var(--sf)"/><rect x="46" y="46" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><rect x="68" y="46" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><rect x="46" y="68" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><path d="M68 70h6v6h-6zM78 80h4" stroke="#22C55E" stroke-width="3" stroke-linecap="round"/><circle cx="98" cy="34" r="3" fill="#F59E0B"/></svg><h2 style="margin-top:6px">Upload your QR image</h2></div>'+
+ '<div class="drop on"><div class="fl"><div class="th">'+I.qrg+'</div><div style="flex:1"><b>mfc-cas-qr.png</b><small>48 KB · ready</small></div>'+I.check+'</div></div>'+
+ '<div class="cta">Import my funds</div><p class="note">We read this image once to ask MF Central for your statement. We do not keep it.</p></div>')}],
+['5 Problems',function(){return shell('<div class="card"><h2>That was a summary statement</h2><p class="lead">MF Central gave us totals but no transactions, so we cannot build your history or returns.</p>'+
+ '<div class="al">'+I.warn+'<span>Start again and make sure <b>Detailed</b> is selected on MF Central. It takes about a minute.</span></div>'+
+ '<div class="cta">Start again</div><div class="cta g">Upload a PDF instead</div>'+
+ '<div class="oth"><em>Other states, same alert pattern</em><span>Wrong or expired OTP</span><span>Request expired</span><span>MF Central unavailable</span><span>QR belongs to another request</span><span>No holdings found</span><span>Window blocked</span><span>Numbers do not reconcile</span></div></div>')}]
+];
+var tabs=document.getElementById('dm-tabs'),stage=document.getElementById('dm-stage');
+var cur=0;function show(i){cur=i;stage.innerHTML=S[i][1]();Array.prototype.forEach.call(tabs.children,function(b,j){b.setAttribute('aria-selected',j===i)});}
+S.forEach(function(x,i){var b=document.createElement('button');b.type='button';b.textContent=x[0];b.setAttribute('role','tab');b.onclick=function(){show(i)};tabs.appendChild(b)});
+var tb=document.createElement('button');tb.type='button';tb.className='thb';tb.textContent='Preview: light';tb.onclick=function(){dark=!dark;tb.textContent='Preview: '+(dark?'dark':'light');show(cur)};tabs.appendChild(tb);
+show(0);
+
+var Q=[
+{id:'Q1',t:'Production access with MFC',c:'AMFI told MF Central in Sept 2025 to stop sharing data with third-party apps; the QR consent flow is the replacement. Production approval, terms and any fee come from MFC, not from us, and it can take weeks.',o:[
+ ['Start MFC production onboarding now, in parallel with UAT',"Send the questions below and open the commercial and legal conversation immediately. UAT work continues meanwhile, so production is not blocked on paperwork later. Risk: effort wasted if MFC declines.",1],
+ ['Finish UAT first, then approach MFC for production','Lower upfront effort, but any slow approval then stalls the whole launch, and MFC may change what UAT must prove.'],
+ ['Already in discussion; terms known','Tell me the terms (fee, ARN or RIA requirement, volume limits) in the note and I will adjust the plan.']]},
+{id:'Q2',t:'What a v1 import accepts',c:'Summary responses have no transactions. Our importer needs transactions for the ledger, XIRR and holdings history.',o:[
+ ['Detailed only; summary shows a "start again" screen',"Keeps one clean path into the existing importer. Smallest build, least risk. Users who pick Summary lose about a minute.",1],
+ ['Detailed, plus a snapshot-only import from Summary','Adds a second import type (holdings without history), new UI and analytics rules about missing history. Roughly 30 to 40 percent more work.'],
+ ['Accept both and warn about missing history','Fastest to demo, but half the app (returns, XIRR) behaves wrongly for these users. Not advised.']]},
+{id:'Q3',t:'What we keep from MFC data',c:'ADR-004 (reopened 18 Sep 2026) covers encrypted PAN and a 30-day PDF. It does not cover data from a third-party API. This needs a decisions.md entry.',o:[
+ ['PAN-redacted JSON only, never the QR, request rows purged after 90 days',"Matches today's casparser behaviour (raw_parser_output is already redacted). Least data held, easiest privacy story.",1],
+ ['Also keep the encrypted raw MFC payload for 30 days','Helps debugging and reprocessing, mirrors the PDF retention, but adds a new store of sensitive data and a new expiry job.'],
+ ['Keep no raw output at all','Strongest privacy, but we lose the ability to explain or reproduce an import after a bug report.']]},
+{id:'Q4',t:'Consent for sharing PAN with MFC',c:'Upload today has no tick box: clicking Upload is the agreement (7 Oct decision). Here we send the PAN and contact to a third party, which is a different purpose and wording.',o:[
+ ['Notice line under the button that names MF Central; clicking Continue is the agreement; new consent purpose recorded',"Matches the look and flow of today's upload page and keeps friction low. Fits the append-only consent_records design. Needs one enum migration and notice text; have legal confirm that an implicit click is enough when a third party receives the PAN.",1],
+ ['Explicit checkbox that must be ticked first','Strongest evidence of consent, but reverses the 7 Oct decision to remove the tick box and adds a step.'],
+ ['Reuse the existing PAN disclaimer wording unchanged','No migration, but it does not mention a third party and could be hard to defend.']]},
+{id:'Q5',t:'How to sign requests (JWS)',c:'MFC needs an RS256 signature. requirements.txt is fully pinned and has no JWT library.',o:[
+ ['Write about 30 lines with the existing cryptography package',"No new dependency or supply-chain surface. Covered by known-answer tests.",1],
+ ['Add PyJWT, pinned','Familiar API and matches MFC sample code, but a new dependency to pin, review and update.']]},
+{id:'Q6',t:'How the user goes to MFC and comes back',c:'MFC supports iframe, popup, and a full redirect. Popups are unreliable on phones and in app WebViews. An iframe needs MFC to allow our origin.',o:[
+ ['Popup on desktop, full redirect on mobile or when the popup is blocked',"Best experience where it works, safe fallback elsewhere, no MFC change needed.",1],
+ ['Always full redirect','One code path and simplest to test, but the user leaves our page on desktop too.'],
+ ['Iframe inside our page','Smoothest look, but depends on MFC allowing framing and on third-party cookie behaviour. Only after MFC confirms.']]},
+{id:'Q7',t:'Limits per user',c:'Each request calls MFC and may carry a cost. We have no general rate limiter on import routes.',o:[
+ ['5 requests a day per user, 1 active per family member',"Stops double-clicks and abuse, generous for real use. Built from the request table, no new infrastructure.",1],
+ ['2 requests a day, 1 active','Tighter cost control. May frustrate users who pick Summary by mistake.'],
+ ['No limit in v1','Simplest, but exposes cost and MFC quota to loops and bots.']]},
+{id:'Q8',t:'Where the MFC token lives',c:'The token lasts 30 days. We run 3 backend workers plus a worker container, and we do not yet know if a new token cancels the old one.',o:[
+ ['Encrypted in the database, one refresher with a lock, daily cron and refresh on 401',"Safe with several workers whatever MFC answers. Needs the mfc_api_tokens table.",1],
+ ['In memory per process, refresh on 401','No table, but each worker may mint its own token, which can break the others if MFC allows only one.'],
+ ['Wait for MFC to answer, then pick','Avoids rework if tokens can coexist, but blocks the design.']]},
+{id:'Q9',t:'How we roll it out',c:'Real-data mapping (transaction descriptions) is only provable on real accounts.',o:[
+ ['3 internal PANs with consent, then a small group, then everyone, behind MFC_ENABLED',"Finds mapping gaps on people who can tolerate them, with an instant off switch.",1],
+ ['Everyone at once after UAT passes','Fastest, but the first real users find the mapping bugs.'],
+ ['Admin allowlist only until parity is proven','Safest, slowest. Useful if MFC approval is conditional.']]},
+{id:'Q10',t:'Secrets custody and where they live',c:'Staging runs on a LeapSwitch VM with a root-only .env and no secrets manager.',o:[
+ ['One named owner plus a manager; VM .env (chmod 600) and mounted key files',"Matches how staging works today. RSA keys as files, not env text. Rotate after UAT.",1],
+ ['Move to a secrets manager first','Better long term, but a separate infrastructure task that delays UAT.'],
+ ['Manager only holds them','Fine if you are not the custodian, but a single person is a continuity risk.']]},
+{id:'Q11',t:'Where the MF Central option appears',c:'The import choice screen is also used in onboarding.',o:[
+ ['Third row on Add data and on the onboarding upload step',"Most visibility. New users get a PDF-free path, which should raise import completion.",1],
+ ['Only on Add data after onboarding','Keeps onboarding unchanged while we learn from real use.'],
+ ['Only in onboarding','Highlights it early but hides it from existing users.']]},
+{id:'Q12',t:'Native app wrapper',c:'The WebView download guide (Android DownloadListener, iOS handlers) only matters if Unifolio is wrapped in a native app.',o:[
+ ['No wrapper planned; skip the WebView work',"Nothing in that guide applies to the web app. Saves a phase.",1],
+ ['Planned within 6 months','I add native download and completion handling as a later phase.'],
+ ['Not sure','I keep it as a deferred item with the checklist ready.']]}
+];
+var KEY='mfc-plan-answers-v1',ans={};
+try{ans=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+var SEED={Q2:{i:0},Q6:{i:0},Q11:{i:0}};Object.keys(SEED).forEach(function(k){if(!ans[k]||ans[k].i==null){ans[k]=Object.assign({},ans[k]||{},SEED[k])}});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ans))}catch(e){}}
+function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var qs=document.getElementById('qs');
+Q.forEach(function(q){
+ var h='<div class="q" id="'+q.id+'"><h3>'+q.id+'. '+esc(q.t)+'<span class="ans" hidden>Answered</span></h3><p class="ctx">'+esc(q.c)+'</p>';
+ q.o.forEach(function(o,i){h+='<label><input type="radio" name="'+q.id+'" value="'+i+'"><b>'+esc(o[0])+'</b><span class="cho" hidden>Chosen</span>'+(o[2]?'<span class="rec">Recommended</span>':'')+'<span>'+esc(o[1])+'</span></label>'});
+ h+='<textarea id="'+q.id+'-n" aria-label="Note for '+q.id+'" placeholder="Optional note or your own answer"></textarea></div>';
+ qs.insertAdjacentHTML('beforeend',h);
+});
+function paint(){Q.forEach(function(q){var a=ans[q.id]||{};Array.prototype.forEach.call(document.getElementsByName(q.id),function(r){r.checked=(a.i!=null&&+r.value===a.i)});document.getElementById(q.id+'-n').value=a.n||''});prog()}
+function badges(){Q.forEach(function(q){var box=document.getElementById(q.id),a=ans[q.id]||{};box.querySelector('.ans').hidden=a.i==null;Array.prototype.forEach.call(box.querySelectorAll('label'),function(l,i){l.querySelector('.cho').hidden=a.i!==i})})}
+function prog(){badges();var n=Q.filter(function(q){return ans[q.id]&&(ans[q.id].i!=null||ans[q.id].n)}).length;document.getElementById('q-prog').textContent=n+' of '+Q.length+' answered'}
+qs.addEventListener('change',function(e){if(e.target.type==='radio'){(ans[e.target.name]=ans[e.target.name]||{}).i=+e.target.value;save();prog()}});
+qs.addEventListener('input',function(e){if(e.target.tagName==='TEXTAREA'){var id=e.target.id.replace('-n','');(ans[id]=ans[id]||{}).n=e.target.value;save();prog()}});
+document.getElementById('q-rec').onclick=function(){Q.forEach(function(q){q.o.forEach(function(o,i){if(o[2]){(ans[q.id]=ans[q.id]||{}).i=i}})});save();paint()};
+document.getElementById('q-clear').onclick=function(){ans={};save();paint()};
+function build(){var t='MFCentral plan answers\n';Q.forEach(function(q){var a=ans[q.id]||{};t+='\n'+q.id+' '+q.t+': ';if(a.i!=null){var o=q.o[a.i];t+=o[0]+(o[2]?' (recommended)':'')}else t+='NOT ANSWERED';if(a.n)t+='\n   Note: '+a.n});return t}
+function copy(text,out,msgEl,done){if(out)out.value=text;var ok=function(){msgEl.textContent=done};var fb=function(){if(out){out.select();msgEl.textContent='Select and copy the text below'}else msgEl.textContent='Copy blocked, select the list manually'};
+ try{navigator.clipboard.writeText(text).then(ok,fb)}catch(e){fb()}}
+document.getElementById('q-copy').onclick=function(){copy(build(),document.getElementById('q-out'),document.getElementById('q-msg'),'Copied. Paste it back to me.')};
+var M=['Does a new OAuth token invalidate the old one? Can several servers hold tokens at once?','Is the iat claim accepted in the JWS? What is the exact IV string and length, and is it the same in production?','Where does the OTP go: the email or mobile we send, or the contact registered on the folios? What if they differ?','OTP and reqId lifetime. Is a QR single-use? Maximum date range, and the fromDate for all-time history?','Which origin posts the completion message in UAT and production? Please register our return URLs (staging and production) and confirm popups from our origin are fine.','Are amounts and units in dtTransaction signed? Is there a full list of trxnDesc values or a code field? Can a running balance be added? How are joint holders returned?','Rate limits, support contact, SLA, and whether source IPs are allowlisted?','Which spec is current: the newer PDF or the v2.2 document?','Production onboarding: agreement and terms, fees, eligibility (ARN or RIA), and the AMFI consent rules that apply to us after the 2025 directive?'];
+var mq=document.getElementById('mq');M.forEach(function(x){var li=document.createElement('li');li.textContent=x;mq.appendChild(li)});
+document.getElementById('m-copy').onclick=function(){copy('Questions for MFC about CAS API integration:\n'+M.map(function(x,i){return (i+1)+'. '+x}).join('\n'),null,document.getElementById('m-msg'),'Copied')};
+paint();
+})();
+</script>
