@@ -144,3 +144,10 @@
 - Spec coverage: item 11 (E-2 to E-6), item 16 (E-7 to E-9), item 9 dropped (no task, card untouched).
 - Open decision for the user before E-7: the new dependency. Fallback is the tooltip.
 - Packets and handoffs: not written here, by instruction.
+
+## Amendments (23 Nov 2026, owner decisions; they override the text above where they differ)
+- **Strip eligibility (replaces the E-4 test list):** a strip appears only on **Allocation** (prices, holdings, market-cap list) and **Other Analytics** (prices, holdings, ratios, fees). **Overview, Performance, Holdings, Overlap and Transactions have no strip.** Overview keeps its one date inside the XIRR tile, reworded "Prices as on 12 Nov 2026". No tab gains a date it does not show today (audit: `Docs/orchestration/2026-11-20-date-audit.md`, section 4).
+- **E-6 also:** monthly data shows as a month wherever the audit lists an exact day for monthly data (rows #3, #4, #5, #7, #19 to #23); the Valuation-by-fund "As on" column is removed in E-9; the day-change pop-up note (`DayChangeDialog.tsx`, `price-day-note`) becomes "Prices as on <weekday day month year>"; the unused `formatAsOf` is deleted; "Values as on" becomes "Prices as on"; `formatMonthYear` copies merged (lib/dateRange.ts "September 2026" is the winner; `features/home/worthCopy.ts` has the second, "Sep 2026").
+- **E-6b (back end, Codex):** reword the two back-end sentences: `backend/app/services/news/copy.py:59` ("holdings as of Sep 2026" to "holdings as on September 2026") and the fund-page benchmark note (`benchmark_notes.py:5`, `returns.py:167`, a raw ISO date to a month), update `backend/tests/services/fund_page/test_benchmark_select.py:73` and any news-copy test; additive, no schema change.
+- **E-7:** the dependency `@radix-ui/react-popover` is approved (owner, 23 Nov): the E-7 packet may edit `frontend/package.json` and `package-lock.json` for it and nothing else.
+- Out of scope: the legacy print and PDF-export sections (`features/analytics/*` via `PrintAnalyticsView`, `TerSection.tsx` raw ISO `Ref:`): left for Batch I. The score card's "Updated" and the Performance month pop-up's row dates stay.

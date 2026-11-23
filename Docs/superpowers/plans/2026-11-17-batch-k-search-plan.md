@@ -171,3 +171,8 @@ Parallelism: T02 (Codex), T04 and T05 (Claude), T06 and T07 (Antigravity G-b) al
 - Spec coverage: endpoint (T02), shell (T04, T05), logic and hooks (T06, T07, T09), box (T08), pages (T11 to T14), gates G1 to G4, docs, deploy facts. Removed result types and Q-answers are in Global Constraints.
 - Changes against the earlier artifact, flagged: the artifact assumed Gemini ran tasks one at a time and Claude ran the lane; the program plan allows up to three Gemini lanes and makes Codex the back-end builder; the artifact's own section registry is replaced by reading F's shared list.
 - Packets and handoffs: not written here, by instruction.
+
+## Amendments (23 Nov 2026, owner decisions)
+- **Top bar (T04): the mockup's new look is APPROVED and applies to the live app**, together with the new arrangement: Ask Mira at the left as the wide green-tinted pill with its hint, a divider before the controls at the right (family selector, + Add data, divider, theme toggle), softer corners (search spec section 1). This is the one deliberate exception to "existing screens do not change". The orchestrator does T04's logic (slot, order, logout clearing); the look may go to an Antigravity packet from the mockup's measurements once the logic is in and tested.
+- The registry reads F's section list (`frontend/src/lib/pageSections.ts`): Overview 6 sections, Other Analytics 3 (see F's amendment).
+- Round 1 lanes (see `Docs/orchestration/2026-11-20-m3-lane-plan.md`) are search-be-1 (Codex), search-fe-1 and search-fe-2 (Antigravity); T04 and T05 are the orchestrator's.

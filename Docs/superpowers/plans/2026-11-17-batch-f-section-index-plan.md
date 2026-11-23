@@ -139,3 +139,7 @@
 - Spec coverage: item 12 (all); Q1 C, Q2 A, Q3 C in Global Constraints; the shared list with K, E, I (section 5 of the workbook).
 - The list module sits in `frontend/src/lib/` so K and I can read it without importing a feature.
 - Packets and handoffs: not written here, by instruction.
+
+## Amendments (23 Nov 2026, owner decisions)
+- The section list follows the audit (`Docs/orchestration/2026-11-20-section-audit.md`) and the owner's approval: **Summary strip and Sold funds are not index sections** (Overview lists 6); **Other Analytics lists its 3 visible groups** (the scorer group is behind `SHOW_FUND_QUALITY_SCORES = false`; the list gains a fourth if the flag is turned on). Overlap titles in the list carry no "1." to "4.". The rail keys off the sections that are actually rendered (`useRenderedSections`), not the static list.
+- Tests: `features/mutual-funds/guards.test.ts` asserts exactly 56 source files; a new source file bumps it by exactly that many (reviewed).
