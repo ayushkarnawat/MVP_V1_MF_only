@@ -36,7 +36,7 @@ describe("Mutual Funds front-end guards", () => {
       "other/otherLogic.ts", "other/TerLadder.tsx", "other/ValuationSpectrum.tsx", "other/ValuationByFund.tsx", "other/CostValuationGroup.tsx", "other/ScorerGroup.tsx",
       "other/CategoryRankingGroup.tsx", "other/PerformanceRankingGroup.tsx", "other/OtherAnalyticsPage.tsx",
     ]) expect(names).toContain(expected);
-    expect(names).toHaveLength(56);
+    expect(names).toHaveLength(61);
   });
 
   it("never turns a money or percentage string into a float, comments included", () => {

@@ -36,6 +36,7 @@ function HoldingsBody() {
     <div data-testid="holdings-cards" className="flex flex-col gap-[18px]">
       <div data-testid="card-top-holdings">
         <TopHoldingsByFund
+          anchor="holdings-top-by-fund"
           state={stocks.status}
           data={stocks.data}
           onRetry={stocks.retry}
@@ -43,6 +44,7 @@ function HoldingsBody() {
       </div>
       <div id="all-holdings" data-testid="card-all-stocks">
         <AllStocksTable
+          anchor="holdings-all-stocks"
           state={stocks.status}
           data={stocks.data}
           onRetry={stocks.retry}

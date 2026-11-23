@@ -125,7 +125,8 @@ export function MarketCapCard({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<CapAllocationSummary>) {
+  anchor,
+}: AnalyticsCardProps<CapAllocationSummary> & { anchor?: string }) {
   const hasClassifiedFields = !!data?.unclassified_share_pct && data.buckets.every(
     bucket => typeof bucket.percentage_classified === "string" && bucket.percentage_classified !== ""
   );
@@ -157,6 +158,7 @@ export function MarketCapCard({
     <SectionCard
       title="Market-Cap Allocation"
       info="Equity holdings classified by AMFI market-cap size, looked through every fund you own."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

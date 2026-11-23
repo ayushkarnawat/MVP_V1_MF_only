@@ -24,7 +24,8 @@ export function AllStocksTable({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<StockHoldingsSummary>) {
+  anchor,
+}: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string }) {
   const [sort, setSort] = useState<StockSort>("weight");
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -38,6 +39,7 @@ export function AllStocksTable({
     <SectionCard
       title="All Holdings Across Your Portfolio"
       info="Every distinct stock your funds hold, looked through to the underlying company — the same stock can appear in several funds and is counted once here, at its combined weight."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >
