@@ -825,3 +825,4 @@ fix" rule.
 - 2026-11-23 | T09 hooks red tests (registry, address, intent, scope jump) | Codex (unifolio-k-search) | handoff written, relay pending; F-3 list merged into batch/k-search first (clean, 138 files green) | orchestrator
 - 2026-11-23 | E-5b wire strip + remove duplicate card lines | Antigravity ag-e5b | packet written, relay pending | orchestrator
 - 2026-11-23 | T08 box red tests | Codex (unifolio-k-search, second task beside T09) | handoff written, relay pending; decision: PageSearch gets a userId prop (the recents are per user and components/search may not read the auth feature) | orchestrator
+- 2026-11-23 | T08 box red tests | Codex | DONE (blocked on running); I ran lane ks: both files red (components missing); 38 cases; fixed the router mock and type import to react-router (the repo does not have react-router-dom); committed on batch/k-search | orchestrator
