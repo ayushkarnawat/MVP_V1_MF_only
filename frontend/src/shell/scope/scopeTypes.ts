@@ -17,6 +17,8 @@ export interface ScopeValue {
    * Cleared by undo, by any manual selector change and by moving to another page. Optional so existing providers still type-check.
    */
   scopeJump?: { label: string; undo: () => void } | null;
+  /** The signed-in user's id (null when nobody is). Pages may not import the auth feature, so the search recents get it here. */
+  userId?: string | null;
 }
 
 export interface ImportValue { openImport: (memberId?: string) => void }

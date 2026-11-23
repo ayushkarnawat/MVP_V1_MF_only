@@ -168,6 +168,7 @@ export function ScopeProvider({ children }: { children: ReactNode }) {
     scopeKey: state.pick.mode === "aggregate" ? "aggregate" : `member:${state.pick.memberId}`,
     setMember, setAggregate, refreshMembers,
     scopeJump: undoJump,
+    userId: me?.user_id ?? null,
   };
   return <ScopeContext.Provider value={value}>{children}</ScopeContext.Provider>;
 }
