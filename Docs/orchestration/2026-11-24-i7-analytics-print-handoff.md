@@ -1,7 +1,7 @@
 # Handoff: i7-analytics-print (Batch I, task I-7 step 2: print versions of the Other Analytics group sections, Codex)
-**Status:** READY TO RELAY after the print foundation is committed (written 2026-11-24). Milestone M4. **Common rules for all six print group tasks: `Docs/orchestration/2026-11-24-print-groups-common.md` (read it first, fully).** Findings and decisions: `Docs/orchestration/2026-11-24-print-audit.md` (option C).
+**Status:** READY TO RELAY in the order of `Docs/orchestration/2026-11-24-m4-lane-board.md` (the foundation is committed) (written 2026-11-24). Milestone M4. **Common rules for all six print group tasks: `Docs/orchestration/2026-11-24-print-groups-common.md` (read it first, fully).** Findings and decisions: `Docs/orchestration/2026-11-24-print-audit.md` (option C).
 **Worker:** Codex, front end only. **Reviewer, test runner and committer:** Claude.
-**Work in:** `C:\Users\Dell\lanes\unifolio-i7-analytics-print` (a new worktree, branch `batch/i7-analytics-print`, cut from the foundation branch `batch/i-fe`). **Open it in Codex as a NEW project.** Never in the main project folder.
+**Work in:** `C:\Users\Dell\lanes\unifolio-i-fe` (the existing worktree and Codex project of the print foundation, branch `batch/i-fe`). **The print group tasks run one after another in this same project, never two at once; I commit each before the next starts.** Never in the main project folder.
 **Section ids in this task:** analytics-cost, analytics-category, analytics-ranking.
 
 ## The sections (audit: "Other Analytics"; sample pages 36 to 38)
@@ -22,6 +22,6 @@ Front-end worker for Unifolio (Codex). Read, in order:
 3. Docs/orchestration/2026-11-24-print-audit.md (the findings per section)
 4. Docs/orchestration/2026-11-24-print-groups-common.md (rules common to all print group tasks: read it fully)
 5. Docs/orchestration/2026-11-24-i7-analytics-print-handoff.md (your task: Other Analytics group)
-Open this folder in Codex as a NEW project: C:\Users\Dell\lanes\unifolio-i7-analytics-print (branch batch/i7-analytics-print, already created from the foundation branch). Git is read-only. No deletion flags or recursive deletes. Write the tests first, then the code; touch only the files the task lists; register only your group's sections in your own group file; do not change shared chart components. Screens must behave exactly as today outside print mode, and every existing test must pass untouched. You cannot run the tests; do not try, and do not change any config. Re-read your code against the tests.
+Work only in C:\Users\Dell\lanes\unifolio-i-fe on branch batch/i-fe (the same project as the print foundation; I commit between tasks, so it starts clean). Git is read-only. No deletion flags or recursive deletes. Write the tests first, then the code; touch only the files the task lists; register only your group's sections in your own group file; do not change shared chart components. Screens must behave exactly as today outside print mode, and every existing test must pass untouched. You cannot run the tests; do not try, and do not change any config. Re-read your code against the tests.
 Reply with the CODEX REPORT block from the common rules, nothing else.
 ```
