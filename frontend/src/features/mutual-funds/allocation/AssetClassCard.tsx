@@ -27,7 +27,8 @@ export function AssetClassCard({
   state,
   data,
   onRetry,
-}: AnalyticsCardProps<AssetAllocationSummary>) {
+  anchor,
+}: AnalyticsCardProps<AssetAllocationSummary> & { anchor?: string }) {
   const [asCash, setAsCash] = useState(false);
   const [chartType, setChartType] = useState<"donut" | "bar">("donut");
   const [selected, setSelected] = useState<AssetClassKey | null>(null);
@@ -74,6 +75,7 @@ export function AssetClassCard({
     <SectionCard
       title="Look-Through Asset Allocation"
       info="What your money is really in once mutual fund holdings are looked through to equity, debt, gold, real estate and other holdings."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >

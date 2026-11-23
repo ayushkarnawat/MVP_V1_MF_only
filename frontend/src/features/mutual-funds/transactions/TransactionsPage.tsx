@@ -95,6 +95,7 @@ function TransactionsBody() {
       <div data-testid="card-cash-flow">
         <SectionCard
           title="Cash Flow Over Time"
+          anchor="transactions-cash-flow"
           state={money.status}
           onRetry={money.retry}
         >
@@ -159,6 +160,7 @@ function TransactionsBody() {
       <div data-testid="card-ledger">
         <SectionCard
           title="All Transactions"
+          anchor="transactions-ledger"
           state={money.status}
           onRetry={money.retry}
         >

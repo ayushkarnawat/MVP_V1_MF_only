@@ -17,6 +17,7 @@ import {
 export interface TopPairsProps extends AnalyticsCardProps<OverlapSummary> {
   selectedKey: string | null;
   onSelect: (key: string) => void;
+  anchor?: string;
 }
 
 export function TopPairs({
@@ -25,6 +26,7 @@ export function TopPairs({
   onRetry,
   selectedKey,
   onSelect,
+  anchor,
 }: TopPairsProps) {
   const [showAll, setShowAll] = useState(false);
 
@@ -36,6 +38,7 @@ export function TopPairs({
     <SectionCard
       title="3. Top Overlapping Fund Pairs"
       info="The pairs of your funds that share the most stock holdings, largest first. Click a pair to see its shared stocks beside the heatmap."
+      anchor={anchor}
       state={state}
       onRetry={onRetry}
     >
