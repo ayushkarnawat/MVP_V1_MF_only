@@ -11,7 +11,7 @@ const asha: HouseholdImportHistoryItem = {
 const groups: HouseholdImportHistoryItem[][] = [
   [asha, { ...asha, import_id: "bela-import", household_member_id: "bela", member_name: "Bela", status: "needs_review" }],
   [{ ...asha, import_id: "chitra-import", household_member_id: "chitra", member_name: "Chitra",
-    uploaded_at: "2026-09-10T10:30:00Z", statement_from_date: "2025-04-01", statement_to_date: "2026-03-31",
+    uploaded_at: "2026-12-10T10:30:00Z", statement_from_date: "2025-04-01", statement_to_date: "2026-03-31",
     upload_group_id: null, group_people_count: 1 }],
 ];
 
