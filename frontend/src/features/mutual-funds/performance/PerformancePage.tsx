@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { Modal } from "../../../components/Modal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
+import { PageSearch } from "../../../components/search/PageSearch";
+import { usePageSearchState } from "../../../components/search/usePageSearchState";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { diffDecimalStrings, formatDecimal, toPercentString } from "../../../lib/decimal";
@@ -13,6 +15,8 @@ import { useMfAnalytics } from "../data/analyticsStore";
 import { useMfHistory, useMfHoldings, useMfSection } from "../data/useMfDashboard";
 import { MutualFundsFrame } from "../frame/MutualFundsFrame";
 import { BenchmarkBlock } from "./BenchmarkBlock";
+import { comparisonFundsForWindow } from "./benchmarkLogic";
+import { filterBenchmarkFunds } from "./performanceSearch";
 import {
   changeDirection,
   formatSignedPercent,
@@ -758,7 +762,7 @@ function HistoryBlock({ history }: { history: ReturnType<typeof useMfHistory> })
   );
 }
 
-function PerformanceBody() {
+function PerformanceBody({ query }: { query: string }) {
   const holdings = useMfHoldings();
   const history = useMfHistory();
   const money = useMfAnalytics("investment_withdrawal");
@@ -803,15 +807,42 @@ function PerformanceBody() {
     <div data-testid="performance-blocks" className="flex flex-col gap-[18px]">
       <ReturnsBlock holdings={holdings} money={money} funds={funds} />
       <HistoryBlock history={history} />
-      <BenchmarkBlock />
+      <BenchmarkBlock query={query} />
     </div>
   );
 }
 
+const NO_CHIPS: Array<"period" | "member" | "category"> = [];
+
 export default function PerformancePage() {
+  const { text } = usePageSearchState("performance");
+  const { userId } = useScope();
+  const funds = useMfAnalytics("benchmark_funds");
+
+  const benchmarkFunds = useMemo(
+    () => comparisonFundsForWindow(funds.data, "SI").map(r => r.fund),
+    [funds.data]
+  );
+  const matchedFunds = useMemo(
+    () => filterBenchmarkFunds(benchmarkFunds, text),
+    [benchmarkFunds, text]
+  );
+
   return (
-    <MutualFundsFrame tab="performance">
-      <PerformanceBody />
+    <MutualFundsFrame
+      tab="performance"
+      utility={
+        <PageSearch
+          pageKey="performance"
+          noun="funds"
+          total={benchmarkFunds.length}
+          matched={matchedFunds.length}
+          chipsAllowed={NO_CHIPS}
+          userId={userId ?? null}
+        />
+      }
+    >
+      <PerformanceBody query={text} />
     </MutualFundsFrame>
   );
 }

@@ -32,13 +32,14 @@ import {
   windowUnavailableText,
   windowView,
 } from "./benchmarkLogic";
+import { filterBenchmarkFunds } from "./performanceSearch";
 
 const CHART_OPTIONS = [
   { id: "race" as const, label: "Race Track", icon: Activity },
   { id: "bars" as const, label: "Bar Chart", icon: BarChart3 },
 ];
 
-export function BenchmarkBlock() {
+export function BenchmarkBlock({ query = "" }: { query?: string }) {
   const bench = useMfAnalytics("benchmark");
   const funds = useMfAnalytics("benchmark_funds");
 
@@ -80,7 +81,18 @@ export function BenchmarkBlock() {
     [funds.data, windowId]
   );
 
-  const activeOpenFundId = fundRows.some(r => r.fund.scheme_id === openFundId)
+  const filteredFundRows = useMemo(() => {
+    if (!query.trim()) return fundRows;
+    const matchingIds = new Set(
+      filterBenchmarkFunds(
+        fundRows.map(r => r.fund),
+        query
+      ).map(f => f.scheme_id)
+    );
+    return fundRows.filter(r => matchingIds.has(r.fund.scheme_id));
+  }, [fundRows, query]);
+
+  const activeOpenFundId = filteredFundRows.some(r => r.fund.scheme_id === openFundId)
     ? openFundId
     : null;
 
@@ -537,7 +549,7 @@ export function BenchmarkBlock() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <ul aria-label="Funds against their benchmarks" className="flex flex-col gap-2">
-                    {(showAllFunds ? fundRows : fundRows.slice(0, 5)).map(({ fund, view, declared }) => {
+                    {(showAllFunds ? filteredFundRows : filteredFundRows.slice(0, 5)).map(({ fund, view, declared }) => {
                       const declaredWindow = declared?.windows.find(w => w.window === windowId);
                       const isOpen = activeOpenFundId === fund.scheme_id;
                       const track = miniTrack(view);
@@ -657,7 +669,7 @@ export function BenchmarkBlock() {
                     })}
                   </ul>
 
-                  {fundRows.length > 5 && (
+                  {filteredFundRows.length > 5 && (
                     <button
                       type="button"
                       aria-expanded={showAllFunds}
@@ -668,7 +680,7 @@ export function BenchmarkBlock() {
                     >
                       {showAllFunds
                         ? "Show Less"
-                        : `Show More (${fundRows.length - 5} remaining)`}
+                        : `Show More (${filteredFundRows.length - 5} remaining)`}
                     </button>
                   )}
                 </div>
