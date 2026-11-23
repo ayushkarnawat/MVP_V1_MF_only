@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent as formatLookthroughPercent } from "../../../components/mf/lookthroughDisplay";
 import { formatPercent } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { FundLink } from "../common/FundLink";
 import { SectionCard } from "../common/SectionCard";
@@ -20,6 +21,7 @@ export function CommonHoldings({
   onRetry,
   anchor,
 }: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string }) {
+  const printMode = usePrintMode();
   const [showAll, setShowAll] = useState(false);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -31,6 +33,28 @@ export function CommonHoldings({
   if (openKey !== null && !displayed.some(s => s.key === openKey)) {
     setOpenKey(null);
   }
+
+  if (printMode) return <SectionCard title="1. Common Holdings" anchor={anchor} state={state}>
+    {data && <div className="space-y-4">
+      {data.truncated && <p data-testid="common-truncated" className="text-xs text-[var(--ui-text-muted)]">Found among the largest {data.rows.length} of {data.total_stock_count} stocks your funds hold.</p>}
+      {common.length === 0 ? <p data-testid="common-empty" className="text-sm text-[var(--ui-text-muted)]">No stocks are held by more than one of your funds.</p>
+        : <table aria-label="Common holdings" className="w-full table-fixed text-left text-xs">
+          <thead><tr className="border-b border-[var(--ui-divider)] text-[var(--ui-text-muted)]">
+            <th scope="col" className="w-8 py-2 font-medium">#</th><th scope="col" className="py-2 font-medium">Stock</th><th scope="col" className="w-12 py-2 font-medium">Held in</th><th scope="col" className="py-2 font-medium">Total Portfolio Exposure</th><th scope="col" className="py-2 font-medium">Top Funds</th>
+          </tr></thead>
+          <tbody>{common.map((item, index) => <tr key={item.key} data-testid={`common-row-${item.key}`} className="border-b border-[var(--ui-divider)]">
+            <td className="py-3 align-top text-[var(--ui-text-muted)]">{index + 1}</td>
+            <th scope="row" className="py-3 align-top font-medium text-[var(--ui-text)]">{item.row.instrument_name}</th>
+            <td className="py-3 align-top text-[var(--ui-text-muted)]">{item.funds.length} funds</td>
+            <td className="py-3 align-top text-[var(--ui-text)]">
+              <span data-testid={`common-exposure-${item.key}`}>{formatPercent(item.row.exposure_pct, { digits: 2 })}</span>
+              <div className="mt-2 h-1.5 w-24 rounded-full bg-[var(--ui-divider)]"><span data-testid={`common-bar-${item.key}`} className="block h-full rounded-full bg-[var(--c1)]" style={{ width: `${barWidth(item.row.exposure_pct, largest)}%` }} /></div>
+            </td>
+            <td className="py-3 align-top"><ul className="space-y-1 text-[var(--ui-text-muted)]">{item.funds.map(fund => <li key={fund.scheme_id}>{fund.scheme_name} · {formatLookthroughPercent(fund.stock_weight_pct)}% of fund</li>)}</ul></td>
+          </tr>)}</tbody>
+        </table>}
+    </div>}
+  </SectionCard>;
 
   return (
     <SectionCard

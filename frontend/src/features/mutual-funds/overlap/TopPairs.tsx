@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatPercent } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import { paths } from "../../../shell/nav/paths";
 import type { AnalyticsCardProps } from "../allocation/allocationLogic";
 import { SectionCard } from "../common/SectionCard";
@@ -32,11 +33,36 @@ export function TopPairs({
   query,
 }: TopPairsProps) {
   const [showAll, setShowAll] = useState(false);
+  const printMode = usePrintMode();
 
   const allPairs = data ? inclusivePairs(data) : [];
-  const pairs = query ? filterOverlapPairs(allPairs, query) : allPairs;
+  const pairs = query && !printMode ? filterOverlapPairs(allPairs, query) : allPairs;
   const displayed = showAll ? pairs : pairs.slice(0, PAIR_LIMIT);
   const insights = data ? buildOverlapInsights(data) : [];
+
+  if (printMode) return <SectionCard title="3. Top Overlapping Fund Pairs" anchor={anchor} state={state}>
+    {data && <div className="space-y-4">
+      {pairs.length === 0 ? <p data-testid="pairs-empty" className="text-sm text-[var(--ui-text-muted)]">No pairs above this threshold.</p>
+        : <>
+          <table aria-label="Top overlapping fund pairs" className="w-full table-fixed text-left text-xs">
+            <thead><tr className="border-b border-[var(--ui-divider)] text-[var(--ui-text-muted)]">
+              <th scope="col" className="w-8 py-2 font-medium">#</th><th scope="col" className="py-2 font-medium">Fund 1</th><th scope="col" className="py-2 font-medium">Fund 2</th><th scope="col" className="py-2 font-medium">Overlap</th><th scope="col" className="py-2 font-medium">Shared Stocks</th>
+            </tr></thead>
+            <tbody>{pairs.slice(0, 15).map((pair, index) => <tr key={pairKeyOf(pair)} data-testid={`pair-row-${pairKeyOf(pair)}`} className="border-b border-[var(--ui-divider)]">
+              <td className="py-3 align-top text-[var(--ui-text-muted)]">{index + 1}</td>
+              <td className="py-3 align-top text-[var(--ui-text)]">{pair.fund_a.scheme_name}</td><td className="py-3 align-top text-[var(--ui-text)]">{pair.fund_b.scheme_name}</td>
+              <td className="py-3 align-top font-semibold text-[var(--ui-text)]">{formatPercent(pair.overlap_pct, { digits: 0 })}</td>
+              <td className="py-3 align-top text-[var(--ui-text-muted)]">{pair.common_total}</td>
+            </tr>)}</tbody>
+          </table>
+          {pairs.length > 15 && <p className="text-xs text-[var(--ui-text-muted)]">Showing 15 of {pairs.length} fund pairs.</p>}
+          {insights.length > 0 && <aside data-testid="key-insights" aria-label="Key insights" className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-4 space-y-2">
+            <h4 className="text-xs font-semibold text-[var(--ui-text)]">Key insights:</h4>
+            <ul className="space-y-1.5 text-xs text-[var(--ui-text-muted)]">{insights.map((sentence, index) => <li key={index}>{sentence}</li>)}</ul>
+          </aside>}
+        </>}
+    </div>}
+  </SectionCard>;
 
   return (
     <SectionCard

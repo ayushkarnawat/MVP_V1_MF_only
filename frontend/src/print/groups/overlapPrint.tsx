@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { OverlapSectionPrint } from "./overlap/OverlapSections";
 
-// Print versions of the overlap sections: one entry per section id, `() => ReactNode`. Empty until that group's task fills it;
-// every id not listed here keeps the placeholder in sectionRegistry.ts. Each group edits only its own file.
-export const overlapPrintSections: Record<string, () => ReactNode> = {};
+export const overlapPrintSections: Record<string, () => ReactNode> = {
+  "overlap-common-holdings": () => <OverlapSectionPrint id="overlap-common-holdings" />,
+  "overlap-heatmap": () => <OverlapSectionPrint id="overlap-heatmap" />,
+  "overlap-top-pairs": () => <OverlapSectionPrint id="overlap-top-pairs" />,
+  "overlap-impact": () => <OverlapSectionPrint id="overlap-impact" />,
+};
