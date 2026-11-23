@@ -1,5 +1,5 @@
 import { matchesItem, type SearchableField } from "../../../components/search/matcher";
-import { parseQuery } from "../../../components/search/queryParser";
+import { plainWords } from "../../../components/search/queryParser";
 import type { SearchChip } from "../../../components/search/usePageSearchState";
 import type { SipRow } from "../types";
 
@@ -34,7 +34,7 @@ export function filterHoldingRows<T extends SearchableHolding>(
   text: string,
   chips: SearchChip[],
 ): T[] {
-  const { words } = parseQuery(text);
+  const words = plainWords(text);
   const categoryChips = chips.filter((chip) => chip.kind === "category");
   const memberChips = chips.filter((chip) => chip.kind === "member");
 
@@ -68,7 +68,7 @@ export function filterHoldingRows<T extends SearchableHolding>(
 }
 
 export function filterSipRows(rows: SipRow[], text: string, chips: SearchChip[]): SipRow[] {
-  const { words } = parseQuery(text);
+  const words = plainWords(text);
   const memberChips = chips.filter((chip) => chip.kind === "member");
 
   if (words.length === 0 && memberChips.length === 0) {
