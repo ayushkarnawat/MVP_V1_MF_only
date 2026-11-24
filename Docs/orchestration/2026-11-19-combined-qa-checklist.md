@@ -140,5 +140,24 @@ Known open items from this release (`decisions.md`): the Overview sold list, the
 
 Known open items from this release (`decisions.md`, 24 Nov): the new wording list in each Codex report, for the owner's review (for example "Showing 15 of N fund pairs.", "<scope name>, <n> sections", "Member report · N funds · N folios"); the real recording of the CAMS walk-through video (H-5); the accepted security follow-ups (an old-file sweep at start-up, WebSocket filter, a pass tied to its job, one status code for every refusal, the Chromium sandbox); the heatmap stays as screen bands.
 
+## XR (XIRR leads, Returns on the flip side; guide `2026-11-24-staging-deploy-guide-xirr-returns.md`, tag `xr-rc`, Alembic 0054): the two tiles, the Mutual Funds list, the Unrealised label
+
+Run after step 8 of the guide (the stored results must be rebuilt first). Use invented households only. A young portfolio is one whose first purchase is under a year old; a mature one has several purchases and a first purchase over a year old.
+
+| # | Check | Expected | Result |
+|---|---|---|---|
+| XR-01 | All Investments (Portfolio) page, young household: look at the XIRR tile | Title **XIRR**; the figure is the yearly rate (large for a young portfolio); caption `Annualised since your first investment`; amber chip `held under 1 yr`; the Lifetime / Current switch is on its own line, no overlap with the caption | |
+| XR-02 | Press **Show Returns** on that tile, then **Show XIRR**, then reload the page | Title **Returns**; the plain gain (for example 6.5%); caption `Since purchase, not annualised`; **no chip**; the tile does **not** change height on either flip; after the reload it opens on XIRR again | |
+| XR-03 | Mature household (several purchases, over a year) | XIRR tile with **no chip**; Returns still one press away | |
+| XR-04 | A fund bought once, over a year ago, inside a mature household (Mutual Funds list) | That fund's XIRR cell shows a neutral chip `one transaction`; its neighbours show none; the household tile shows none | |
+| XR-05 | Mutual Funds Overview: the same tile; switch Lifetime / Current; flip, then switch | Same behaviour as the Portfolio tile; the flipped face stays when you switch the view; each view shows its own figures and chip | |
+| XR-06 | Mutual Funds list (single member, then family with a member expanded) | Columns after Gain/Loss: **Returns**, then **XIRR**; hover each header for its tooltip; the old `since purchase` line under XIRR is gone; sort by Returns and by XIRR both ways; family parents and members each show their own figures and chip | |
+| XR-07 | Unrealised Gain card on both pages | The small percentage reads `+x% return on invested` with an "i"; the tooltip reads `Unrealised gain as a share of what you currently have invested. Not annualised.` | |
+| XR-08 | Dark mode, then a 1280x600 window | Tiles, chips and the list read well; no horizontal scroll that was not there before | |
+| XR-09 | Export the PDF report (Overview page) | The holdings table has Returns and XIRR columns and the chips; no numbers touch each other; fund names take at most three lines | |
+| XR-10 | A household whose flows cannot give a yearly rate (synthetic) | Dash in both faces and both columns; **no** Show Returns button; no chip | |
+| XR-11 | Performance page, fund page, Allocation fund-manager card, the phone layout | Unchanged; their XIRR agrees with the tile and the list | |
+| XR-12 | Immediately after the deploy, a mature fund in the list | Returns shows a number, not a dash (the stored results were rebuilt) | |
+
 ## Cross-batch regression list (kept from the program plan, section 10)
 Sign-up, sign-in and OTP with a real inbox and a real phone; import and the new member (the drop-down, the landing, the wrong-person case, the tutorial link); the numbers (XIRR tile and column, a rank and its total, the category average, the same household before and after); folios (eye and Copy); charts; search; navigation and dates; PDF; browser and size (Chrome and Edge at three laptop sizes, light and dark).

@@ -18,7 +18,7 @@ Hi all, the next set of improvements is now live on our test link: https://ls-re
 
 *2. Return (XIRR) figures that are consistent and easier to read*
 • Every return figure is now calculated to the date of the latest price, so the same portfolio no longer shows slightly different returns on different screens.
-• Holdings of less than a year show the return since purchase, labelled "not annualised", instead of a very large, misleading percentage.
+• Returns are shown as XIRR (the yearly rate) everywhere; a small tag says "held under 1 yr" or "one transaction" where a yearly rate should be read with care, and a "Show Returns" button on each tile shows the plain gain since purchase (the list has a Returns column too). [Updated 24 Nov 2026: M2 as first deployed showed the return since purchase under the XIRR label for holdings under a year; the XIRR release replaces that. Send this bullet only after that release is on staging.]
 • Where money in and out cancels out on one day, we show a dash instead of 0%.
 • Returns show an "as on" date.
 
