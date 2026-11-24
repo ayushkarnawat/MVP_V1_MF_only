@@ -1,0 +1,21 @@
+@keyframes measureTurn {
+  from {
+    transform: rotateX(80deg);
+    opacity: 0.2;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.turn {
+  animation: measureTurn 200ms ease-out;
+  transform-origin: top;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn {
+    animation: none;
+  }
+}
