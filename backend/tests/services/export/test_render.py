@@ -330,3 +330,167 @@ def test_the_log_line_has_only_counts_and_durations(rig, caplog):
     assert len(lines) == 1
     assert lines[0].startswith("export finished: status=ready scope_kind=family sections=1 duration_ms=")
     assert "pdf_bytes=" in lines[0] and "blocked_requests=" in lines[0]
+
+
+@pytest.fixture
+def two_pass(rig, monkeypatch):
+    from tests.services.export.test_pdf_pages import make_pdf
+    rig.first = make_pdf(["Invented cover", "[[sec:overview-summary]]", "[[sec:holdings-all-stocks]] [[sec:notes]]"])
+    rig.second = make_pdf(["Final invented cover", "Final invented overview", "Final invented holdings"])
+    rig.evaluations = []
+    rig.prints = []
+    rig.hook_exists = True
+    rig.failure = None
+    rig.cancel_at = None
+    original = rig.new_page
+
+    async def new_page(**options):
+        page = await original(**options)
+
+        async def pdf(**settings):
+            rig.prints.append(settings)
+            if len(rig.prints) == 1:
+                if rig.cancel_at == "first":
+                    jobs.request_cancel(jobs.active_job_for_user(UUID(int=1)))
+                return rig.first
+            if rig.failure == "pdf":
+                raise RuntimeError("invented private second-print failure")
+            if rig.failure == "pdf_timeout":
+                await asyncio.Event().wait()
+            return rig.second
+
+        async def evaluate(expression, arg=None):
+            rig.evaluations.append((expression, arg))
+            if arg is None:
+                return rig.hook_exists
+            if rig.failure == "evaluate":
+                raise RuntimeError("invented private hook failure [[sec:overview-summary]]")
+            if rig.failure == "timeout":
+                await asyncio.Event().wait()
+            if rig.cancel_at == "hook":
+                jobs.request_cancel(jobs.active_job_for_user(UUID(int=1)))
+            return None
+
+        page.pdf = pdf
+        page.evaluate = evaluate
+        return page
+
+    monkeypatch.setattr(rig, "new_page", new_page)
+    return rig
+
+
+def run_two_pass(browser, cover=True):
+    job_id = jobs.create_job(UUID(int=1), "family", 2)
+    async def scenario():
+        try:
+            await render.run_export(job_id, UUID(int=1), render.ExportOptions(
+                scope="family", section_ids=["overview-summary", "holdings-all-stocks"], cover=cover),
+                members=[], meta={"holderName": None, "scopeName": "Your family", "memberCount": 0})
+        finally:
+            await pool.close_pool()
+    asyncio.run(scenario())
+    return job_id
+
+
+def test_second_pass_fills_the_contents_and_keeps_the_second_pdf_when_the_page_count_matches(two_pass):
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "ready"
+    assert jobs.open_pdf_once(job_id) == two_pass.second
+    calls = [(expression, arg) for expression, arg in two_pass.evaluations if arg is not None]
+    assert len(calls) == 1 and "__unifolioSetPrintPages" in calls[0][0]
+    assert calls[0][1] == {"overview-summary": 2, "holdings-all-stocks": 3, "notes": 3}
+    assert two_pass.evaluations[0] == ("typeof window.__unifolioSetPrintPages === 'function'", None)
+    expected = {"format": "A4", "print_background": True, "prefer_css_page_size": True}
+    assert two_pass.prints == [expected, expected]
+
+
+def test_second_pass_is_skipped_without_the_cover(two_pass):
+    job_id = run_two_pass(two_pass, cover=False)
+    assert jobs.open_pdf_once(job_id) == two_pass.first
+    assert len(two_pass.prints) == 1 and two_pass.evaluations == []
+
+
+@pytest.mark.parametrize("missing", ["holdings-all-stocks", "notes"])
+def test_second_pass_is_skipped_and_first_pdf_kept_when_a_marker_is_missing(two_pass, missing):
+    from tests.services.export.test_pdf_pages import make_pdf
+    markers = ["overview-summary", "holdings-all-stocks", "notes"]
+    two_pass.first = make_pdf([" ".join("[[sec:" + marker + "]]" for marker in markers if marker != missing)])
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "ready"
+    assert jobs.open_pdf_once(job_id) == two_pass.first
+    assert len(two_pass.prints) == 1 and two_pass.evaluations == []
+
+
+@pytest.mark.parametrize("failure", ["evaluate", "timeout", "pdf", "pdf_timeout", "parse"])
+def test_second_pass_failure_keeps_the_first_pdf_and_the_job_still_succeeds(two_pass, monkeypatch, failure):
+    monkeypatch.setattr(render, "SECOND_PASS_TIMEOUT_SECONDS", 0.01)
+    two_pass.failure = failure
+    if failure == "parse":
+        two_pass.second = b"invented unreadable second PDF"
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "ready"
+    assert jobs.open_pdf_once(job_id) == two_pass.first
+    assert two_pass.contexts[0].closed and two_pass.contexts[0].page.closed
+
+
+def test_second_pass_keeps_the_first_pdf_when_the_page_count_changes(two_pass):
+    from tests.services.export.test_pdf_pages import make_pdf
+    two_pass.second = make_pdf(["Different contents pagination", "Invented overview", "Invented holdings", "Extra page"])
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "ready"
+    assert jobs.open_pdf_once(job_id) == two_pass.first
+    assert len(two_pass.prints) == 2
+
+
+def test_missing_hook_keeps_the_first_pdf(two_pass):
+    two_pass.hook_exists = False
+    job_id = run_two_pass(two_pass)
+    assert jobs.open_pdf_once(job_id) == two_pass.first
+    assert len(two_pass.prints) == len(two_pass.evaluations) == 1
+
+
+@pytest.mark.parametrize("hook_exists", [True, False])
+def test_log_line_reports_two_pass_and_nothing_else_new(two_pass, caplog, hook_exists):
+    import logging
+    caplog.set_level(logging.INFO)
+    two_pass.hook_exists = hook_exists
+    run_two_pass(two_pass)
+    lines = [record.getMessage() for record in caplog.records if record.name == render.__name__]
+    assert len(lines) == 1
+    fields = dict(item.split("=", 1) for item in lines[0].removeprefix("export finished: ").split())
+    assert set(fields) == {"status", "scope_kind", "sections", "duration_ms", "pdf_bytes", "blocked_requests", "two_pass"}
+    assert fields["two_pass"] == ("yes" if hook_exists else "no")
+
+
+def test_no_text_or_page_numbers_in_logs_or_the_job_file(two_pass, caplog):
+    import logging
+    caplog.set_level(logging.INFO)
+    job_id = run_two_pass(two_pass)
+    document = jobs.read_job(job_id)
+    text = caplog.text + json.dumps(document)
+    for private in ("Invented cover", "overview-summary", "holdings-all-stocks", "[[sec:", "pages=", "section_pages"):
+        assert private not in text
+    assert not {"pages", "markers", "text"}.intersection(document)
+    fragment = parse_qs(urlsplit(two_pass.contexts[0].page.url).fragment)
+    encoded = fragment["opts"][0]
+    assert "pages" not in json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+
+
+@pytest.mark.parametrize("cancel_at", ["first", "hook"])
+def test_cancel_flag_is_honoured_between_the_two_prints(two_pass, cancel_at):
+    two_pass.cancel_at = cancel_at
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "cancelled"
+    assert jobs.open_pdf_once(job_id) is None and len(two_pass.prints) == 1
+    assert two_pass.contexts[0].closed and two_pass.contexts[0].page.closed
+
+
+def test_size_limit_applies_to_the_pdf_that_is_kept(two_pass, monkeypatch):
+    from tests.services.export.test_pdf_pages import make_pdf
+    two_pass.second = make_pdf(["a", "b", "c"])
+    assert len(two_pass.second) < len(two_pass.first)
+    monkeypatch.setattr(render, "MAX_PDF_BYTES", len(two_pass.second))
+    job_id = run_two_pass(two_pass)
+    assert jobs.read_job(job_id)["status"] == "ready"
+    assert jobs.read_job(job_id)["pdf_bytes"] == len(two_pass.second)
+    assert jobs.open_pdf_once(job_id) == two_pass.second

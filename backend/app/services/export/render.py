@@ -18,12 +18,14 @@ from app.models.user import HouseholdMember, User
 from app.services.export import jobs
 from app.services.export.browser_pool import ExportBusyError, _finish_task, acquire_browser
 from app.services.export.pass_token import issue_export_pass
+from app.services.export.pdf_pages import extract_page_texts, section_pages
 
 if TYPE_CHECKING:
     from playwright.async_api import Page, Route
 
 MAX_PDF_BYTES = 40 * 1024 * 1024
 READY_WAIT_SECONDS = 90
+SECOND_PASS_TIMEOUT_SECONDS = 10
 _logger = logging.getLogger(__name__)
 _clock: Callable[[], float] = time.monotonic
 
@@ -143,6 +145,23 @@ def _check(job_id: str, navigated: asyncio.Event) -> None:
         raise _PrintError()
 
 
+async def _second_pdf(page: "Page", first_pdf: bytes, section_ids: list[str],
+                      job_id: str, navigated: asyncio.Event) -> bytes | None:
+    texts = extract_page_texts(first_pdf)
+    pages = section_pages(texts)
+    if not (set(section_ids) | {"notes"}).issubset(pages):
+        return None
+    if not await page.evaluate("typeof window.__unifolioSetPrintPages === 'function'"):
+        return None
+    _check(job_id, navigated)
+    await page.evaluate("pages => window.__unifolioSetPrintPages(pages)", pages)
+    _check(job_id, navigated)
+    second_pdf = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
+    if len(extract_page_texts(second_pdf)) != len(texts):
+        return None
+    return second_pdf
+
+
 async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                      members: list[PrintMember], meta: PrintMeta) -> None:
     from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -152,6 +171,7 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
     context = None
     blocked = [0]
     size = 0
+    two_pass = False
     scope_kind = "family" if options.scope == "family" else "member"
     try:
         async with acquire_browser(user_id) as browser:
@@ -214,8 +234,21 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                 jobs.update_job(job_id, stage="finishing")
                 await page.emulate_media(media="print")
                 data = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
-                size = len(data)
                 _check(job_id, navigated)
+                if options.cover:
+                    try:
+                        candidate = await asyncio.wait_for(
+                            _second_pdf(page, data, options.section_ids, job_id, navigated),
+                            timeout=SECOND_PASS_TIMEOUT_SECONDS,
+                        )
+                    except Exception:
+                        # Contents are optional: never expose parser or browser diagnostics.
+                        candidate = None
+                    _check(job_id, navigated)
+                    if candidate is not None:
+                        data = candidate
+                        two_pass = True
+                size = len(data)
                 if size > MAX_PDF_BYTES:
                     jobs.update_job(job_id, status="failed", error_code="too_large")
                 else:
@@ -246,5 +279,5 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
     finally:
         job = jobs.read_job(job_id)
         status = job["status"] if job else "failed"
-        _logger.info("export finished: status=%s scope_kind=%s sections=%d duration_ms=%d pdf_bytes=%d blocked_requests=%d",
-                     status, scope_kind, len(options.section_ids), int((_clock() - started) * 1000), size, blocked[0])
+        _logger.info("export finished: status=%s scope_kind=%s sections=%d duration_ms=%d pdf_bytes=%d blocked_requests=%d two_pass=%s",
+                     status, scope_kind, len(options.section_ids), int((_clock() - started) * 1000), size, blocked[0], "yes" if two_pass else "no")
