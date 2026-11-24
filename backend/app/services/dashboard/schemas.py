@@ -9,6 +9,7 @@ from app.models.enums import ArnStatus, PlanType, Relationship, TransactionType
 
 
 XirrBasis = Literal["annualised", "since_purchase"]
+XirrCaution = Literal["young", "single_transaction"]
 
 
 class HouseholdMemberCreate(BaseModel):

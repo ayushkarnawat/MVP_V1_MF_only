@@ -34,50 +34,51 @@ def _tile_for_fixture(db, name):
                                 current_value=str(terminal_value))
 
 
-def _assert_tile_display(summary, basis, since_purchase):
+def _assert_tile_display(summary, basis, since_purchase, caution):
     assert summary.lifetime_xirr_basis == summary.current_holdings_xirr_basis == basis
     assert summary.lifetime_since_purchase == summary.current_holdings_since_purchase == since_purchase
+    assert summary.lifetime_xirr_caution == summary.current_holdings_xirr_caution == caution
 
 
 @pytest.mark.parametrize(
-    ("name", "basis", "absolute"),
+    ("name", "basis", "absolute", "caution"),
     [
-        ("one_month", "since_purchase", "0.1"),
-        ("three_months_up", "since_purchase", "0.2"),
-        ("three_months_down", "since_purchase", "-0.15"),
-        ("lump_sum_366_days_across_feb_29", "annualised", None),
+        ("one_month", "since_purchase", "0.1", "young"),
+        ("three_months_up", "since_purchase", "0.2", "young"),
+        ("three_months_down", "since_purchase", "-0.15", "young"),
+        ("lump_sum_366_days_across_feb_29", "annualised", "0.25", "single_transaction"),
     ],
 )
-def test_t8_9_fixtures_choose_basis_without_changing_the_rate(db_session, name, basis, absolute):
+def test_t8_9_fixtures_choose_basis_without_changing_the_rate(db_session, name, basis, absolute, caution):
     summary = _tile_for_fixture(db_session, name)
     expected_rate = format(xirr(_BY_NAME[name].flows), "f")
     assert summary.lifetime_xirr == summary.current_holdings_xirr == expected_rate
-    _assert_tile_display(summary, basis, absolute)
+    _assert_tile_display(summary, basis, absolute, caution)
 
 
 def test_three_month_gain_reads_20_percent_since_purchase(db_session):
     summary = _tile_for_fixture(db_session, "three_months_up")
     assert Decimal(summary.current_holdings_xirr) > Decimal("1.09")
-    _assert_tile_display(summary, "since_purchase", "0.2")
+    _assert_tile_display(summary, "since_purchase", "0.2", "young")
 
 
 def test_exactly_365_days_is_annualised(db_session):
     summary = _tile_for_fixture(db_session, "lump_sum_365_days")
     assert Decimal(summary.current_holdings_xirr) == pytest.approx(Decimal("0.25"), abs=Decimal("0.000001"))
-    _assert_tile_display(summary, "annualised", None)
+    _assert_tile_display(summary, "annualised", "0.25", "single_transaction")
 
 
 def test_net_zero_on_one_day_gives_no_rate(db_session):
     summary = _tile_for_fixture(db_session, "same_day_net_zero")
     assert summary.lifetime_xirr is None
     assert summary.current_holdings_xirr is None
-    _assert_tile_display(summary, None, None)
+    _assert_tile_display(summary, None, None, None)
 
 
 def test_same_day_nonzero_flows_keep_the_legacy_result(db_session):
     summary = _tile_for_fixture(db_session, "same_day_buy_and_sell")
     assert summary.lifetime_xirr == summary.current_holdings_xirr == xirr(_BY_NAME["same_day_buy_and_sell"].flows)
-    _assert_tile_display(summary, None, None)
+    _assert_tile_display(summary, None, None, None)
 
 
 def test_absolute_return_uses_each_tiles_switch_and_withdrawal_flows(db_session):
@@ -117,14 +118,16 @@ def test_every_fund_over_a_year_is_unchanged(db_session, monkeypatch, offline_fu
     combined_flows = [(purchase, Decimal("-1000")), (purchase, Decimal("-1000")), (today, Decimal("2650"))]
     expected_tile = format(xirr(combined_flows), "f")
     assert response.lifetime_xirr == response.current_holdings_xirr == expected_tile
-    _assert_tile_display(response, "annualised", None)
+    assert response.lifetime_xirr_basis == response.current_holdings_xirr_basis == "annualised"
+    assert response.lifetime_since_purchase == response.current_holdings_since_purchase == "0.325"
     rows = {row.scheme_id: row for row in response.consolidated}
     for folio, final_value in ((first, "1210"), (second, "1440")):
         row = rows[str(folio.scheme_id)]
         expected_rate = format(xirr([(purchase, Decimal("-1000")), (today, Decimal(final_value))]), "f")
         assert row.xirr == row.children[0].xirr == expected_rate
         assert row.xirr_basis == row.children[0].xirr_basis == "annualised"
-        assert row.since_purchase_return is row.children[0].since_purchase_return is None
+        expected_return = format((Decimal(final_value) / Decimal("1000") - 1).normalize(), "f")
+        assert row.since_purchase_return == row.children[0].since_purchase_return == expected_return
 
 
 @pytest.mark.parametrize(
