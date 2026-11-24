@@ -207,8 +207,8 @@ function HoldingsTableContent({
             <thead>
               <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
                 {/* Print widths: with the two extra columns the six figure columns need about 11.7% each (about 71 px of text at an A4 content width) so a rupee amount such as ₹12,00,000 does not run into its neighbour. */}
-                <th className="py-3 pr-4 font-medium" style={printMode ? { width: "20%" } : undefined}>Fund</th>
-                <th className="py-3 px-4 font-medium" style={printMode ? { width: "10%" } : undefined}>Category</th>
+                <th className={printMode ? "py-3 px-1 font-medium" : "py-3 pr-4 font-medium"} style={printMode ? { width: "20%" } : undefined}>Fund</th>
+                <th className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"} style={printMode ? { width: "10%" } : undefined}>Category</th>
                 {sortColumns.map(col => {
                   const isSorted = sort?.key === col.key;
                   const ariaSort = isSorted
@@ -217,7 +217,7 @@ function HoldingsTableContent({
                       : "ascending"
                     : "none";
                   return (
-                    <th key={col.key} aria-sort={ariaSort} title={col.title} className="py-3 px-4 font-medium">
+                    <th key={col.key} aria-sort={ariaSort} title={col.title} className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"}>
                       {printMode ? col.label : <button
                         type="button"
                         data-clickable=""
@@ -384,6 +384,13 @@ function splitShares(units: string[]): string[] {
 }
 
 const MEMBER_COLOURS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
+// Print widths of the nine family columns (sum 100%). Measured in a browser at an A4 content width with 11 px text and large amounts:
+// the short columns (Units, Avg price) give way so the money columns keep about 70 px of text and a rupee amount such as
+// +₹6,80,000 is not split in the middle of the number.
+const FAMILY_PRINT_WIDTHS: Record<string, string> = {
+  Fund: "19%", Units: "9%", "Avg price": "9%", Invested: "11.5%", "Current value": "11.5%",
+  Unrealised: "11.5%", Realised: "9.5%", Returns: "9%", XIRR: "10%",
+};
 const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey; title?: string }> = [
   { label: "Fund" }, { label: "Units" }, { label: "Avg price" }, { label: "Invested", key: "invested" },
   { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" },
@@ -463,7 +470,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
       <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
         <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className="px-4 py-4 font-medium" style={printMode && col.label === "Fund" ? { width: "28%" } : undefined}
+          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : "px-4 py-4 font-medium"} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
             {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
@@ -525,14 +532,14 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
         })}
         <tfoot className={printMode ? "table-footer-group" : "block sm:table-footer-group"}>
           <tr className={printMode ? "table-row border-t-2 border-[var(--ui-divider)] font-semibold" : "grid grid-cols-2 border-t-2 border-[var(--ui-divider)] font-semibold sm:table-row"}>
-            <td className="col-span-2 px-4 py-5">Total</td>
-            <td className="px-4 py-5">—</td><td className="px-4 py-5">—</td>
-            <td data-testid="foot-invested" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Invested</span>}{formatRupees(totalFor("amount_invested"))}</td>
-            <td data-testid="foot-value" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
-            <td data-testid="foot-gain" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
-            <td data-testid="foot-realized" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
-            <td className="px-4 py-5">—</td>
-            <td className="px-4 py-5">—</td>
+            <td className={printMode ? "col-span-2 px-1 py-5" : "col-span-2 px-4 py-5"}>Total</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td><td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
+            <td data-testid="foot-invested" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Invested</span>}{formatRupees(totalFor("amount_invested"))}</td>
+            <td data-testid="foot-value" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
+            <td data-testid="foot-gain" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
+            <td data-testid="foot-realized" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
           </tr>
         </tfoot>
       </table>
