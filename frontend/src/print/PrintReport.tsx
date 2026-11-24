@@ -10,6 +10,7 @@ import { clearFragment, parsePrintFragment, type PrintOptions } from "./printFra
 import { installPrintRuntime } from "./printRuntime";
 import { PrintReadyGate } from "./PrintReadyGate";
 import { PRINT_SECTIONS } from "./sectionRegistry";
+import { SectionBoundary } from "./SectionBoundary";
 import { PrintOptionsContext } from "./printOptionsContext";
 import { PrintSettledContext } from "./usePrintSettled";
 import { useReportDates } from "./useReportDates";
@@ -70,7 +71,7 @@ function ReportAssembly({ options, browser }: { options: PrintOptions; browser: 
         const sections = SECTION_LISTS[tab].filter(section => requested.has(section.id));
         return sections.length ? <Fragment key={tab}><TabHeading tab={TAB_LABELS[tab]} />{sections.map(({ id }) => <section key={id} data-print-section={id}>
           <p data-print-marker aria-hidden="true" className="print-section-marker">{`[[sec:${id}]]`}</p>
-          {PRINT_SECTIONS[id].render()}
+          <SectionBoundary id={id} title={PRINT_SECTIONS[id].title}>{PRINT_SECTIONS[id].render()}</SectionBoundary>
         </section>)}</Fragment> : null;
       })}
     </PrintSettledContext.Provider>

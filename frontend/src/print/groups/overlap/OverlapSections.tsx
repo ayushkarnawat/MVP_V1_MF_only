@@ -28,7 +28,7 @@ export function OverlapSectionPrint({ id }: { id: keyof typeof TITLES }) {
   const data = overlap.data;
   const state = isCommon && stocks.status !== "ready" ? stocks.status : overlap.status;
   const common = equityStockHoldings(stocks.data, data);
-  const fewerThanTwo = data && data.matrix_funds.length < 2;
+  const fewerThanTwo = data && (data.matrix_funds?.length ?? 0) < 2;
   const dates = isCommon ? stocks.data : data;
   return <div data-overlap-print="">
     <style>{`
