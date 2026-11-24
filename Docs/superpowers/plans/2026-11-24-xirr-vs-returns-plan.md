@@ -140,7 +140,7 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 ## Task 2: Backend rule and the tile path (Codex, lane BE)
 
 **Files:**
-- Modify: `backend/app/services/dashboard/xirr.py` (`portfolio_xirr_display`, `PortfolioXirrDisplay`, `DashboardXirrSummary`, `calculate_dashboard_xirr`), `backend/app/services/dashboard/schemas.py` (the `XirrCaution` type and the tile response fields), `portfolio_schemas.py`, `portfolio_summary.py`, `backend/app/api/dashboard.py`
+- Modify: `backend/app/services/dashboard/xirr.py` (`portfolio_xirr_display`, `PortfolioXirrDisplay`, `DashboardXirrSummary`, `calculate_dashboard_xirr`), `backend/app/services/dashboard/schemas.py` (**only** the `XirrCaution` literal; the response schemas and routes are Task 3, so no response-shape test goes red in between)
 - Test: `backend/tests/services/analytics/xirr_reference/test_xirr_short_period.py` (extend), new `backend/tests/services/dashboard/test_xirr_caution.py`
 
 **Interfaces:**
@@ -155,7 +155,7 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
       caution: XirrCaution | None = None
   def portfolio_xirr_display(rate: Decimal | None, cash_flows: list[tuple[date, Decimal]]) -> PortfolioXirrDisplay
   ```
-  `DashboardXirrSummary` gains `lifetime_xirr_caution` and `current_holdings_xirr_caution` (`XirrCaution | None = None`). The three tile responses (`AggregateHoldingsResponse`, `MemberHoldingsResponse`, the portfolio summary) gain the same two optional fields.
+  `DashboardXirrSummary` gains `lifetime_xirr_caution` and `current_holdings_xirr_caution` (`XirrCaution | None = None`).
 - **Rule (decided; the signature and tests fix the rest):** let `end = cash_flows[-1][0]`, `first = min dates`, `age = (end - first).days`, `paid` = sum of negative amounts, `received` = sum of positive amounts, `purchase_count` = number of negative amounts in `cash_flows[:-1]`.
   - All flows on one day: unchanged (`rate` only if they do not net to zero; no basis, no since-purchase, no caution).
   - `rate` always returned as given. `basis` exactly as today (`annualised` when `age >= 365` and rate is not None; `since_purchase` when `age < 365`).
@@ -164,14 +164,14 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 
 - [ ] **Step 1: Write the failing tests** (names fixed). In `test_xirr_short_period.py` update the parametrised fixture test to `(name, basis, absolute, caution)`: `one_month` since_purchase "0.1" young; `three_months_up` "0.2" young; `three_months_down` "-0.15" young; `lump_sum_366_days_across_feb_29` annualised, absolute equal to `received/paid - 1` formatted, `single_transaction`. Also change `test_every_fund_over_a_year_is_unchanged` to assert the rate and basis are unchanged and `since_purchase_return` is now filled. New in `test_xirr_caution.py`: `two_purchases_over_a_year_have_no_caution`, `young_wins_over_single_transaction`, `two_purchases_on_the_same_day_are_two_flows`, `a_switch_in_counts_as_a_purchase_flow_in_the_current_holdings_view`, `a_reinvested_dividend_is_not_a_purchase_flow`, `net_zero_on_one_day_has_no_caution_and_no_since_purchase`, `no_money_paid_gives_no_since_purchase_and_no_caution`, `no_rate_gives_no_caution`, `the_rate_and_the_basis_are_unchanged_for_every_fixture` (guards against drift), `lifetime_and_current_views_get_their_own_caution`.
 - [ ] **Step 2: Run them; expected red** because `caution` does not exist and `since_purchase_return` is None over a year.
-- [ ] **Step 3: Implement** `portfolio_xirr_display` per the rule; thread `caution` through `calculate_dashboard_xirr` into `DashboardXirrSummary`; add the schema fields and the three response constructions (`dashboard.py` member route, `aggregate.py` aggregate route is Task 3, `portfolio_summary.py`). One comment on the function: why XIRR always leads and the chip is a caution (owner, 24 Nov 2026), and that `basis` is kept for the old link and no screen reads it.
+- [ ] **Step 3: Implement** `portfolio_xirr_display` per the rule; thread `caution` through `calculate_dashboard_xirr` into `DashboardXirrSummary`; add the `XirrCaution` literal to `schemas.py`; update only the existing tests whose expected `since_purchase` values change (the new `*_caution` response fields are Task 3). One comment on the function: why XIRR always leads and the chip is a caution (owner, 24 Nov 2026), and that `basis` is kept for the old link and no screen reads it.
 - [ ] **Step 4: Run the service-level tests; any API test that stalls in the sandbox is reported BLOCKED with the exact error** (Claude runs them). Expected: pass.
 - [ ] **Step 5: Claude verifies (runs the files itself), reviews the diff against the allowed list, commits** `feat(xirr): always annualised, always since-purchase, optional caution (tile path)`.
 
 ## Task 3: Per-fund stored rows, holdings rows, routes, fixtures (Codex, lane BE, after Task 2)
 
 **Files:**
-- Modify: `backend/app/services/analytics/benchmark.py` (the `FundBenchmarkRow(...)` build near line 413), `analytics/schemas.py` (`FundBenchmarkRow`), `backend/app/services/dashboard/holdings.py` (`HoldingXirrFields`, `ConsolidatedHolding`/`Child` via `schemas.py`), `backend/app/services/dashboard/aggregate.py` (the stored-payload read and the response)
+- Modify: `backend/app/services/analytics/benchmark.py` (the `FundBenchmarkRow(...)` build near line 413), `analytics/schemas.py` (`FundBenchmarkRow`), `backend/app/services/dashboard/holdings.py` (`HoldingXirrFields`, `ConsolidatedHolding`/`Child` via `schemas.py`), `backend/app/services/dashboard/aggregate.py` (the stored-payload read and the response), and the tile responses: `schemas.py` (`AggregateHoldingsResponse`, `MemberHoldingsResponse`: `lifetime_xirr_caution`, `current_holdings_xirr_caution`), `portfolio_schemas.py`, `portfolio_summary.py`, `backend/app/api/dashboard.py`
 - Modify: `backend/tests/fixtures/portfolio/summary_*.json` (add the new optional keys where the shape fixtures list the basis keys)
 - Test: `backend/tests/services/analytics/xirr_reference/test_xirr_short_period.py` and `test_xirr_metadata.py` (extend), `backend/tests/api/test_dashboard_aggregate_routes.py`, `test_dashboard_holdings_route.py`, `test_portfolio_routes.py` (extend)
 
