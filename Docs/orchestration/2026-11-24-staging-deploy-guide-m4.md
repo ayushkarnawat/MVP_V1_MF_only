@@ -1,6 +1,6 @@
 # Staging Deploy Guide M4: the PDF report export (Batch I) and the floating CAMS checklist (Batch H part 2) to `ls-redesign.unifolio.in`
 
-**DRAFT 24 Nov 2026, frozen when `m4-rc` is tagged** (the tag's commit goes into `<M4-RC-HASH>` below at the freeze). `m4-candidate` (worktree `C:\Users\Dell\lanes\unifolio-m4` on the orchestrator's laptop) is `leapswitch-redesign` at `fe3feff1` plus the merges of `batch/i-be`, `batch/i-fe` and `batch/h-checklist`. It follows `2026-11-23-staging-deploy-guide-m3.md` (deployed 23 Nov, tag `m3-rc` = `9f776a34d7467f83104e93cf9f6d120583db2bdd`). **Nothing here is run until the owner's yes at the GATE steps.** The staging deploy is run by the **manager's Claude** from this guide. The owner's one QA round (the M1 to M4 rows of `2026-11-19-combined-qa-checklist.md`) follows this deploy.
+**FROZEN 24 Nov 2026** (tag `m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`). `m4-candidate` (worktree `C:\Users\Dell\lanes\unifolio-m4` on the orchestrator's laptop) is `leapswitch-redesign` at `fe3feff1` plus the merges of `batch/i-be`, `batch/i-fe` and `batch/h-checklist`. It follows `2026-11-23-staging-deploy-guide-m3.md` (deployed 23 Nov, tag `m3-rc` = `9f776a34d7467f83104e93cf9f6d120583db2bdd`). **Nothing here is run until the owner's yes at the GATE steps.** The staging deploy is run by the **manager's Claude** from this guide. The owner's one QA round (the M1 to M4 rows of `2026-11-19-combined-qa-checklist.md`) follows this deploy.
 
 ## What changes
 1. **The PDF report (Batch I).** The **Export PDF** button in the top bar of the Mutual Funds pages opens a dialog (who it is for, which sections, data dates, folio numbers); the server prints the real report pages in its own headless browser and the PDF saves by itself: a cover, a contents page **with page numbers**, a tab page per tab, the chosen sections drawn for paper, a running header and footer, and a notes page. The old "Download PDF" of the analytics page, its route `/print/analytics` and its start-up browser are left in place (the new button does not use them).
@@ -34,18 +34,18 @@ At the end fill in step 10 and give the owner the report.
 ## Section 1: steps
 
 ### Step 0 (laptop): publish the frozen candidate
-`m4-candidate` is merged into `leapswitch-redesign` and the merge is tagged `m4-rc`. Publish: `git fetch origin && git push origin leapswitch-redesign m4-rc`. **Never force-push.** Commits after the tag are documents only; the deploy uses the tag. (The orchestrator does this at the freeze; confirm with `git ls-remote origin m4-rc` that the hash equals `<M4-RC-HASH>`.)
+`m4-candidate` is merged into `leapswitch-redesign` and the merge is tagged `m4-rc`. Publish: `git fetch origin && git push origin leapswitch-redesign m4-rc`. **Never force-push.** Commits after the tag are documents only; the deploy uses the tag. (The orchestrator does this at the freeze; confirm with `git ls-remote origin m4-rc` that the hash equals `355cc8a1f117210f3ec2a73a06e0ee33dac54951`.)
 
 ### Step 1 (laptop): the release touches only what it should
 ```bash
 git diff --name-only 9f776a34d7467f83104e93cf9f6d120583db2bdd m4-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests/"
 ```
-Expected groups only: `.env.example`, `backend/requirements.txt` (one line: `pypdf==5.1.0`), `backend/app/config.py`, `backend/app/main.py`, `backend/app/api/export.py`, `backend/app/api/analytics.py`, `backend/app/api/dashboard.py`, `backend/app/services/auth/session.py`, `backend/app/services/export/*`, `frontend/src/**` (the folders `print`, `features/export`, `features/import`, `features/mutual-funds`, `components`, `shell/layout`, `lib`), `session.md`, `decisions.md`, `CLAUDE.md`. **STOP** on a migration, any change to `backend/Dockerfile`, `docker-entrypoint.sh`, anything under `deploy/`, `frontend/package.json` or its lock file, or anything in `backend/app` outside the files above.
+Expected groups only: `.env.example`, `backend/requirements.txt` (one line: `pypdf==5.1.0`), `backend/app/config.py`, `backend/app/main.py`, `backend/app/api/export.py`, `backend/app/api/analytics.py`, `backend/app/api/dashboard.py`, `backend/app/services/auth/session.py`, `backend/app/services/export/*`, `backend/scripts/diagnose_export_pipeline.py` (the I-2 measurement script, not called by anything), `frontend/src/**` (the folders `print`, `features/export`, `features/import`, `features/mutual-funds`, `components`, `shell/layout`, `lib`), `session.md`, `decisions.md`, `CLAUDE.md`. **STOP** on a migration, any change to `backend/Dockerfile`, `docker-entrypoint.sh`, anything under `deploy/`, `frontend/package.json` or its lock file, or anything in `backend/app` outside the files above.
 
 ### Step 2 (laptop): evidence (no CI run exists for this branch)
 Run by the orchestrator on the merged candidate before the tag (24 Nov 2026):
-- Front end: `<FE-RESULT>`.
-- Back end: `<BE-RESULT>`.
+- Front end: 603 test files, 7,128 tests passed, 2 skipped, 1 todo, 1 failed in the full run (`PerformancePage.test.tsx`, a load timeout: it passes alone, 31 of 31). Types (`tsc -b`) clean. Lint: 0 errors, 39 warnings.
+- Back end (WSL, full suite without the Postgres folder): 6,329 passed, 26 skipped, 3 xfailed, 3 failed in the 18-minute full run: the three cross-process export tests (a spawned child process waited 10 seconds to import the app on the slow file mount under load). They pass alone and with the API suite; the waits are now 30 seconds and the export folder passes 111 of 111. The Postgres-only folder (`functional_postgres`) was **not** run.
 - Reviews: independent security review (Opus, fresh reviewer, 24 Nov) of the export pass and render service: **no blockers**; two should-fix findings fixed with tests (the start-up checks now run on staging and check the secret's strength and an HTTPS front-end address; job creation and the page-text reading no longer block the server's event loop), plus one low fixed (a member name cannot forge the page-number markers). **Accepted for later, recorded in `decisions.md`:** unclaimed PDFs are swept only when another export call reaches the container; a pass is not tied to its job still running (the proof header never leaves the print browser, 180 s window); WebSocket traffic from the print page is not filtered (no way found to inject a script into the page); the status code (401 versus 403) tells a pass holder that the pass is genuine; the print browser starts without Chromium's own sandbox (Playwright's default in containers).
 - Rendered check: the print route was rendered to a PDF in Chrome from invented data (cover, contents, tab pages, sections, header and footer, notes); a defect found there (one failing section blanked the whole report) was fixed with a per-section error boundary.
 - **Not verified:** the whole pipeline end to end (the real server, the real pass, the print browser opening the real hosts, the two-pass page numbers) has **never run outside tests**; the Overlap and Other Analytics pages were not drawn with real data; nothing has run on the staging server yet. Step 9 is where these get their first real check.
@@ -98,7 +98,7 @@ Expected: `1`, `1` and `1` (the last: the front end's address is already right; 
 ```bash
 cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign m4-rc && git rev-parse HEAD
 ```
-Expected: the full hash equals `<M4-RC-HASH>`. **STOP** if not.
+Expected: the full hash equals `355cc8a1f117210f3ec2a73a06e0ee33dac54951`. **STOP** if not.
 
 ### Step 7 (VM): deploy. GATE: the owner's yes first (step 4a)
 ```bash
