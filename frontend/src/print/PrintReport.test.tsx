@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { PrintReport } from "./PrintReport";
+import { PrintPlaceholder } from "./PrintPlaceholder";
 import { PRINT_SECTIONS } from "./sectionRegistry";
 import { usePrintSettled } from "./usePrintSettled";
 import { SectionCard } from "../features/mutual-funds/common/SectionCard";
@@ -14,6 +15,9 @@ import { useMfAnalytics, analyticsStore } from "../features/mutual-funds/data/an
 import { analyticsMfC } from "../features/mutual-funds/fixtures/mfC";
 
 const ids = ["overview-sips", "performance-returns"];
+// These tests are about the route (readiness, theme, token, fragment), not about any section: every entry is put back to the
+// placeholder so they keep their meaning as the group tasks replace the placeholders with real print versions.
+for (const [id, section] of Object.entries(PRINT_SECTIONS)) PRINT_SECTIONS[id] = { ...section, render: () => <PrintPlaceholder id={id} title={section.title} /> };
 const original = { ...PRINT_SECTIONS };
 const fetchSpy = vi.fn<typeof fetch>();
 const members = [{ id: "11111111-1111-4111-8111-111111111111", name: "Demo Member" }];

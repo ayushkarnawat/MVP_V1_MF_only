@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
+import { AmcSectionPrint, FamilySectionPrint, HistorySectionPrint, InsightsSectionPrint, MutualFundsSectionPrint, SipsSectionPrint } from "./overview/OverviewSections";
 
-// Print versions of the overview sections: one entry per section id, `() => ReactNode`. Empty until that group's task fills it;
-// every id not listed here keeps the placeholder in sectionRegistry.ts. Each group edits only its own file.
-export const overviewPrintSections: Record<string, () => ReactNode> = {};
+export const overviewPrintSections: Record<string, () => ReactNode> = {
+  "overview-value-over-time": () => <HistorySectionPrint />,
+  "overview-sips": () => <SipsSectionPrint />,
+  "overview-mutual-funds": () => <MutualFundsSectionPrint />,
+  "overview-amc-allocation": () => <AmcSectionPrint />,
+  "overview-family-members": () => <FamilySectionPrint />,
+  "overview-quick-insights": () => <InsightsSectionPrint />,
+};
