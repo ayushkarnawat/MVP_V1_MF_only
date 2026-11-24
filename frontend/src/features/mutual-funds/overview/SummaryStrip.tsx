@@ -387,7 +387,7 @@ export function SummaryStrip({
                 </span>
               )}
 
-              <div className="min-h-8">
+              <div className={currentDisclaimer ? "min-h-[4.25rem]" : "min-h-8"}>
                 {currentDisclaimer ? (
                   <button
                     type="button"
@@ -407,7 +407,7 @@ export function SummaryStrip({
                 )}
               </div>
 
-              <div className="min-h-5">
+              <div className="min-h-6">
                 {shownFace === "xirr" && figures.caution !== null && (
                   <XirrCautionChip caution={figures.caution} />
                 )}

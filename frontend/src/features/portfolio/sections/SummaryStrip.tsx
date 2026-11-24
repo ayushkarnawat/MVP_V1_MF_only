@@ -376,7 +376,7 @@ export function SummaryStrip({
           >
             {formatXirr(shownFigure)}
           </span>
-          <div className="min-h-8">
+          <div className={disclaimer !== null ? "min-h-[4.25rem]" : "min-h-8"}>
             {disclaimer !== null ? (
               <button
                 type="button"
@@ -397,7 +397,7 @@ export function SummaryStrip({
               </div>
             )}
           </div>
-          <div className="min-h-5">
+          <div className="min-h-6">
             {shownFace === "xirr" && figures.caution !== null && (
               <XirrCautionChip caution={figures.caution} />
             )}
