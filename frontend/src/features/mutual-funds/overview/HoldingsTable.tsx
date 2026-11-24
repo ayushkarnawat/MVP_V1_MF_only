@@ -206,8 +206,9 @@ function HoldingsTableContent({
           <table className={`w-full text-left text-sm${printMode ? " table-fixed" : ""}`}>
             <thead>
               <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
-                <th className="py-3 pr-4 font-medium" style={printMode ? { width: "24%" } : undefined}>Fund</th>
-                <th className="py-3 px-4 font-medium" style={printMode ? { width: "11%" } : undefined}>Category</th>
+                {/* Print widths: with the two extra columns the six figure columns need about 11.7% each (about 71 px of text at an A4 content width) so a rupee amount such as ₹12,00,000 does not run into its neighbour. */}
+                <th className="py-3 pr-4 font-medium" style={printMode ? { width: "20%" } : undefined}>Fund</th>
+                <th className="py-3 px-4 font-medium" style={printMode ? { width: "10%" } : undefined}>Category</th>
                 {sortColumns.map(col => {
                   const isSorted = sort?.key === col.key;
                   const ariaSort = isSorted
