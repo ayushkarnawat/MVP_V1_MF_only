@@ -4,12 +4,11 @@ import { PrintModeProvider } from "../lib/printMode";
 import { SectionBoundary } from "./SectionBoundary";
 import { PrintSettledContext } from "./usePrintSettled";
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); });
 
 function Boom(): never { throw new Error("invented section crash"); }
 
 it("a section that throws prints the failure sentence in place, reports settled, and the next section still renders", () => {
-  vi.spyOn(console, "error").mockImplementation(() => {});
   const settled = vi.fn();
   render(
     <PrintModeProvider value={{ folios: "full", dataDates: true }}>
