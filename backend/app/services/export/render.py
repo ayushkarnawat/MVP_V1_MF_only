@@ -63,10 +63,15 @@ def build_print_meta(db: Session, user: User, scope: str) -> tuple[list[PrintMem
     selected = rows if scope == "family" else [row for row in rows if str(row.id) == scope]
     if scope != "family" and not selected:
         raise ValueError("Not allowed.")
-    members: list[PrintMember] = [{"id": str(row.id), "name": row.name} for row in selected]
+    # A name must not be able to forge the invisible [[sec:...]] markers the page-number pass searches for.
+    def clean(name: str) -> str:
+        return name.replace("[[", "[").replace("]]", "]")
+
+    holder = clean(holder) if holder else holder
+    members: list[PrintMember] = [{"id": str(row.id), "name": clean(row.name)} for row in selected]
     # scopeName is never empty (the print page rejects an empty one): a family report with no known holder says "Your family",
     # the cover's own rule for a missing name; with a holder the front end writes "<holder> and family" from holderName.
-    meta: PrintMeta = {"holderName": holder, "scopeName": (holder or "Your family") if scope == "family" else selected[0].name,
+    meta: PrintMeta = {"holderName": holder, "scopeName": (holder or "Your family") if scope == "family" else clean(selected[0].name),
                        "memberCount": len(selected)}
     return members, meta
 
@@ -147,7 +152,8 @@ def _check(job_id: str, navigated: asyncio.Event) -> None:
 
 async def _second_pdf(page: "Page", first_pdf: bytes, section_ids: list[str],
                       job_id: str, navigated: asyncio.Event) -> bytes | None:
-    texts = extract_page_texts(first_pdf)
+    # pypdf is CPU-heavy and synchronous: parse off the event loop so one long report cannot freeze the whole worker.
+    texts = await asyncio.to_thread(extract_page_texts, first_pdf)
     pages = section_pages(texts)
     if not (set(section_ids) | {"notes"}).issubset(pages):
         return None
@@ -157,7 +163,7 @@ async def _second_pdf(page: "Page", first_pdf: bytes, section_ids: list[str],
     await page.evaluate("pages => window.__unifolioSetPrintPages(pages)", pages)
     _check(job_id, navigated)
     second_pdf = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
-    if len(extract_page_texts(second_pdf)) != len(texts):
+    if len(await asyncio.to_thread(extract_page_texts, second_pdf)) != len(texts):
         return None
     return second_pdf
 

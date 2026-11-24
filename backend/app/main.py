@@ -59,19 +59,21 @@ def _assert_pan_keys_configured() -> None:
 
 
 def _assert_export_pass_secret_configured() -> None:
-    if settings.environment != "production":
+    if settings.environment == "development":
         return
     secret = settings.export_pass_secret
     other_values = (
         getattr(settings, name) for name in type(settings).model_fields
         if name != "export_pass_secret"
     )
-    if len(secret) < 32 or any(secret == value for value in other_values if isinstance(value, str)):
+    # Strength, not just length: "a" * 32 must not pass. Staging holds real household data too, so every environment except
+    # local development runs this check.
+    if len(secret) < 32 or len(set(secret)) < 8 or any(secret == value for value in other_values if isinstance(value, str)):
         raise RuntimeError("Refusing to start: EXPORT_PASS_SECRET must have at least 32 random characters and differ from every other secret.")
 
 
 def _assert_export_api_origin_configured() -> None:
-    if settings.environment != "production":
+    if settings.environment == "development":
         return
     from urllib.parse import urlsplit
     from app.services.export.render import origin
@@ -79,6 +81,9 @@ def _assert_export_api_origin_configured() -> None:
     try:
         parts = urlsplit(settings.export_api_origin)
         valid = parts.scheme == "https" and parts.path in ("", "/") and not parts.query and not parts.fragment
+        # The print browser carries the read proof to every API request it makes, so whoever serves FRONTEND_BASE_URL holds
+        # that capability: outside development it must be an HTTPS address too (never the localhost default).
+        valid = valid and urlsplit(settings.frontend_base_url).scheme == "https"
         origin(settings.export_api_origin)
     except ValueError:
         valid = False

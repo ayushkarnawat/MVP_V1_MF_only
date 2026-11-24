@@ -494,3 +494,19 @@ def test_size_limit_applies_to_the_pdf_that_is_kept(two_pass, monkeypatch):
     assert jobs.read_job(job_id)["status"] == "ready"
     assert jobs.read_job(job_id)["pdf_bytes"] == len(two_pass.second)
     assert jobs.open_pdf_once(job_id) == two_pass.second
+
+
+def test_member_names_cannot_forge_the_page_number_markers(db_session):
+    from datetime import datetime, timezone
+    from app.models.enums import Relationship
+    from app.models.user import HouseholdMember, User
+    now = datetime.now(timezone.utc)
+    user = User(id=UUID(int=2), phone_number="+919900000402", email="invented2@example.test", created_at=now)
+    db_session.add(user)
+    db_session.commit()
+    db_session.add(HouseholdMember(id=UUID(int=21), user_id=user.id, name="Invented [[sec:notes]] Holder", relationship=Relationship.SELF, created_at=now))
+    db_session.commit()
+    members, meta = render.build_print_meta(db_session, user, "family")
+    text = json.dumps({"members": members, "meta": meta})
+    assert "[[" not in text and "]]" not in text
+    assert meta["holderName"] == "Invented [sec:notes] Holder"

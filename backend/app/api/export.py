@@ -52,8 +52,10 @@ def _owned(job_id: str, user: User) -> jobs.Job:
     return job
 
 
-@router.post("/report")
-async def create_report(options: ExportOptions, user: User = Depends(get_data_user), db: Session = Depends(get_db)):
+def _create_job(options: ExportOptions, user: User, db: Session):
+    """Everything that blocks (database reads, file locks, the folder sweep) runs here, off the event loop: a blocking
+    wait inside the async route would freeze the whole uvicorn worker for every user (the same shape as the old
+    db.commit bug). Returns either a ready JSONResponse or the pieces the render task needs."""
     if options.scope != "family":
         try:
             member_id = uuid.UUID(options.scope)
@@ -81,9 +83,18 @@ async def create_report(options: ExportOptions, user: User = Depends(get_data_us
             job_id = jobs.create_job(user.id, "family" if options.scope == "family" else "member", len(options.section_ids))
         finally:
             backend.release_user(handle)
-        task = asyncio.create_task(_run(job_id, user.id, options, members, meta))
-        _tasks.add(task)
-        task.add_done_callback(_tasks.discard)
+    return job_id, options, members, meta
+
+
+@router.post("/report")
+async def create_report(options: ExportOptions, user: User = Depends(get_data_user), db: Session = Depends(get_db)):
+    created = await asyncio.to_thread(_create_job, options, user, db)
+    if isinstance(created, JSONResponse):
+        return created
+    job_id, options, members, meta = created
+    task = asyncio.create_task(_run(job_id, user.id, options, members, meta))
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
     return {"job_id": job_id, "status": "preparing"}
 
 
