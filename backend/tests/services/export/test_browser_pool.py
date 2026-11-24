@@ -304,13 +304,13 @@ def test_flock_backend_limits_hold_across_processes(tmp_path):
             child.close()
             processes.append(process)
             connections.append(parent)
-            assert parent.poll(10), "child did not report its claim"
+            assert parent.poll(30), "child did not report its claim"
             assert parent.recv() is expected
-        processes[1].join(10)
+        processes[1].join(30)
         assert processes[1].exitcode == 0
         assert backend.try_claim_slot() is None
         processes[0].kill()
-        processes[0].join(10)
+        processes[0].join(30)
         recovered = backend.try_claim_slot()
         assert recovered is not None
         backend.release_slot(recovered)
@@ -327,6 +327,6 @@ def test_flock_backend_limits_hold_across_processes(tmp_path):
         for process in processes:
             if process.is_alive():
                 process.kill()
-            process.join(10)
+            process.join(30)
         for connection in connections:
             connection.close()

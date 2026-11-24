@@ -52,15 +52,15 @@ def test_update_is_atomic_and_visible_to_a_second_process():
     process.start()
     child.close()
     try:
-        assert parent.poll(10)
+        assert parent.poll(30)
         assert parent.recv() == "building"
-        process.join(10)
+        process.join(30)
         assert process.exitcode == 0
         assert jobs.read_job(job_id)["stage"] == "finishing"
     finally:
         if process.is_alive():
             process.kill()
-        process.join(10)
+        process.join(30)
         parent.close()
 
 

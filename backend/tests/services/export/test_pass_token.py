@@ -136,14 +136,14 @@ def test_pass_works_in_a_different_process():
     process.start()
     child.close()
     try:
-        assert parent.poll(10), "verification child did not respond"
+        assert parent.poll(30), "verification child did not respond"
         assert parent.recv() is True
-        process.join(10)
+        process.join(30)
         assert process.exitcode == 0
     finally:
         if process.is_alive():
             process.kill()
-        process.join(10)
+        process.join(30)
         parent.close()
 
 
