@@ -1,3 +1,5 @@
+import type { XirrCaution } from "../../lib/xirrDisplay";
+
 // Contract types for the Mutual Funds page front end (packets MF-A, MF-B and MF-C). Orchestrator-owned: never edit.
 // MF-C adds the overlap, valuation, TER, category-ranking, scorer and fund-ranking sections (copies of the same schemas.py).
 // MF-B adds (all copies of backend/app/services/analytics/schemas.py, which is authoritative): the benchmark windows,
@@ -54,6 +56,7 @@ export interface ConsolidatedHoldingChild extends Omit<HoldingRow, "average_nav"
   xirr: string | null;
   xirr_as_of?: string | null;
   xirr_basis?: XirrBasis | null;
+  xirr_caution?: XirrCaution | null;
   since_purchase_return?: string | null;
 }
 export interface ConsolidatedHolding {
@@ -81,6 +84,7 @@ export interface ConsolidatedHolding {
   xirr: string | null;
   xirr_as_of?: string | null;
   xirr_basis?: XirrBasis | null;
+  xirr_caution?: XirrCaution | null;
   since_purchase_return?: string | null;
   children: ConsolidatedHoldingChild[];
 }
@@ -138,7 +142,9 @@ export interface AggregateHoldingsResponse {
   current_holdings_xirr?: string | null;
   xirr_as_of?: string | null;
   lifetime_xirr_basis?: XirrBasis | null;
+  lifetime_xirr_caution?: XirrCaution | null;
   current_holdings_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_caution?: XirrCaution | null;
   lifetime_since_purchase?: string | null;
   current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
@@ -151,7 +157,9 @@ export interface MemberHoldingsResponse {
   current_holdings_xirr: string | null;
   xirr_as_of?: string | null;
   lifetime_xirr_basis?: XirrBasis | null;
+  lifetime_xirr_caution?: XirrCaution | null;
   current_holdings_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_caution?: XirrCaution | null;
   lifetime_since_purchase?: string | null;
   current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer?: XirrDisclaimer | null;
@@ -256,6 +264,7 @@ export interface FundBenchmarkRow {
   fund_xirr: string | null;
   xirr_as_of?: string | null;
   xirr_basis?: XirrBasis | null;
+  xirr_caution?: XirrCaution | null;
   since_purchase_return?: string | null;
   benchmark_xirr: string | null;
   /** Added by the MB backend; a payload stored before it has none (the page then shows since-inception only). */
@@ -768,7 +777,9 @@ export interface XirrBundle {
   current: string | null;
   xirr_as_of?: string | null;
   lifetime_xirr_basis?: XirrBasis | null;
+  lifetime_xirr_caution?: XirrCaution | null;
   current_holdings_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_caution?: XirrCaution | null;
   lifetime_since_purchase?: string | null;
   current_holdings_since_purchase?: string | null;
   disclaimers: { lifetime: XirrDisclaimer | null; current: XirrDisclaimer | null };

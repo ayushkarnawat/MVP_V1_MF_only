@@ -1,3 +1,6 @@
+import { CAUTION_CHIP } from "../../../lib/xirrDisplay";
+import { formatXirr } from "../mfCopy";
+import type { FundBenchmarkRow } from "../types";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useLocation } from "react-router";
@@ -580,4 +583,27 @@ describe("OverviewPage wealth graph (D-7)", () => {
     expect(screen.getByTestId("legend-chip-nifty_500")).toBeInTheDocument();
     expect(screen.getByTestId("legend-chip-nifty_50")).toBeInTheDocument();
   });
+});
+
+it("meta_mapping_passes_since_purchase_return_and_xirr_caution_for_every_fund", async () => {
+  const rows = fx.holdings().slice(0, 3);
+  const funds: FundBenchmarkRow[] = rows.map((row, index) => ({
+    scheme_id: row.scheme_id, scheme_name: row.scheme_name, benchmark_index: "nifty_500", benchmark_xirr: null,
+    fund_xirr: ["0.418", "-0.001", "0"][index], since_purchase_return: ["0.065", "-0.001", "0"][index],
+    xirr_basis: "since_purchase", xirr_caution: index === 0 ? "young" : index === 1 ? "single_transaction" : null,
+  }));
+  const data = fx.analyticsCombined();
+  data.sections.benchmark_funds!.payload = { members: [], comparison: { funds, overall_portfolio_xirr: "0.1", overall_broad_market_xirr: null } };
+  mocks.getAnalyticsScope.mockResolvedValue(data);
+  mocks.getHoldingsBundle.mockResolvedValue(bundle(rows));
+  mount();
+  for (const fund of funds) {
+    const holding = rows.find(row => row.scheme_id === fund.scheme_id)!;
+    const cells = within(await screen.findByTestId(`row-${fund.scheme_id}:${holding.household_member_id}`));
+    await waitFor(() => expect(cells.getByTestId("returns").textContent).toBe(formatXirr(fund.since_purchase_return)));
+    expect(cells.getByTestId("xirr")).toHaveTextContent(formatXirr(fund.fund_xirr));
+    if (fund.xirr_caution) {
+      expect(within(cells.getByTestId("xirr")).getByTestId("xirr-caution").textContent).toBe(CAUTION_CHIP[fund.xirr_caution].text);
+    } else expect(cells.queryByTestId("xirr-caution")).toBeNull();
+  }
 });
