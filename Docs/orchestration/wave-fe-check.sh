@@ -45,6 +45,7 @@ case "$lane" in
   ie) SRC="$WT/unifolio-i-export/frontend" ;;   # Batch I (PDF export) base
   m3) SRC="$WT/unifolio-m3/frontend" ;;   # the merged M3 candidate (branch m3-candidate)
   m4) SRC="$WT/unifolio-m4/frontend" ;;   # the merged M4 candidate (branch m4-candidate)
+  xrt) SRC="$WT/unifolio-xr-rt/frontend" ;;   # XIRR leads: Codex front-end foundation and red tests (batch/xr-rt)
   xr) SRC="$WT/unifolio-xr-returns/frontend" ;;   # XIRR leads / Returns flip: integration branch batch/xr-returns
   ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
   ed) SRC="$WT/unifolio-e-dates/frontend" ;;   # Batch E (dates)
