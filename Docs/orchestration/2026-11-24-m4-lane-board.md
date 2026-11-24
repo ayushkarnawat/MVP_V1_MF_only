@@ -1,30 +1,21 @@
-# M4 lane board (written 2026-11-24; the single page to follow)
+# M4 lane board (updated 2026-11-24; the single page to follow)
 **Same workflow as M3: two Codex lanes and four Antigravity lanes, each lane is one project that does one task after another. The orchestrator (Claude) writes every handoff and packet, runs every check, and commits. The owner relays a prompt, pastes the report back, and gets the next prompt.**
-Milestone M4 = **Batch I (PDF export)** + **Batch H part 2 (the floating checklist)**, then the owner's one QA round, then the M4 staging deploy by the manager. Decisions are in `decisions.md` (24 Nov) and `2026-11-24-print-audit.md`.
+Milestone M4 = **Batch I (PDF export)** + **Batch H part 2 (the floating checklist)**, then the owner's one QA round, then the M4 staging deploy by the manager. Decisions: `decisions.md` (24 Nov), `2026-11-24-print-audit.md`.
 
 ## Codex lanes (two projects)
-| Lane | Project folder (open as a Codex project once) | Branch | Queue (one at a time, in this order) |
-|---|---|---|---|
-| **Codex A, back end** | `C:\Users\Dell\lanes\unifolio-i-be` | `batch/i-be` | **I-4 export pass** (running now) -> **I-5 render service and export routes** (I write it when I-4 lands) -> **I-12b back-end wiring and I-13 measurement script** (later) |
-| **Codex B, front end** | `C:\Users\Dell\lanes\unifolio-i-fe` | `batch/i-fe` | the six **print group** tasks, in this order: **1 Other Analytics, 2 Holdings and Transactions (ledger and holdings first, the cash-flow chart last), 3 Allocation, 4 Overlap (heatmap last), 5 Performance (history last), 6 Overview (chart and SIPs last)**; then the **template integration** (the PDF's cover, contents, header and footer wired into the print route) and the **export button wiring** (`useExportJob`) |
-The order of Codex B follows what the Antigravity components need: the groups that wait for a component do that one item last, and I tell Codex when the component is in its branch. **Never two print groups at once** (same branch).
-Where the work lives: Codex A only touches `backend/**`; Codex B only touches `frontend/**`. They never collide.
-
-## Antigravity lanes (four clones, started now, all independent)
-| Lane | Clone folder (open as an Antigravity project) | Branch | Packet | Builds |
+| Lane | Project folder | Branch | Done | Next (one at a time) |
 |---|---|---|---|---|
-| **AG-1** | `C:\Users\Dell\ag-p1` | `ag/p1-history` | `2026-11-24-i7ag-p1-history-packet.md` | the history chart and the year-by-year table (Performance, and the Overview chart) |
-| **AG-2** | `C:\Users\Dell\ag-p2` | `ag/p2-sips-cashflow` | `2026-11-24-i7ag-p2-sips-cashflow-packet.md` | the SIP table and the yearly cash flow chart with its table |
-| **AG-3** | `C:\Users\Dell\ag-p3` | `ag/p3-heatmap` | `2026-11-24-i7ag-p3-heatmap-packet.md` | the overlap heatmap with its name key and the strongest pair |
-| **AG-4** | `C:\Users\Dell\ag-p4` | `ag/p4-donut` | `2026-11-24-i7ag-p4-donut-packet.md` | the donut with a printed legend (used by four sections) |
-Common rules for all four: `2026-11-24-i7ag-common.md`. When an Antigravity lane reports, I run its checks, compare it with the sample page in Chrome, fix small things, commit it, and merge it into `batch/i-fe` so Codex B can use it.
-**Already built and held (Antigravity, done):** the PDF template pieces (cover, contents, header, footer, headings, notes) on `ag/i89-print-template`, and the Export PDF button and dialog on `ag/i1011-export-dialog`; they join `batch/i-fe` when the pipeline is wired. **The checklist look** is merged in `batch/h-checklist`.
+| **Codex A, back end** | `C:\Users\Dell\lanes\unifolio-i-be` | `batch/i-be` | I-3 browser pool, I-4 export pass, I-5 render service + routes + guards (all committed, tests pass in WSL) | **I-5c two-pass page numbers** (`2026-11-24-i5c-two-pass-pages-handoff.md`; **needs the owner's yes to the new dependency `pypdf`**), then the deploy-side items (settings, a measurement script if wanted) |
+| **Codex B, front end** | `C:\Users\Dell\lanes\unifolio-i-fe` | `batch/i-fe` | foundation, I-6b, all six print groups, the two held Antigravity branches merged (594 test files / 7,022 tests pass, types and lint clean) | **1. I-9b template integration** (`2026-11-24-i9b-template-integration-handoff.md`), **2. I-12 export wiring** (`2026-11-24-i12-export-wiring-handoff.md`) |
 
-## Where things stand today
-- Done and committed: print foundation (`batch/i-fe`); I-3 browser pool (`batch/i-be`); Batch H part 2 (`batch/h-checklist`); the two Antigravity PDF lanes (held).
-- Running: **Codex A: I-4** (amended handoff relayed).
-- Next prompts to give: **Codex B: print group 1 (Other Analytics)** and **AG-1 to AG-4**. Prompts are at the bottom of each handoff or packet and in the orchestrator's message.
-- Waiting on the manager: the measurement's real export calls (does not block anything).
+## Antigravity lanes (four clones)
+AG-1 to AG-4 (`ag-p1` to `ag-p4`) **are done and merged** into `batch/i-fe`: history chart and year table, SIP table and yearly cash flow, overlap heatmap, donut with legend. The PDF template (`ag/i89-print-template`) and the button and dialog (`ag/i1011-export-dialog`) are merged too. **The four lanes are free**; the next Antigravity work, when it exists, is a look packet from the checks of the first rendered PDF (I render real reports and compare them with the sample; anything that needs a design fix becomes a packet).
 
-## After the build (not lanes: the orchestrator)
-Integration branch `m4-candidate` (Batch I back end + front end + both Antigravity lanes + Batch H), full test runs, the independent review of the export pass, browser checks of the dialog, the PDF (rendered by the real pipeline on invented households) and the checklist in Chrome and Edge, the M4 deploy guide for the manager, tag `m4-rc`.
+## Batch H part 2 (the floating checklist)
+Built and committed on `batch/h-checklist` (logic, drawing steps, look; 288 import tests pass). Not merged yet; it joins `m4-candidate`. Needs the real-browser check in Chrome and Edge at M4 QA.
+
+## After the build (the orchestrator, not lanes)
+1. **Render real PDFs** (the real pipeline, invented households) and compare page by page with the sample: cover, contents with page numbers, every section, dates, folios, no PAN, fonts. Fix or write packets for what differs.
+2. **Independent security review** of the export pass and the render service (a fresh reviewer attacking `2026-11-23-i4-export-pass-security-brief.md`'s list; I recommend the Opus gate).
+3. **`m4-candidate`**: merge `batch/i-be`, `batch/i-fe`, `batch/h-checklist` into `leapswitch-redesign`'s candidate, full test runs (back end in WSL, front end), browser checks (dialog, PDF, checklist in Chrome and Edge), then the M4 deploy guide for the manager (new settings `EXPORT_PASS_SECRET`, `EXPORT_API_ORIGIN`, distinct front-end and API origins, `pypdf` in the image, the entrypoint fact, the temporary job files in `/tmp`), tag `m4-rc`.
+4. Open items for the owner: the temporary PDF file rule (10 minutes, deleted at first download), the new words listed in each report, the real checklist video (Batch H part 1, H-5: recordings from the owner).
