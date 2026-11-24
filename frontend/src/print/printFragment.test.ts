@@ -5,6 +5,12 @@ const member = { id: "11111111-1111-4111-8111-111111111111", name: "Demo Member"
 const options = { scope: "family", sectionIds: ["overview-sips"], cover: true, dataDates: false, showFolios: "masked", jobId: "job-demo", members: [member], meta: { holderName: "Demo Holder", scopeName: "Demo Family", memberCount: 1 } };
 const fragment = (value: unknown = options, pass = "invented-pass") => `#pass=${pass}&opts=${btoa(JSON.stringify(value)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
 
+it("browser mode accepts a missing pass while the ordinary mode still rejects it", () => {
+  const encoded = new URLSearchParams(fragment().slice(1)).get("opts");
+  expect(parsePrintFragment(`#mode=browser&opts=${encoded}`)).toMatchObject({ mode: "browser", pass: null, options });
+  expect(parsePrintFragment(`#opts=${encoded}`)).toBeNull();
+});
+
 it("accepts optional section and notes page numbers including the bounds", () => {
   for (const pages of [{}, { "overview-sips": 1, notes: 9999 }]) expect(parsePrintFragment(fragment({ ...options, pages }))?.options.pages).toEqual(pages);
   expect(parsePrintFragment(fragment())?.options).not.toHaveProperty("pages");

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
 import { ImportContext, ScopeContext } from "../scope/ScopeContext";
 import { TopBar } from "./TopBar";
+vi.mock("../../features/auth/AuthContext", () => ({ useAuth: () => ({ me: null }) }));
 
 function mount(path = "/home") {
   const openImport = vi.fn();
@@ -83,4 +84,8 @@ it("it renders with hasData from useHasFunds (unknown shows it enabled)", () => 
   mount();
   const exportBtn = screen.getByRole("button", { name: "Export PDF" });
   expect(exportBtn).not.toHaveAttribute("aria-disabled", "true");
+});
+
+it("the wired ExportHost opens choose from the existing top-bar position", () => {
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Export PDF" })); expect(screen.getByRole("dialog", { name: "Export a PDF report" })).toBeInTheDocument();
 });

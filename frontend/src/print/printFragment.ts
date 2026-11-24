@@ -38,12 +38,13 @@ function parseMeta(value: unknown): PrintOptions["meta"] | null {
   return { holderName, scopeName, memberCount };
 }
 
-export function parsePrintFragment(hash: string): { pass: string; options: PrintOptions } | null {
+export function parsePrintFragment(hash: string): { pass: string | null; mode?: "browser"; options: PrintOptions } | null {
   try {
     const params = new URLSearchParams(hash.replace(/^#/, ""));
     const pass = params.get("pass");
+    const browser = params.get("mode") === "browser";
     const encoded = params.get("opts");
-    if (!pass || pass.length > 1024 || !encoded || !/^[A-Za-z0-9_-]+={0,2}$/.test(encoded)) return null;
+    if ((!browser && !pass) || (pass && pass.length > 1024) || !encoded || !/^[A-Za-z0-9_-]+={0,2}$/.test(encoded)) return null;
     const bytes = Uint8Array.from(atob(encoded.replaceAll("-", "+").replaceAll("_", "/")), char => char.charCodeAt(0));
     const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -66,7 +67,7 @@ export function parsePrintFragment(hash: string): { pass: string; options: Print
       typeof cover !== "boolean" || typeof dataDates !== "boolean" ||
       (showFolios !== "full" && showFolios !== "masked" && showFolios !== "none") ||
       typeof jobId !== "string" || !jobId.trim() || !members || !meta) return null;
-    return { pass, options: { scope, sectionIds, cover, dataDates, showFolios, jobId, members, meta, ...(pages ? { pages } : {}) } };
+    return { pass: browser ? null : pass, ...(browser ? { mode: "browser" as const } : {}), options: { scope, sectionIds, cover, dataDates, showFolios, jobId, members, meta, ...(pages ? { pages } : {}) } };
   } catch {
     return null;
   }

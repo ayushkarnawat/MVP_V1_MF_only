@@ -78,9 +78,9 @@ describe("export feature source guards", () => {
     expect(violations).toEqual([]);
   });
 
-  it("no network call (no fetch, no apiClient) in features/export", () => {
+  it("network calls are confined to api.ts and useExportJob.ts", () => {
     const pattern = /\bfetch\s*\(|\bapiClient\b/;
-    const offenders = files.filter((f) => pattern.test(read(f))).map(rel);
+    const offenders = files.filter((f) => !["api.ts", "useExportJob.ts"].includes(rel(f)) && pattern.test(read(f))).map(rel);
     expect(offenders).toEqual([]);
   });
 });

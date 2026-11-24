@@ -14,6 +14,7 @@ import { usePrintOptions } from "./printOptionsContext";
 import { useMfAnalytics, analyticsStore } from "../features/mutual-funds/data/analyticsStore";
 import { analyticsMfC } from "../features/mutual-funds/fixtures/mfC";
 import { invalidateApiCache } from "../lib/apiClient";
+import * as session from "../features/auth/session";
 
 const ids = ["overview-sips", "performance-returns"];
 // These tests are about the route (readiness, theme, token, fragment), not about any section: every entry is put back to the
@@ -237,4 +238,16 @@ it("does not turn a completed report into a timeout error", async () => {
   await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
   expect(document.documentElement).toHaveAttribute("data-print-ready", "true");
   expect(document.documentElement).not.toHaveAttribute("data-print-error");
+});
+
+it("browser mode uses the session without an override and prints once after ready", async () => {
+  const opts = new URLSearchParams(location.hash.slice(1)).get("opts"); history.replaceState(null, "", `/print/report#mode=browser&opts=${opts}`);
+  vi.spyOn(session, "getToken").mockReturnValue("demo-browser-session"); const override = vi.spyOn(session, "setTokenOverride"); const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  const view = render(<StrictMode><PrintReport /></StrictMode>); expect(print).not.toHaveBeenCalled();
+  await waitFor(() => expect(print).toHaveBeenCalledTimes(1)); expect(document.documentElement).toHaveAttribute("data-print-ready", "true"); expect(override).not.toHaveBeenCalled(); expect(location.hash).toBe("");
+  expect(screen.getByText("Preparing your report. When it is ready the print window opens: choose Save as PDF.")).toBeInTheDocument();
+  expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get("Authorization")).toBe("Bearer demo-browser-session"); view.rerender(<StrictMode><PrintReport /></StrictMode>); expect(print).toHaveBeenCalledTimes(1);
+});
+it("pass mode never opens the browser print window", async () => {
+  const print = vi.spyOn(window, "print").mockImplementation(() => {}); render(<PrintReport />); await waitFor(() => expect(document.documentElement).toHaveAttribute("data-print-ready", "true")); expect(print).not.toHaveBeenCalled();
 });

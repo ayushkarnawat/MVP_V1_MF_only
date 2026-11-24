@@ -34,7 +34,7 @@ const TAB_LABELS: Record<MfTabId, string> = {
   transactions: "Transactions", overlap: "Overlap", analytics: "Other Analytics",
 };
 
-function ReportAssembly({ options }: { options: PrintOptions }) {
+function ReportAssembly({ options, browser }: { options: PrintOptions; browser: boolean }) {
   const dates = useReportDates();
   const report = useContext(PrintSettledContext);
   const [, refresh] = useReducer((version: number) => version + 1, 0);
@@ -59,7 +59,9 @@ function ReportAssembly({ options }: { options: PrintOptions }) {
   const dataDates = options.dataDates ? [formatDataDateParts("prices", dates.pricesIso), formatDataDateParts("holdings", dates.holdingsIso)].filter(part => part !== null) : [];
   const entries = options.sectionIds.map(id => ({ tab: TAB_LABELS[PRINT_SECTIONS[id].tab], title: PRINT_SECTIONS[id].title, page: pages[id] ?? null }));
   entries.push({ tab: "Notes", title: "Notes", page: pages.notes ?? null });
-  return <PrintTemplate>
+  return <><style>{"@media print { .print-browser-message { display: none !important; } }"}</style>
+    {browser && <p className="print-browser-message text-sm" style={{ textAlign: "center" }}>Preparing your report. When it is ready the print window opens: choose Save as PDF.</p>}
+    <PrintTemplate>
     {options.cover && <Cover holderName={options.meta.holderName} scope={options.scope === "family" ? { kind: "family" } : { kind: "member", memberName: options.meta.scopeName }} memberCount={options.meta.memberCount} fundCount={dates.fundCount} folioCount={dates.folioCount} generatedOn={generatedOn} scopeLabel={scopeLabel} dataDates={dataDates} />}
     <div data-print-root style={{ width: "680px", margin: "0 auto" }}>
     {options.cover && <Contents entries={entries} />}
@@ -75,13 +77,14 @@ function ReportAssembly({ options }: { options: PrintOptions }) {
     <div data-print-notes><p data-print-marker aria-hidden="true" className="print-section-marker">[[sec:notes]]</p><NotesPage priceDate={dates.pricesIso} marketCapDate={dates.marketCapIso} /></div>
     <RunningHeader scopeName={scopeName} />
     <RunningFooter generatedOn={generatedOn} priceNote={options.dataDates ? formatDataDate("prices", dates.pricesIso) || null : null} />
-  </div></PrintTemplate>;
+  </div></PrintTemplate></>;
 }
 
 export function PrintReport() {
   const initial = useRef<ReturnType<typeof parsePrintFragment> | undefined>(undefined);
   const [options, setOptions] = useState<PrintOptions | null>(null);
   const [failed, setFailed] = useState(false);
+  const printed = useRef(false);
   const required = useMemo(() => options ? [...options.sectionIds, "report-meta"] : [], [options]);
 
   useEffect(() => {
@@ -98,10 +101,17 @@ export function PrintReport() {
       setFailed(true);
       return;
     }
-    setTokenOverride(parsed.pass);
+    if (parsed.mode !== "browser") setTokenOverride(parsed.pass);
     setOptions(parsed.options);
-    return () => { setTokenOverride(null); };
+    return () => { if (parsed.mode !== "browser") setTokenOverride(null); };
   }, []);
+
+  useEffect(() => {
+    if (!options || initial.current?.mode !== "browser") return;
+    const check = () => { if (document.documentElement.dataset.printReady === "true" && !printed.current) { printed.current = true; window.print(); } };
+    const observer = new MutationObserver(check); observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-print-ready"] }); check();
+    return () => observer.disconnect();
+  }, [options]);
 
   if (failed) return <div role="alert">This section failed to load, but the rest of the page is unaffected.</div>;
   if (!options) return null;
@@ -122,7 +132,7 @@ export function PrintReport() {
       <PrintModeProvider value={{ folios: options.showFolios, dataDates: options.dataDates }}>
         <PrintReadyGate sectionIds={required} enabled>
           <ScopeContext.Provider value={scope}>
-            <ReportAssembly options={options} />
+            <ReportAssembly options={options} browser={initial.current?.mode === "browser"} />
           </ScopeContext.Provider>
         </PrintReadyGate>
       </PrintModeProvider>
