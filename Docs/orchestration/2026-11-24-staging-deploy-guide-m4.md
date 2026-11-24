@@ -1,6 +1,6 @@
 # Staging Deploy Guide M4: the PDF report export (Batch I) and the floating CAMS checklist (Batch H part 2) to `ls-redesign.unifolio.in`
 
-**FROZEN 24 Nov 2026** (tag `m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`). `m4-candidate` (worktree `C:\Users\Dell\lanes\unifolio-m4` on the orchestrator's laptop) is `leapswitch-redesign` at `fe3feff1` plus the merges of `batch/i-be`, `batch/i-fe` and `batch/h-checklist`. It follows `2026-11-23-staging-deploy-guide-m3.md` (deployed 23 Nov, tag `m3-rc` = `9f776a34d7467f83104e93cf9f6d120583db2bdd`). **Nothing here is run until the owner's yes at the GATE steps.** The staging deploy is run by the **manager's Claude** from this guide. The owner's one QA round (the M1 to M4 rows of `2026-11-19-combined-qa-checklist.md`) follows this deploy.
+**FROZEN 24 Nov 2026** (tag `m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`). `m4-candidate` (worktree `C:\Users\Dell\lanes\unifolio-m4` on the orchestrator's laptop) is `leapswitch-redesign` at `fe3feff1` plus the merges of `batch/i-be`, `batch/i-fe` and `batch/h-checklist`. It follows `2026-11-23-staging-deploy-guide-m3.md` (deployed 23 Nov, tag `m3-rc` = `9f776a34d7467f83104e93cf9f6d120583db2bdd`). **The owner's yes is already given (24 Nov 2026, in chat): to the temporary PDF rule, to adding the two settings, and to the deploy itself. The GATE steps therefore need no further ask: the executing Claude runs straight through, and stops only at a STOP line (a check that did not match, a failure, or a missing prerequisite).** The staging deploy is run by the **manager's Claude** from this guide. The owner's one QA round (the M1 to M4 rows of `2026-11-19-combined-qa-checklist.md`) follows this deploy.
 
 ## What changes
 1. **The PDF report (Batch I).** The **Export PDF** button in the top bar of the Mutual Funds pages opens a dialog (who it is for, which sections, data dates, folio numbers); the server prints the real report pages in its own headless browser and the PDF saves by itself: a cover, a contents page **with page numbers**, a tab page per tab, the chosen sections drawn for paper, a running header and footer, and a notes page. The old "Download PDF" of the analytics page, its route `/print/analytics` and its start-up browser are left in place (the new button does not use them).
@@ -17,7 +17,7 @@
 - **The two settings.** `EXPORT_PASS_SECRET`: at least 32 random characters and different from every other string setting (the start-up check refuses an equal value); `openssl rand -hex 32` gives 64. `EXPORT_API_ORIGIN`: the API's own public HTTPS origin with no path: **`https://ls-staging-api.unifolio.in`** (the same address the front end calls). `FRONTEND_BASE_URL` is already `https://ls-redesign.unifolio.in` (set on 3 Nov): the print browser may only reach those two origins, so **the front end and the API must be on different origins**, which they are. `EXPORT_JOB_DIR` is optional and stays empty (jobs live under `/tmp/unifolio-export/jobs` inside the backend container).
 - **The print browser runs inside the backend container and must be able to open the public HTTPS addresses of both hosts** (a request from the container to `https://ls-redesign.unifolio.in` and `https://ls-staging-api.unifolio.in`). The I-2 measurement on 23 Nov already showed the print page reachable from the container (HTTP 200). Step 9 re-checks it.
 - **The three workers share state through files**, not memory: a browser slot, the per-user lock and the job files all live in `/tmp/unifolio-export` in the backend container. **A recreated container (every deploy, every restart) deletes the job files**: an export running during a deploy fails and the user starts it again. Do not deploy while someone is exporting, and not in the job windows (05:40 to 06:35, 10:30 to 10:40, 14:00 to 14:15 IST).
-- **Temporary PDF rule (the owner confirms at the GATE, see Step 4a):** a finished PDF is a temporary file in the container, **removed at its first download and in any case within 10 minutes**; the app keeps no copy of any report.
+- **Temporary PDF rule (owner confirmed 24 Nov, see Step 4a):** a finished PDF is a temporary file in the container, **removed at its first download and in any case within 10 minutes**; the app keeps no copy of any report.
 - **Memory:** each running print browser is a few hundred MB while it renders a big household; two at most. The I-2 measurement found **no memory limit visible in the backend container** and about 90 MB per idle browser, so this is expected to fit; step 9 reads memory after the first real export.
 - **A shell started with `docker compose exec` skips `/app/docker-entrypoint.sh`**, which builds `DATABASE_URL`; any command that needs the database runs as `docker compose exec -T -e PYTHONPATH=/app backend /app/docker-entrypoint.sh python <script>`. This guide's checks do not need the database.
 - **Old link:** `ls-staging.unifolio.in` shares this back end and sees only the new routes (unused by it) and the new sign-in-free guard behaviour (none for normal sessions).
@@ -27,7 +27,7 @@
 ## Prompt for the executing Claude
 ```
 You are deploying milestone M4 (Batch I PDF export and Batch H part 2 floating checklist) to the LeapSwitch staging VM (ls-redesign.unifolio.in). Read Docs/orchestration/2026-11-24-staging-deploy-guide-m4.md and follow it step by step.
-Rules: run one command at a time and show its output; at every STOP, stop and report; run nothing that changes the VM before the step that says GATE and the owner's yes; never print .env lines (the guide counts a line, it never shows one, and it never shows the value of a secret); never run clean-db.sh, restore.sh or rollback.sh on your own initiative; use ssh by hostname from WSL only (write the remote command so the variables are not expanded by the Windows-to-WSL layer: put commands in a script file or write every value out).
+Rules: run one command at a time and show its output; at every STOP, stop and report; the owner's yes to every GATE step is already given in the guide (do not ask for it again): run the steps in order without waiting between them, and stop only at a STOP line; never print .env lines (the guide counts a line, it never shows one, and it never shows the value of a secret); never run clean-db.sh, restore.sh or rollback.sh on your own initiative; use ssh by hostname from WSL only (write the remote command so the variables are not expanded by the Windows-to-WSL layer: put commands in a script file or write every value out).
 At the end fill in step 10 and give the owner the report.
 ```
 
@@ -60,7 +60,7 @@ date '+%H:%M IST'
 ```
 Expected: branch `leapswitch-redesign`; HEAD `9f776a34d7467f83104e93cf9f6d120583db2bdd` (if anything else, **STOP** and say what it is); no status lines; **at least 12 GB free**; `alembic current` ends `0054 (head)`; the time is **not** within 05:40 to 06:35, 10:30 to 10:40 or 14:00 to 14:15 IST. Record the `latest` image id (it is the back-end rollback target). **STOP** on any miss.
 
-### Step 4 (VM): rollback safety. GATE
+### Step 4 (VM): rollback safety. GATE (owner's yes already given)
 ```bash
 cd /opt/unifolio-redesign/deploy/leapswitch
 sudo docker tag leapswitch-backend:latest leapswitch-backend:previous
@@ -70,10 +70,10 @@ sudo crontab -l > /home/deploy/crontab.before-m4-2026-11
 ```
 Expected: `previous` and `latest` show the same id (the one recorded in step 3); `backup_exit=0`; the crontab file is not empty. **STOP** if the backup failed.
 
-### Step 4a: the owner's two yeses (the manager's Claude asks, in this order, and waits)
-1. "The PDF files the report makes are temporary: removed at the first download and at the latest ten minutes after they are made; the app keeps no copy. Is that right for staging?"
-2. "May I add two settings to the staging environment file and deploy?"
-**STOP** without both yeses.
+### Step 4a: the owner's two yeses are already given (24 Nov 2026, in chat). Do not ask again.
+1. The PDF files the report makes are temporary: removed at the first download and at the latest ten minutes after they are made; the app keeps no copy. **Yes.**
+2. Add the two settings to the staging environment file and deploy. **Yes.**
+If something differs from this guide in a way that matters (a check that does not match, or a different file or setting than named here), that is a STOP, not a reason to ask about the two yeses above.
 
 ### Step 5 (VM): the two new settings
 The real `.env` is `/opt/unifolio/deploy/leapswitch/.env` (owned by root, mode 600; the redesign `.env` is a symlink to it): every read and write needs `sudo`; never print a line.
@@ -100,7 +100,7 @@ cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-rede
 ```
 Expected: the full hash equals `355cc8a1f117210f3ec2a73a06e0ee33dac54951`. **STOP** if not.
 
-### Step 7 (VM): deploy. GATE: the owner's yes first (step 4a)
+### Step 7 (VM): deploy. GATE (owner's yes already given, step 4a)
 ```bash
 cd /opt/unifolio-redesign/deploy/leapswitch && sudo sh ./scripts/deploy-redesign.sh --full
 sudo docker compose ps --format '{{.Service}} {{.Image}} {{.Status}}'
@@ -142,7 +142,7 @@ for u in ('https://ls-redesign.unifolio.in/print/report','https://ls-staging-api
 ```
 Expected `200` and `200`.
 **The front end is the one served:** `curl -s https://ls-redesign.unifolio.in/ | grep -o 'assets/[^"]*\.js' | sort -u`, then count across every chunk the texts `Your report is ready`, `Data dates on every page` and `Mutual Fund Portfolio Report`; each at least once. (`Download PDF` still exists in the old analytics page's chunk: the old route is left in place, so its presence is expected.)
-**Then the owner does the real export, signed in as the test user, in a private window** (this is the first real run of the whole pipeline; the manager's Claude watches `sudo docker compose logs backend -f --since 1m` in a second step and does not print anything but error lines):
+**Then the owner does the real export, signed in as the test user, in a private window** (this is a hand-over to the owner, not an approval stop: say "Steps 0 to 8 and the checks above are done; please run the export now", wait for the owner's result, then continue to step 10) (this is the first real run of the whole pipeline; the manager's Claude watches `sudo docker compose logs backend -f --since 1m` in a second step and does not print anything but error lines):
 1. Open `https://ls-redesign.unifolio.in/`, Mutual Funds, click the **Export PDF** button in the top bar, keep the defaults, start the export. Expected: a progress state, then "Your report is ready" and the file saves by itself within about a minute; the PDF opens with the cover, a contents page **with page numbers**, a page per tab, the sections, header, footer and notes. "Download again" in the dialog saves a second copy **from the browser's memory** (the server's file is single use and already gone: this is by design, not a defect).
 2. Export once more with only two sections and the cover off: a short PDF with no cover and no contents.
 3. Click Export twice in a row: the second is refused with a calm "wait" message (one report at a time, 15-second cool-down), not an error page.
