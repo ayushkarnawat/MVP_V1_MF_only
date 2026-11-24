@@ -54,7 +54,7 @@ Inputs the spec implies but no obvious test covers; each has a test in the task 
 4. **Both conditions at once** (under a year and one purchase): exactly one chip, `held under 1 yr`. [Tasks 2, 5, 6]
 5. **A family with more than four members** (member rates are not sent): child XIRR and Returns cells show a dash, parent rows are unaffected. [Task 6]
 6. Flip state across the Lifetime / Current toggle: the chosen face stays (the toggle changes the figures, not the face); a reload resets to XIRR. [Task 5]
-7. A negative return renders `-0.1%` with the loss colour on both faces; zero renders `0.0%`. [Task 5]
+7. A negative return renders `-0.1%` and zero renders `0.0%`, in the figure's existing colour (a figure never gets a new colour; the design page's green figures are drawing only). [Task 5]
 
 ## File Structure
 
@@ -64,7 +64,7 @@ Inputs the spec implies but no obvious test covers; each has a test in the task 
 | `backend/app/services/dashboard/schemas.py`, `portfolio_schemas.py`, `portfolio_summary.py`, `holdings.py`, `aggregate.py`, `backend/app/api/dashboard.py` | Pass the caution through tile, holdings and consolidated rows |
 | `backend/app/services/analytics/benchmark.py`, `analytics/schemas.py` | Per-fund stored row gains `xirr_caution`; since-purchase always filled |
 | `frontend/src/lib/xirrDisplay.ts` (+ test) | The one front-end rule: both figures, the caution, the strings |
-| `frontend/src/components/MeasureFlip.tsx` (+ test, new) | Presentational flip: face state, button, 200 ms turn, reduced motion |
+| `frontend/src/components/MeasureFlip.tsx`, `MeasureFlip.module.css`, `XirrCautionChip.tsx` (+ test, new) | Presentational flip (title row, button, 200 ms turn, reduced motion) and the shared caution chip |
 | `frontend/src/features/portfolio/sections/SummaryStrip.tsx`, `features/mutual-funds/overview/SummaryStrip.tsx` | Tiles: flip, chip, caption, Unrealised label |
 | `frontend/src/features/mutual-funds/overview/HoldingsTable.tsx`, `OverviewPage.tsx`, `features/mutual-funds/api.ts`, `frontend/src/print/groups/overview/OverviewSections.tsx` | Returns and XIRR columns, sort, metadata mapping (screen and PDF page) |
 | `frontend/src/features/{portfolio,mutual-funds}/types.ts` | Optional caution fields |
@@ -215,7 +215,7 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 ## Task 5: The flip component, both tiles and the Unrealised label (Antigravity, lane FE-1)
 
 **Files:**
-- Create: `frontend/src/components/MeasureFlip.tsx`
+- Create: `frontend/src/components/MeasureFlip.tsx`, `frontend/src/components/MeasureFlip.module.css`, `frontend/src/components/XirrCautionChip.tsx` (the shared chip for the two tiles; the table keeps a local chip until Task 7 unifies them)
 - Modify: `frontend/src/features/portfolio/sections/SummaryStrip.tsx`, `frontend/src/features/mutual-funds/overview/SummaryStrip.tsx`; the global stylesheet where the app's other keyframes live (the worker finds it and reports its path) for the 200 ms turn
 - Do not touch: `lib/xirrDisplay.ts`, `*.test.*`, `backend/**`, `frontend/src/mobile/**`, `HoldingsTable.tsx`, `OverviewPage.tsx`
 
@@ -242,7 +242,7 @@ The packet must state all of this exactly (the page's tile states 1 to 9 are the
 ## Task 6: The holdings table columns (Antigravity, lane FE-2)
 
 **Files:**
-- Modify: `frontend/src/features/mutual-funds/overview/HoldingsTable.tsx`, `frontend/src/features/mutual-funds/overview/OverviewPage.tsx` (the `xirrMetaByScheme` mapping), `frontend/src/print/groups/overview/OverviewSections.tsx` (the same mapping for the PDF page: add `xirr_caution`)
+- Modify: `frontend/src/features/mutual-funds/mfCopy.ts` (the `returns` sort key and an optional fourth `sortHoldings` parameter), `frontend/src/features/mutual-funds/overview/HoldingsTable.tsx`, `frontend/src/features/mutual-funds/overview/OverviewPage.tsx` (the `xirrMetaByScheme` mapping), `frontend/src/print/groups/overview/OverviewSections.tsx` (the same mapping for the PDF page: add `xirr_caution`)
 - Do not touch: `lib/xirrDisplay.ts`, `*.test.*`, `backend/**`, `frontend/src/mobile/**`, the two `SummaryStrip.tsx` files, `MeasureFlip.tsx`
 
 **Interfaces:**
@@ -310,5 +310,13 @@ The packet states exactly:
 - **Chip token decision:** see Task 0 step 5.
 
 - **Plan change, 24 Nov 2026 (owner's question, checked against the M2 precedent):** in M2, FE-1a (front-end types and red tests) was a **Codex** task (`delegation-log.md`, 20 Nov: "FE-1a front-end red tests ... Codex, orchestrator ran and committed"), and Antigravity's packet FE-1b says "the red tests and types are done". This plan first had Claude writing Task 1's types and helper; it now follows the precedent: Tasks 1 and 4 are one Codex handoff (FE-1a). "Contract" means the interfaces, shapes and test names fixed in this plan, not the Antigravity packets.
+
+### Wave A verified, wave B written (24 Nov 2026, Claude)
+
+- **xr-be-1** (Task 2) verified and committed `7bca7003` on `batch/xr-be`: the requested files 124 passed and 3 xfailed (baseline 111, plus Codex's 13 new tests); the wider API, dashboard and analytics run 3523 passed, 6 skipped, 3 xfailed. The wave-A stall and the caller-audit timeout did not reproduce for Claude.
+- **xr-fe-1a** (Tasks 1 and 4) verified and committed `bfcb4f82` on `batch/xr-rt`: helper, api and guard tests pass (5, 18, 10); the component, tile, table and print tests are red for the stated reasons (missing `MeasureFlip`, missing ids, old captions): MeasureFlip file unloadable, portfolio tile 19 of 45, Mutual Funds tile 14 of 39, HoldingsTable 17 of 60, OverviewPage 1 of 46, print 6 of 29. `tsc` shows only the missing module and the `returns` sort key; lint 0 errors. Codex answered its open question: the table's sort controls are the sortable header buttons (no separate menu); the packet says so.
+- **Merged** both into `batch/xr-returns` (`adbc60f3`).
+- **Plan corrections found while writing the packets:** (a) a figure never gets a colour (Review Focus 7 fixed); (b) the sort key needs `mfCopy.ts` (added to Task 6); (c) the shared chip and the flip's CSS module are new files in `components/` (Task 5); (d) the tile test ids need two optional `MeasureFlip` props (`titleExtra`, `belowTitle`) which the packet allows; (e) the design page's state-6 sentence ("Needs at least two dates to work out") is **not** used: the built caption stays, per the copy rule.
+- **Wave B documents:** `Docs/orchestration/2026-11-24-xr-be-2-handoff.md` (Codex), `2026-11-24-xr-fe-1-tiles-packet.md` and `2026-11-24-xr-fe-2-table-packet.md` (Antigravity, clones `C:\Users\Dell\ag-xr1` and `ag-xr2`).
 
 *(Claude appends below: deviations, gate results, deploy record link.)*
