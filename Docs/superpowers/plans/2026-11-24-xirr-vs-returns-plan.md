@@ -319,4 +319,7 @@ The packet states exactly:
 - **Plan corrections found while writing the packets:** (a) a figure never gets a colour (Review Focus 7 fixed); (b) the sort key needs `mfCopy.ts` (added to Task 6); (c) the shared chip and the flip's CSS module are new files in `components/` (Task 5); (d) the tile test ids need two optional `MeasureFlip` props (`titleExtra`, `belowTitle`) which the packet allows; (e) the design page's state-6 sentence ("Needs at least two dates to work out") is **not** used: the built caption stays, per the copy rule.
 - **Wave B documents:** `Docs/orchestration/2026-11-24-xr-be-2-handoff.md` (Codex), `2026-11-24-xr-fe-1-tiles-packet.md` and `2026-11-24-xr-fe-2-table-packet.md` (Antigravity, clones `C:\Users\Dell\ag-xr1` and `ag-xr2`).
 
+- **G1 (24 Nov):** Codex adversarial review of the backend (`346559bf..e11e101c`): PASS, no actionable findings (details in `delegation-log.md`).
+- **Deployment (owner, 24 Nov):** one combined staging guide deploys everything together once everything is done; Task 9's guide is an input to it, and Task 10 follows that combined guide.
+
 *(Claude appends below: deviations, gate results, deploy record link.)*
