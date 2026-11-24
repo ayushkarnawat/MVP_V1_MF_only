@@ -1,0 +1,362 @@
+<title>Head of Family Change Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f6f7f5;--surface:#fff;--ink:#16201a;--muted:#5d6a62;--line:#dfe4e0;--green:#16a34a;--greenbg:#e6f5ec;--warn:#b45309;--warnbg:#fdf1de;--neg:#b42318;--blue:#1d4ed8;--bluebg:#e8eefc;--code:#eef1ee;--mark:#fff3c4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202b23;--mark:#4a3f12;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202b23;--mark:#4a3f12;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.55;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1{font-size:28px;margin:0;line-height:1.2;text-wrap:balance}
+h2{font-size:20px;margin:0 0 10px}
+h3{font-size:15px;margin:18px 0 6px}
+h2+h3,section>h3:first-child{margin-top:0}
+p{margin:0 0 10px;max-width:72ch}
+ul,ol{margin:0 0 10px;padding-left:22px}
+li{margin-bottom:4px}
+.sub{color:var(--muted)}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;min-width:0}
+code,.mono{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);padding:12px;border-radius:10px;overflow-x:auto;margin:0 0 10px;line-height:1.5}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted)}
+.pill.g{background:var(--greenbg);color:var(--green)}.pill.w{background:var(--warnbg);color:var(--warn)}.pill.b{background:var(--bluebg);color:var(--blue)}
+.callout{border-left:4px solid var(--warn);background:var(--warnbg);padding:12px 16px;border-radius:0 10px 10px 0;margin-bottom:10px}
+.callout.ok{border-color:var(--green);background:var(--greenbg)}
+.callout p:last-child{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.small{font-size:12.5px;color:var(--muted)}
+.mock{background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:14px;min-width:0}
+.mock .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--muted)}
+.mock .tag.bad{color:var(--neg)}.mock .tag.good{color:var(--green)}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile .lab{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.menu{font:inherit;font-size:12px;font-weight:600;color:var(--ink);background:var(--code);border:1px solid var(--line);border-radius:8px;padding:2px 8px;cursor:pointer}
+.seg{font-size:11px;border:1px solid var(--line);border-radius:7px;padding:1px 3px;display:inline-flex;gap:2px;font-weight:500;color:var(--muted)}
+.seg b{background:var(--code);border-radius:5px;padding:0 6px;font-weight:600;color:var(--ink)}
+.seg.big2 b,.seg.big2 i{padding:1px 9px;font-style:normal}
+.big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.cap{font-size:12px;color:var(--muted)}
+.twin{font-size:12px;color:var(--ink);background:var(--code);border-radius:8px;padding:4px 8px;display:inline-flex;gap:6px;align-items:center;width:fit-content;flex-wrap:wrap}
+.twin em{font-style:normal;color:var(--muted)}
+.chip{font-size:11px;background:var(--warnbg);color:var(--warn);border-radius:99px;padding:1px 8px;display:inline-block;width:fit-content;white-space:nowrap}
+.chip.info{background:var(--bluebg);color:var(--blue)}
+.pos{color:var(--green);font-weight:600}
+.hl{background:var(--mark);border-radius:4px;padding:0 3px}
+.mock table{font-size:12.5px;background:var(--surface);border-radius:8px}
+.mock td.n,.mock th.n{text-align:right;font-variant-numeric:tabular-nums}
+.mock tr.child td{background:var(--code);font-size:12px}
+.pop{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.pop .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pop .box{background:var(--code);border-radius:8px;padding:8px}
+.pop .box b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.proto{display:flex;flex-direction:column;gap:10px}
+.proto .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.proto select{font:inherit;font-size:12.5px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.popmenu{position:relative;display:inline-block}
+.popmenu ul{position:absolute;left:0;top:calc(100% + 4px);z-index:5;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.14);min-width:210px}
+.popmenu li{margin:0;padding:6px 8px;border-radius:7px;font-size:12.5px;cursor:pointer;color:var(--ink);font-weight:500}
+.popmenu li:hover,.popmenu li[aria-selected="true"]{background:var(--greenbg)}
+.popmenu li span{display:block;font-size:11px;color:var(--muted);font-weight:400}
+#questions .q,#d11q .q{border-top:1px solid var(--line);padding:16px 0}
+#questions .q h3,#d11q .q h3{font-size:15.5px;margin:0 0 4px}
+.why{font-size:13px;color:var(--muted);margin:0 0 10px;max-width:75ch}
+.o{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
+.o:has(input:checked){border-color:var(--green);background:var(--greenbg)}
+.o input{margin-top:4px;flex:none}
+.o b{display:block;font-size:14px}
+.o span.d{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.o .badge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green);margin-left:6px}
+.badge.ans{color:var(--blue);background:var(--bluebg);padding:1px 8px;border-radius:99px;margin-left:8px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle}
+.o .badge.pick{color:var(--surface);background:var(--green);padding:1px 8px;border-radius:99px;margin-left:6px}
+.q input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.answers{border-top:1px solid var(--line);padding-top:16px}
+#out{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.row{display:flex;gap:12px;align-items:center;margin-top:10px}
+#copy{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:focus-visible,.o:focus-within,.menu:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.toc a{color:var(--blue)}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.sk{display:block;height:12px;border-radius:6px;background:var(--code)}
+.flipbtn{margin-left:auto;font-weight:500;font-size:11px}
+@keyframes turn{from{transform:rotateX(80deg);opacity:.2}to{transform:none;opacity:1}}
+.turn{animation:turn .22s ease-out}
+@media (prefers-reduced-motion:reduce){.turn{animation:none}}
+.partbar{border-top:4px solid var(--warn);background:var(--surface);border-radius:14px;padding:18px 22px;margin-top:18px;border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+#d11q .copybtn,#d11copy{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+#d11out{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+</style>
+
+<main>
+<header id="d11">
+  <span class="pill w">Plan only · nothing built</span>
+  <span class="pill b">Version 1 · 24 Nov 2026</span>
+  <h1>Head of Family change blocked by a waiting import (D-11)</h1>
+  <p class="sub">Found in the owner's QA on staging, stage 9. Nothing is built and no code or test was edited: every finding below comes from reading the code and documents. This is a separate problem from the XIRR plan, with its own page.</p>
+  <nav class="toc" aria-label="Sections"><a href="#d11-summary">What is wrong</a><a href="#d11-facts">What the code says</a><a href="#d11-investigation">Investigation</a><a href="#d11-fix">Fix and options</a><a href="#d11-tests">Tests first</a><a href="#d11-delivery">Files, risks, deploy</a><a href="#d11-acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
+</header>
+
+<section id="d11-summary">
+  <h2>D-11 · What is wrong, and what I checked</h2>
+  <p>In Profile, "Choose who will be Head of Family" shows every member greyed out with "Finish or cancel the statement you are importing first." and Next disabled, although all member details were filled in. One CAMS request sat on "Waiting for CAMS email" (0 of 5 done). Because of that the four Head of Family emails (QA rows M1-17, M1-18, M1-19) could not be tested. Sources read: <code>Docs/orchestration/2026-11-24-qa-round-report.md</code> (item D-11) and the <code>decisions.md</code> entry "2026-11-24 - QA finding D-11".</p>
+  <div class="callout ok"><p><b>Owner decision (24 Nov):</b> a pending or abandoned import must not stop a Head of Family change. This section plans exactly that, and finds one place where a naive removal could do harm.</p></div>
+  <h3>Your findings, checked against the code</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Claim</th><th>Verdict</th><th>Where (verified by reading)</th></tr>
+    <tr><td><code>member_eligibility()</code> adds <code>import_in_progress</code> when <code>_has_open_import_or_pan_claim()</code> is true</td><td><span class="pill g">Confirmed</span></td><td><code>head_eligibility.py</code> lines 124 to 125; the helper at lines 193 to 218</td></tr>
+    <tr><td>The check is household-wide, so every member is greyed</td><td><span class="pill g">Confirmed</span></td><td>The query joins <code>HouseholdMember</code> on the user and ignores <code>member_id</code>; it is not tied to the candidate or to the import's own member</td></tr>
+    <tr><td>Open import = any status not in <code>TERMINAL_STATES</code></td><td><span class="pill g">Confirmed</span></td><td><code>state_machine.py</code>: terminal = import_successful, confirmed, import_failed, failed, expired. <b>Previewing is not terminal</b> (see below)</td></tr>
+    <tr><td>PAN half: any member with <code>pan_pending_until</code> in the future</td><td><span class="pill g">Confirmed</span></td><td><code>head_eligibility.py</code> lines 213 to 218; the claim lasts 65 minutes (<code>PENDING_PAN_TTL</code> in <code>pan_claims.py</code>)</td></tr>
+    <tr><td>Reason is in <code>START_CODE_ELIGIBILITY_REASONS</code> and mapped to 409</td><td><span class="pill g">Confirmed</span></td><td><code>head_change.py</code> line 73; the 409 branch near line 424</td></tr>
+    <tr><td>"Check every place the change re-validates"</td><td><span class="pill w">More than expected</span></td><td>Four places read it, one more than the dialog list: start code, start, the dialog's eligibility list, <b>and the final step</b> (<code>complete_head_change</code> re-runs <code>member_eligibility</code> and keeps every reason except <code>head_change_already_open</code>). <code>verify_head_change_code</code> does not re-check. So an import started after the codes were sent would fail the very last step, after all four codes were used.</td></tr>
+    <tr><td>Dialog text at <code>ChangeHeadDialog.tsx</code> line 63, no import name, no Cancel</td><td><span class="pill g">Confirmed</span></td><td>The reason list sent to the browser carries only the reason code, no import id, no member and no time</td></tr>
+    <tr><td>Rule added in change-requests Run 5, task 5.3 (<code>d6147e07</code>, fixes <code>f03b2cf3</code>)</td><td><span class="pill g">Confirmed</span></td><td>Task 5.3 in <code>2026-10-31-change-requests-implementation-plan.md</code> lists it as one of twelve reasons</td></tr>
+  </table></div>
+  <h3>Why the rule was added (what the documents say, and what they do not)</h3>
+  <ul>
+    <li>The briefing (<code>unifolio-change-briefing.html</code>) lists "An import or a PAN claim is open" with the 409 text and "import in progress" among the reasons. The implementation plan repeats it. <b>No document states what the rule protects.</b> ADR-007 does not mention imports.</li>
+    <li>The Run 5 review note (<code>cr-r5-migration-and-codes-handoff.md</code>) shows the author knew a waiting CAMS request blocks the change for up to 48 hours ("the daily job expires it") and accepted that.</li>
+    <li><b>My inference, not documented:</b> the rule protects the one place where imports read the Head of Family role. The import code finds "the account holder" by the <b>Self label</b> (<code>_self_member</code> in <code>import_/service.py</code> line 442; <code>plan_people</code> in <code>people_resolution.py</code> line 132; the "first upload" test and the "PAN already assigned to the account holder" message). A head change moves the Self label to another member. Decision D3 asks you whether you remember a different reason.</li>
+  </ul>
+</section>
+
+<section id="d11-facts">
+  <h2>D-11 · What the code says about each part of the problem</h2>
+  <h3>1. Which import rows can be left open, and for how long</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Status</th><th>Who writes it today</th><th>How long it can stay</th><th>What clears it</th></tr>
+    <tr><td><code>waiting_for_user</code> (a CAMS request waiting for its email)</td><td><code>initiate_cams_request</code>, 48-hour window; asking again for the same member resets the window</td><td>48 hours, then until the next daily run: up to about 72 hours. A request that is never expired by the job stays forever.</td><td>"Cancel request" (<code>cancel_pending_request</code>), the user uploading the file, or the daily CAS-file-expiry job (<code>expire_cas_files.py</code> calling <code>expire_stale_cams_requests</code>)</td></tr>
+    <tr><td><code>previewing</code> (file uploaded, not yet confirmed)</td><td>The two-step upload (<code>preview_store.py</code>)</td><td>Its window is 60 minutes, but the row is only removed by a <b>sweep that runs when someone next calls an import endpoint</b>. No job runs it. An abandoned upload can count as "open" for days.</td><td>Confirm, Discard (<code>/imports/sessions/{id}/discard</code>), or the next import call</td></tr>
+    <tr><td><code>processing</code> (confirm is saving)</td><td>Confirm (to verify in step R5)</td><td>Seconds normally. A crash could strand it: unknown until step R3.</td><td>Finishing the confirm</td></tr>
+    <tr><td><code>requesting_cas</code>, <code>not_started</code>, <code>upload_started</code>, <code>password_required</code>, <code>validation_failed</code>, <code>retry_pending</code>, <code>pending</code></td><td><b>Nothing in current code sets these</b> (a search of <code>backend/app</code> found no writer outside the state-machine table). Old rows from earlier versions may exist.</td><td>Forever if they exist</td><td>Nothing. Step R3 counts them on staging.</td></tr>
+  </table></div>
+  <p class="small">Terminal and therefore harmless today: import_successful, confirmed, import_failed, failed, expired.</p>
+
+  <h3>2. Every place the rule or <code>pan_pending_until</code> is read</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Place</th><th>What it does</th><th>Fix action</th></tr>
+    <tr><td><code>head_eligibility.py</code> line 29</td><td>The reason is part of the <code>EligibilityReason</code> type</td><td>Remove (or keep if the narrow guard survives)</td></tr>
+    <tr><td><code>head_eligibility.py</code> 124 to 125, 193 to 218</td><td>Adds the reason; the household-wide check (import half and PAN half)</td><td>Remove or narrow</td></tr>
+    <tr><td><code>head_eligibility.py</code> 188</td><td><code>pan_registered_elsewhere</code>: another account's <b>pending</b> claim on the same PAN counts as registered</td><td>Keep, a different reason; it protects PAN uniqueness across accounts</td></tr>
+    <tr><td><code>head_change.py</code> 73</td><td><code>START_CODE_ELIGIBILITY_REASONS</code> includes it, so it blocks at start code and shows in the dialog list</td><td>Remove from the set</td></tr>
+    <tr><td><code>head_change.py</code> 348 to 355</td><td>Start code refuses with the 409</td><td>Follows automatically</td></tr>
+    <tr><td><code>head_change.py</code> 589 to 593</td><td><code>start_head_change</code>: refuses on <b>any</b> reason, first one wins</td><td>Follows automatically</td></tr>
+    <tr><td><code>head_change.py</code> 787 to 815</td><td><code>list_member_eligibility</code> feeds the dialog</td><td>Follows automatically</td></tr>
+    <tr><td><code>head_change.py</code> 1199 to 1203</td><td><b>Final step</b> re-checks every reason but <code>head_change_already_open</code></td><td>Follows automatically; this is the place a half-fix would miss</td></tr>
+    <tr><td><code>head_change.py</code> 424 to 429</td><td>The 409 text "Finish or cancel the statement you are importing, then try again."</td><td>Remove (or rewrite if the guard survives)</td></tr>
+    <tr><td><code>head_change.py</code> 870 to 883</td><td>Picks a reason after an integrity error</td><td>No change, it only reads contact reasons</td></tr>
+    <tr><td><code>ChangeHeadDialog.tsx</code> line 63</td><td>The sentence for the reason; <code>headEligibility.ts</code> already treats it as "not fixable here"</td><td>Remove the sentence; the lib needs no change</td></tr>
+    <tr><td>Import side: <code>pan_claims.py</code>, <code>member_details.py</code> 169, <code>member_profile.py</code> 186, <code>confirm_people.py</code> 576, <code>people_resolution.py</code> 77, <code>import_/service.py</code> 480</td><td>Writers and readers of the pending claim for the import flow itself</td><td>No change; they are the flow being protected</td></tr>
+    <tr><td>Tests that pin the rule: <code>test_head_eligibility.py</code> (the status test near line 261 and the PAN-claim test near 301), <code>test_head_change_flow.py</code> (near 593), <code>test_head_change_routes.py</code> (near 664), <code>ChangeHeadDialog.fix.test.tsx</code>, <code>headEligibility.test.ts</code></td><td>They assert the old behaviour</td><td>Rewritten first (see tests)</td></tr>
+  </table></div>
+
+  <h3>3. What a head change swaps, and what it leaves alone</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Thing</th><th>Changed by the swap?</th><th>Evidence (<code>complete_head_change</code>)</th></tr>
+    <tr><td>Which member <code>is_head</code></td><td><b>Yes</b></td><td>Old head false, new head true</td></tr>
+    <tr><td>Relationship labels, including the <b>Self</b> label</td><td><b>Yes</b></td><td>New head becomes Self; old head gets the mapped label; other members may be relabelled</td></tr>
+    <tr><td>Old head's member email and phone</td><td><b>Yes</b></td><td>Set to the old account contact</td></tr>
+    <tr><td>Account email and phone, all sign-in identities, all sessions</td><td><b>Yes</b></td><td>Identities deleted and re-recorded for the new head; every session deleted, everyone is signed out; sign-up consents withdrawn</td></tr>
+    <tr><td>Import rows (<code>household_member_id</code>, status, expiry)</td><td>No</td><td>Not touched; they hang on the member id, which never changes</td></tr>
+    <tr><td>PAN fields (<code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until</code>)</td><td>No</td><td>Not touched; they stay on the member row</td></tr>
+    <tr><td>Retained CAS files (<code>file_reference</code>, 30 days)</td><td>No</td><td>Stored per import, not per head</td></tr>
+    <tr><td>Folios, transactions, holdings</td><td>No</td><td>Hang on member ids</td></tr>
+    <tr><td>How the import <b>decides who "Me" is</b></td><td><b>Indirectly yes</b></td><td>Reads the Self label (<code>service.py</code> 442, <code>people_resolution.py</code> 132, <code>deletion.py</code> 158 and 239). After a swap, "Me" is a different member.</td></tr>
+  </table></div>
+  <div class="callout"><p><b>What this means.</b> A CAMS request waiting for its email has no file, no parse and no PAN claim (it is a placeholder row on a member), so a swap cannot corrupt anything there: the later upload is attributed from the file's own PAN against the members as they are then. The only plausible harm is a <b>live review session</b> (an uploaded file that was parsed while the old head was Self and is confirmed after the swap), a window of at most about 65 minutes. It is not proven: steps R4 to R6 settle it.</p></div>
+</section>
+
+<section id="d11-investigation">
+  <h2>D-11 · Investigation, step by step</h2>
+  <p class="small">Everything runs on a local database or on synthetic data from <code>Docs/CAS Files/synthetic/pdfs/</code>. Staging steps are read-only and are run by the manager's Claude or the owner. Stop and report after R6 if any step contradicts the table above.</p>
+  <div class="tablewrap"><table>
+    <tr><th style="width:42px">Step</th><th>Do</th><th>We learn</th></tr>
+    <tr><td>R1</td><td>Build a household on a local database: head plus one member with email, phone, PAN and a real label. Call <code>initiate_cams_request</code> for the member. Then call the eligibility list and the start-code route.</td><td>Reproduces D-11: every member shows <code>import_in_progress</code>; start code returns 409</td></tr>
+    <tr><td>R2</td><td>Call <code>cancel_pending_request</code> (the "Cancel request" button), then the eligibility list again.</td><td>Not a stale-state bug if the household becomes eligible. This is the re-test the QA report asked for.</td></tr>
+    <tr><td>R3</td><td>Read-only census on staging: <code>select status, count(*), min(uploaded_at), max(expires_at) from imports where status not in ('import_successful','confirmed','import_failed','failed','expired') group by status;</code> Also read the VM crontab for the daily CAS-file-expiry line and its run time.</td><td>Whether any dormant or legacy rows exist, how old the oldest open row is, and when the daily job really runs</td></tr>
+    <tr><td>R4</td><td>Local: upload a synthetic CAS for the head through the two-step path (rows sits at previewing). Run a complete head change. Then confirm the review. Compare with the same flow without a swap.</td><td>Whether the swap changes who "Me" is at confirm, or attributes funds or PAN to the wrong member. <b>This decides the guard.</b></td></tr>
+    <tr><td>R5</td><td>Postgres functional test, two connections: a confirm in progress (<code>processing</code>) while <code>complete_head_change</code> runs. Read the lock order (account, members by id, request) and check whether confirm takes member locks too.</td><td>Whether the two can interleave or deadlock; whether confirm needs to be protected at all</td></tr>
+    <tr><td>R6</td><td>PAN claim: a member with <code>pan_pending_until</code> in the future; run the swap; then finalise the claim by confirming.</td><td>Whether the claim stays on the right member and still finalises correctly</td></tr>
+    <tr><td>R7</td><td>Check that retained CAS files and later attribution do not depend on the head role (<code>file_storage.py</code>, <code>deletion.py</code>).</td><td>No file or fund is orphaned by a swap</td></tr>
+    <tr><td>R8</td><td>Open browser tab: with a review open, complete a swap (all sessions are deleted) and sign in as the new head. Does the review still exist and who owns it?</td><td>What the user sees: a lost screen, an orphaned row, or a working review</td></tr>
+    <tr><td>R9</td><td>With a CAMS request waiting, run a full change, then <b>undo</b>.</td><td>That undo is also unaffected (its eligibility is separate)</td></tr>
+    <tr><td>R10</td><td>Write the result of R4 to R6 into this section and into <code>decisions.md</code>; pick option A, B or C below.</td><td>The fix is chosen on evidence, not on my reading</td></tr>
+  </table></div>
+</section>
+
+<section id="d11-fix">
+  <h2>D-11 · Proposed fix and alternatives</h2>
+  <h3>Part 1 (certain, whatever the investigation says)</h3>
+  <p>A <b>dormant</b> import (a CAMS request waiting or abandoned, a failed row, a legacy status) can never stop a head change. Remove the household-wide non-terminal-status check from <code>member_eligibility</code>, remove <code>import_in_progress</code> from <code>START_CODE_ELIGIBILITY_REASONS</code>, remove the 409 branch and the dialog sentence. Because the final step re-runs the same function, start code, start, the dialog and the final step all change together. The other eleven eligibility reasons stay exactly as they are.</p>
+  <h3>Part 2 (decided by steps R4 to R6): the live review window</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Option</th><th>What happens</th><th>Trade-off</th></tr>
+    <tr><td><b>A · Nothing blocks, nothing extra</b></td><td>Also drop the PAN-claim half. A live review simply continues after the swap.</td><td>Simplest. Only safe if R4 and R6 show the swap cannot change attribution. Otherwise a rare wrong-member import.</td></tr>
+    <tr><td><b>B · Narrow guard</b></td><td>Block only while a review is <b>live</b>: <code>previewing</code> with <code>expires_at</code> in the future, <code>processing</code>, or <code>pan_pending_until</code> in the future (self-heals within about 65 minutes). The dialog names the member and the time and offers Cancel (the existing discard route).</td><td>Safest for data, but it still blocks sometimes, and needs a new field in the eligibility response and a Cancel button. Against your decision unless R4 shows real harm.</td></tr>
+    <tr><td><b>C · Never block; discard live reviews at the final step</b></td><td>Inside the swap transaction call the existing <code>discard_member_reviews</code> (it releases pending PAN claims and deletes the preview rows). The user is signed out by the swap anyway, so an unfinished review is lost either way; tell them in the completion notice. If a confirm is <code>processing</code> at that very moment, answer the final step with a retryable "try again in a minute" (seconds, not hours).</td><td>Matches your rule (nothing blocks) and removes the only harm path. Cost: a half-finished review must be uploaded again, which is rare and only within an hour.</td></tr>
+  </table></div>
+  <div class="callout ok"><p><b>Recommendation:</b> Part 1 now. For Part 2, <b>C if R4 or R6 show harm, A if they show none</b>. B only if you do not want a review ever discarded. If any import-related blocker survives (option B only), the dialog must name the import and offer Cancel; under A and C no dialog text about imports remains.</p></div>
+  <p class="small">Code comments required by the plan: where a PAN-related check survives, a comment explains it ("a pending claim sits on a member for at most 65 minutes; the swap moves the Self label that the confirm step reads").</p>
+</section>
+
+<section id="d11-tests">
+  <h2>D-11 · Tests first (named; each must fail on today's code before the fix)</h2>
+  <h3>Backend: <code>tests/services/auth/test_head_eligibility.py</code></h3>
+  <ul>
+    <li><code>test_waiting_cams_request_does_not_block_eligibility</code> (parametrised: waiting_for_user, requesting_cas, not_started). Replaces the old status test.</li>
+    <li><code>test_cams_request_past_its_window_but_not_yet_swept_does_not_block</code> (waiting_for_user, <code>expires_at</code> in the past)</li>
+    <li><code>test_dormant_and_legacy_statuses_do_not_block</code> (pending, upload_started, password_required, validation_failed, retry_pending)</li>
+    <li><code>test_uploaded_not_confirmed_review_follows_the_chosen_option</code> (A or C: eligible; B: blocks and names the import)</li>
+    <li><code>test_live_pan_claim_follows_the_chosen_option</code> and <code>test_expired_pan_claim_never_blocks</code></li>
+    <li><code>test_each_of_the_other_eleven_reasons_still_blocks</code> (one case per reason: no_email, no_phone, same_email_as_head, same_phone_as_head, email_in_use, phone_in_use, pan_registered_elsewhere, no_pan, label_missing, account_pending_deletion, head_change_already_open) and <code>test_reason_list_has_exactly_the_eleven_values</code></li>
+  </ul>
+  <h3>Backend: <code>tests/services/auth/test_head_change_flow.py</code></h3>
+  <ul>
+    <li><code>test_start_code_and_start_succeed_while_a_cams_request_waits</code></li>
+    <li><code>test_full_change_completes_while_a_cams_request_waits</code> (start, four codes, complete; members swapped)</li>
+    <li><code>test_change_leaves_import_rows_and_pan_fields_untouched</code> (before and after: ids, status, member id, <code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until</code>, <code>file_reference</code>)</li>
+    <li><code>test_import_started_after_start_does_not_fail_the_final_step</code></li>
+    <li><code>test_start_code_start_dialog_list_and_final_step_agree</code> (one parametrised case per import state; all four entry points give the same answer)</li>
+    <li><code>test_undo_works_while_a_cams_request_waits</code></li>
+    <li>Option C: <code>test_complete_discards_a_live_review_and_releases_its_pan_claim</code>, <code>test_complete_answers_try_again_while_a_confirm_is_processing</code></li>
+    <li>Option B: <code>test_live_review_blocks_start_and_names_the_import</code></li>
+  </ul>
+  <h3>Backend: <code>tests/api/test_head_change_routes.py</code> and <code>tests/functional_postgres/</code></h3>
+  <ul>
+    <li><code>test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request</code> and <code>test_start_code_route_returns_200_with_a_waiting_cams_request</code> (the old 409 case near line 664 is replaced)</li>
+    <li><code>test_swap_with_a_waiting_cams_request_on_postgres</code></li>
+    <li><code>test_swap_and_confirm_do_not_interleave_on_postgres</code> (step R5 turned into a test)</li>
+  </ul>
+  <h3>Import side: <code>tests/services/import_/</code></h3>
+  <ul>
+    <li><code>test_confirm_after_a_head_change_attributes_to_the_same_member</code> (pins the result of R4 whichever option wins)</li>
+  </ul>
+  <h3>Frontend: <code>ChangeHeadDialog.fix.test.tsx</code>, <code>headEligibility.test.ts</code></h3>
+  <ul>
+    <li><code>shows_no_import_sentence_and_lets_every_complete_member_be_chosen</code></li>
+    <li><code>renders_a_generic_sentence_for_an_unknown_reason</code> (an old server code never leaves a blank row)</li>
+    <li>Option B only: <code>names_the_blocking_import_and_cancel_reenables_the_member</code></li>
+  </ul>
+</section>
+
+<section id="d11-delivery">
+  <h2>D-11 · Files to touch, risks, rollback, deploy</h2>
+  <div class="grid2">
+    <div>
+      <h3>Files to touch</h3>
+      <ul>
+        <li><code>backend/app/services/auth/head_eligibility.py</code>: remove the reason, the type value and the helper (or narrow it), drop unused imports</li>
+        <li><code>backend/app/services/auth/head_change.py</code>: the set at line 73, the 409 branch, and (option C) the discard and retry step inside the swap</li>
+        <li><code>frontend/src/features/profile-v2/components/ChangeHeadDialog.tsx</code>: remove the sentence (option B adds the import name and Cancel)</li>
+        <li>The tests listed above, rewritten first</li>
+        <li>Docs: <code>decisions.md</code> (result of R4 to R6), <code>session.md</code>, one line added to ADR-007's consequences</li>
+      </ul>
+      <p class="small">Option B only: the eligibility route and its schema gain an optional <code>blocking_import</code> object (member, kind, expires at). No migration in any option.</p>
+    </div>
+    <div>
+      <h3>Migration check</h3>
+      <p>None expected. No model column changes: the fix reads and, in option C, deletes preview rows through existing functions, and any "your review was discarded" note lives in the request's JSON <code>snapshot</code>. <b>If R4 to R6 reveal a need for a schema change, the plan stops and asks you</b> before building.</p>
+      <h3>Rollback</h3>
+      <p>Revert the patch commit(s) and redeploy backend and frontend. Nothing persistent changes except discarded review sessions (temporary, 60 minutes by design), so there is nothing to restore. Check that an older build ignores an extra key in the request snapshot (part of R9).</p>
+      <h3>Deploy</h3>
+      <p>A patch deploy: backend restart plus a frontend bundle, no stored-results rebuild, no Alembic step (head stays 0054). It touches different files from the XIRR work (<code>auth/</code> and <code>profile-v2/</code>, not <code>dashboard/xirr.py</code> or the holdings screens), so it can ship before, with or after XIRR.</p>
+    </div>
+  </div>
+  <h3>Risks</h3>
+  <ul>
+    <li><b>Unproven race (R4):</b> the live-review window above. That is why option C or A is chosen after the evidence.</li>
+    <li><b>Half-fix:</b> forgetting the final-step re-check leaves the failure after all four codes. The test <code>test_import_started_after_start_does_not_fail_the_final_step</code> covers it.</li>
+    <li><b>Lock order:</b> the swap's lock order (account, members by id, request) is a stated contract. Option C touches import rows inside it; R5 checks this before any code is written.</li>
+    <li><b>Old clients:</b> a browser still showing the old bundle may receive no reason it knows; the generic-sentence test covers an unknown code.</li>
+    <li><b>Not verified:</b> I read the code and documents only. I did not run the app, a local database or staging; every "confirmed" above means read in the source.</li>
+  </ul>
+</section>
+
+<section id="d11-acceptance">
+  <h2>D-11 · Acceptance (the owner re-runs stage 9 after the patch)</h2>
+  <ol>
+    <li>Start a CAMS request and leave it on "Waiting for CAMS email" (0 of 5 done), as in the failing QA run.</li>
+    <li>Open Profile, "Choose who will be Head of Family": members with complete details are selectable and Next works. No import sentence appears.</li>
+    <li>Run the full change with real codes (four codes, then complete). After it, the waiting CAMS request is still listed, unchanged, for the same member.</li>
+    <li><b>M1-17:</b> open the change emails in <b>Gmail web, Gmail app, Apple Mail and Outlook</b>: branded layout, light and dark, phone width, pictures load, names correct, "their", fonts as in the checklist.</li>
+    <li><b>M1-18:</b> the undo email: date line reads like "10 November 2026, 5:07 PM IST", the button and the copy-and-paste box carry the same full link, and the link works once and only for the previous head.</li>
+    <li><b>M1-19:</b> run the undo; the "changed back" email reads right (the designer's pass on pictures and this email is a separate open item).</li>
+    <li>Repeat step 2 and 3 once with an uploaded-but-not-confirmed statement open (option C: the change completes and the notice says the review was discarded; option B: the dialog names the statement and offers Cancel).</li>
+    <li>The other eleven reasons still grey a member (for example a member with no PAN).</li>
+  </ol>
+</section>
+
+<section id="d11q">
+  <h2>D-11 · What I could not settle: decisions for you</h2>
+  <p class="small">Nothing is preselected. Each question has a recommended option; pick one, copy the block and paste it back, and I will update this page from it.</p>
+  <div id="d11list"></div>
+  <div class="answers">
+    <h3 style="margin-top:0">Your D-11 answers</h3>
+    <textarea id="d11out" rows="10" readonly aria-label="D-11 answers to copy"></textarea>
+    <div class="row"><button id="d11copy" type="button" class="copybtn">Copy my D-11 answers</button><span id="d11copied" class="small" aria-live="polite"></span></div>
+  </div>
+</section>
+
+<script>
+(function(){
+var Q=[
+{id:"D1",t:"What should happen to an unfinished statement review (uploaded, not confirmed) when the change completes?",why:"Only this one window can cause harm: an upload parsed while the old head was Self and confirmed after the swap, at most about 65 minutes. It is settled for sure only after steps R4 to R6, so this is your preference now and the evidence can overrule it.",o:[
+ {k:"C",rec:1,l:"Never block; discard the review inside the swap and say so in the completion notice",d:"Fits your rule that nothing pending stops a change. The swap already signs everyone out, so an open review is lost anyway. The person uploads the file again."},
+ {k:"A",l:"Never block and do nothing; let the review continue",d:"Simplest. Safe only if R4 and R6 show the swap cannot change which member the import is attributed to."},
+ {k:"B",l:"Block only while a review is live, name it, and offer Cancel",d:"Safest for data, but it contradicts your 'must not stop a change' decision for that hour and needs a new dialog field and button."}]},
+{id:"D2",t:"If a confirm is saving at the exact moment the final step runs, what should the person see?",why:"Seconds-long window. Only matters under option C or B.",o:[
+ {k:"a",rec:1,l:"A retryable message: 'A statement is being saved. Try again in a minute.'",d:"Nothing is lost; the codes stay valid for their normal window (the request is still open)."},
+ {k:"b",l:"Wait up to a few seconds inside the request, then proceed",d:"Smoother, but holds a database lock and needs the lock-order check (R5) to come out clean."},
+ {k:"c",l:"Ignore it",d:"Only if R5 proves confirm and swap cannot interleave."}]},
+{id:"D3",t:"Do you remember why the rule was added?",why:"No document states it. My inference is the Self-label dependency in the import code. If the reason was something else (for example a support case or a legal point), the plan must keep that protection.",o:[
+ {k:"a",l:"No known reason beyond caution",d:"Proceed on my inference and the evidence from R4 to R6."},
+ {k:"b",l:"Yes: it protects the Self-label attribution during a review",d:"Matches the inference; option C or B is then the intended answer."},
+ {k:"c",l:"Yes: something else",d:"Write it in the note box; the plan will be redone around it."}]},
+{id:"D4",t:"Abandoned review rows stay 'previewing' until the next import call (no job cleans them). Fix that in this patch?",why:"It no longer affects the head change under A or C, so it is separate housekeeping. Under B it would keep blocking people for days.",o:[
+ {k:"a",rec:1,l:"Leave it out; note it as a follow-up",d:"Keeps this patch small and aimed at D-11."},
+ {k:"b",l:"Add a sweep to the daily CAS-file-expiry job in this patch",d:"Cleans old rows and the PAN claims they hold. Touches the import side, so it needs its own tests."}]}
+];
+var list=document.getElementById("d11list");
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+Q.forEach(function(q){
+ var d=el("div","q");d.appendChild(el("h3",null,q.id+" · "+q.t));d.appendChild(el("p","why",q.why));
+ q.o.forEach(function(o){
+  var id="d11"+q.id+o.k;
+  var lab=el("label","o");lab.setAttribute("for",id);
+  var inp=document.createElement("input");inp.type="radio";inp.id=id;inp.name="d11"+q.id;inp.value=o.k;
+  var box=el("div");var b=el("b",null,o.k.toUpperCase()+" · "+o.l);
+  if(o.rec)b.appendChild(el("span","badge","Recommended"));
+  box.appendChild(b);box.appendChild(el("span","d",o.d));
+  lab.appendChild(inp);lab.appendChild(box);d.appendChild(lab);
+ });
+ var n=document.createElement("input");n.type="text";n.id="d11"+q.id+"n";n.placeholder="Optional note for "+q.id;n.setAttribute("aria-label","Note for "+q.id);
+ d.appendChild(n);list.appendChild(d);
+});
+var out=document.getElementById("d11out");
+function build(){
+ var s="My answers to the D-11 plan (Head of Family blocked by a waiting import) in Docs/orchestration/2026-11-24-head-of-family-d11-plan.html. Update the whole page from these:\n";
+ Q.forEach(function(q){
+  var v=document.querySelector('input[name="d11'+q.id+'"]:checked');
+  var o=q.o.filter(function(x){return v&&x.k===v.value})[0];
+  s+="\n"+q.id+" ("+q.t+"): "+(o?o.k.toUpperCase()+" - "+o.l:"NOT ANSWERED YET");
+  var n=document.getElementById("d11"+q.id+"n").value.trim();
+  if(n)s+="\n   Note: "+n;
+ });
+ out.value=s;
+}
+list.addEventListener("input",build);build();
+var msg=document.getElementById("d11copied");
+document.getElementById("d11copy").addEventListener("click",function(){
+ function fb(){out.focus();out.select();msg.textContent="Selected. Press Ctrl+C to copy.";}
+ try{navigator.clipboard.writeText(out.value).then(function(){msg.textContent="Copied.";},fb);}catch(e){fb();}
+});
+})();
+</script>
+
+
+</main>

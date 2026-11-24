@@ -1,0 +1,427 @@
+<title>XIRR vs Returns Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f6f7f5;--surface:#fff;--ink:#16201a;--muted:#5d6a62;--line:#dfe4e0;--green:#16a34a;--greenbg:#e6f5ec;--warn:#b45309;--warnbg:#fdf1de;--neg:#b42318;--blue:#1d4ed8;--bluebg:#e8eefc;--code:#eef1ee;--mark:#fff3c4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202b23;--mark:#4a3f12;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202b23;--mark:#4a3f12;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.55;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1{font-size:28px;margin:0;line-height:1.2;text-wrap:balance}
+h2{font-size:20px;margin:0 0 10px}
+h3{font-size:15px;margin:18px 0 6px}
+h2+h3,section>h3:first-child{margin-top:0}
+p{margin:0 0 10px;max-width:72ch}
+ul,ol{margin:0 0 10px;padding-left:22px}
+li{margin-bottom:4px}
+.sub{color:var(--muted)}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;min-width:0}
+code,.mono{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);padding:12px;border-radius:10px;overflow-x:auto;margin:0 0 10px;line-height:1.5}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted)}
+.pill.g{background:var(--greenbg);color:var(--green)}.pill.w{background:var(--warnbg);color:var(--warn)}.pill.b{background:var(--bluebg);color:var(--blue)}
+.callout{border-left:4px solid var(--warn);background:var(--warnbg);padding:12px 16px;border-radius:0 10px 10px 0;margin-bottom:10px}
+.callout.ok{border-color:var(--green);background:var(--greenbg)}
+.callout p:last-child{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.small{font-size:12.5px;color:var(--muted)}
+.mock{background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:14px;min-width:0}
+.mock .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block;color:var(--muted)}
+.mock .tag.bad{color:var(--neg)}.mock .tag.good{color:var(--green)}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile .lab{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.menu{font:inherit;font-size:12px;font-weight:600;color:var(--ink);background:var(--code);border:1px solid var(--line);border-radius:8px;padding:2px 8px;cursor:pointer}
+.seg{font-size:11px;border:1px solid var(--line);border-radius:7px;padding:1px 3px;display:inline-flex;gap:2px;font-weight:500;color:var(--muted)}
+.seg b{background:var(--code);border-radius:5px;padding:0 6px;font-weight:600;color:var(--ink)}
+.seg.big2 b,.seg.big2 i{padding:1px 9px;font-style:normal}
+.big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.cap{font-size:12px;color:var(--muted)}
+.twin{font-size:12px;color:var(--ink);background:var(--code);border-radius:8px;padding:4px 8px;display:inline-flex;gap:6px;align-items:center;width:fit-content;flex-wrap:wrap}
+.twin em{font-style:normal;color:var(--muted)}
+.chip{font-size:11px;background:var(--warnbg);color:var(--warn);border-radius:99px;padding:1px 8px;display:inline-block;width:fit-content;white-space:nowrap}
+.chip.info{background:var(--bluebg);color:var(--blue)}
+.pos{color:var(--green);font-weight:600}
+.hl{background:var(--mark);border-radius:4px;padding:0 3px}
+.mock table{font-size:12.5px;background:var(--surface);border-radius:8px}
+.mock td.n,.mock th.n{text-align:right;font-variant-numeric:tabular-nums}
+.mock tr.child td{background:var(--code);font-size:12px}
+.pop{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.pop .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pop .box{background:var(--code);border-radius:8px;padding:8px}
+.pop .box b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.proto{display:flex;flex-direction:column;gap:10px}
+.proto .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.proto select{font:inherit;font-size:12.5px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.popmenu{position:relative;display:inline-block}
+.popmenu ul{position:absolute;left:0;top:calc(100% + 4px);z-index:5;list-style:none;margin:0;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.14);min-width:210px}
+.popmenu li{margin:0;padding:6px 8px;border-radius:7px;font-size:12.5px;cursor:pointer;color:var(--ink);font-weight:500}
+.popmenu li:hover,.popmenu li[aria-selected="true"]{background:var(--greenbg)}
+.popmenu li span{display:block;font-size:11px;color:var(--muted);font-weight:400}
+#questions .q{border-top:1px solid var(--line);padding:16px 0}
+#questions .q h3{font-size:15.5px;margin:0 0 4px}
+.why{font-size:13px;color:var(--muted);margin:0 0 10px;max-width:75ch}
+.o{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
+.o:has(input:checked){border-color:var(--green);background:var(--greenbg)}
+.o input{margin-top:4px;flex:none}
+.o b{display:block;font-size:14px}
+.o span.d{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.o .badge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green);margin-left:6px}
+.badge.ans{color:var(--blue);background:var(--bluebg);padding:1px 8px;border-radius:99px;margin-left:8px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle}
+.o .badge.pick{color:var(--surface);background:var(--green);padding:1px 8px;border-radius:99px;margin-left:6px}
+.q input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.answers{border-top:1px solid var(--line);padding-top:16px}
+#out{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.row{display:flex;gap:12px;align-items:center;margin-top:10px}
+#copy{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:focus-visible,.o:focus-within,.menu:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.toc a{color:var(--blue)}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.sk{display:block;height:12px;border-radius:6px;background:var(--code)}
+.flipbtn{margin-left:auto;font-weight:500;font-size:11px}
+@keyframes turn{from{transform:rotateX(80deg);opacity:.2}to{transform:none;opacity:1}}
+.turn{animation:turn .22s ease-out}
+@media (prefers-reduced-motion:reduce){.turn{animation:none}}
+</style>
+
+<main>
+<header>
+  <span class="pill w">Plan only · nothing built</span>
+  <span class="pill b">Version 6 · all 11 questions answered · option D chosen</span>
+  <h1>XIRR vs Returns: XIRR leads everywhere it shows, Returns sits beside it</h1>
+  <p class="sub">Three places only: the Portfolio tile, the Mutual Funds tile, and the Mutual Funds holdings list (plus the label on the Unrealised Gain percentage). All figures in the sketches are illustrative.</p>
+  <nav class="toc" aria-label="Sections"><a href="#ask">Your ask</a><a href="#status">Decision status</a><a href="#rule">What leads</a><a href="#tiles">Tile mockups</a><a href="#optionD">Option D states</a><a href="#creative">Try it</a><a href="#table">Table mockups</a><a href="#other">Unrealised label</a><a href="#changes">What changes where</a><a href="#audit">Audit</a><a href="#rollout">Rollout and risks</a><a href="#questions">Decisions</a></nav>
+</header>
+
+<section id="ask">
+  <h2>What you asked for, in my words (latest version)</h2>
+  <ol>
+    <li><b>Fix the label mismatch.</b> A tile titled "XIRR" must never show a number that is not an XIRR. A tile titled "Returns" must never show an XIRR.</li>
+    <li><b>XIRR is the default everywhere it is shown.</b> Every mockup now leads with the real, annualised XIRR. This changed on 24 Nov: your earlier rule (young or single-transaction portfolios lead with Returns) is superseded. You confirmed "XIRR always default".</li>
+    <li><b>Returns stays reachable</b> by flipping the tile (option D, chosen). The tile shows one measure at a time with a "Show Returns" button; it also shows in the list. Nowhere else.</li>
+    <li><b>Holdings list:</b> the old column is renamed <b>Returns</b>, and a new <b>XIRR</b> column shows the real annualised figure.</li>
+    <li><b>Scope:</b> add Returns only in the places you named. No other screen gets it.</li>
+  </ol>
+  <div class="callout"><p><b>This reverses the "lead with return since purchase" half of FX-8e</b> (19 Nov, owner-approved), by your decision. The decision log and the M2 stakeholder message draft, which tells people "holdings under a year show return since purchase", both need a matching update (see "What changes where"). One thing is still protected: a young or single-transaction XIRR carries a small caution chip, so a large annualised number is never shown bare.</p></div>
+</section>
+
+<section id="status">
+  <h2>Decision status</h2>
+  <div class="callout ok"><p><b>All 11 questions are answered.</b> Nothing is built or committed. The next step is writing the backend and frontend handoffs, which waits for your go.</p></div>
+  <ul>
+    <li><b>Default</b> XIRR is the headline everywhere it shows, for every portfolio and fund. Returns is the other face of the tile.</li>
+    <li><b>Q1</b> A single transaction is exactly one dated purchase flow; reinvested dividends and the valuation do not count. It decides the "one transaction" chip.</li>
+    <li><b>Q2</b> Age is the first flow's date, 365 days or more. It decides the "held under 1 yr" chip.</li>
+    <li><b>Q3</b> Tile treatment: <b>option D, flip the tile</b>. Options A, B and C were dropped; their mockups are removed from this page.</li>
+    <li><b>Q4</b> Always open on XIRR; a flip lasts until the page reloads. Nothing is stored.</li>
+    <li><b>Q5</b> Table: equal weight; the caution chip sits on the XIRR cell only where it applies.</li>
+    <li><b>Q6</b> Columns: Gain/Loss, Returns, XIRR; short headers with tooltips.</li>
+    <li><b>Q7</b> Tile lines "Since purchase, not annualised" and "Annualised since your first investment"; Unrealised "+6.5% return on invested" with an ⓘ.</li>
+    <li><b>Q8</b> Returns appears only on the two tiles, the holdings list and the Unrealised label. No other screen changes.</li>
+    <li><b>Q9</b> Each view (Lifetime, Current holdings) gets its own chip from its own flows.</li>
+    <li><b>Q10</b> Keep the basis field for the old link but stop using it; add an optional caution (young or single_transaction); always send both numbers.</li>
+    <li><b>Q11</b> Rebuild stored results for all households right after the backend deploys, then ship the frontend.</li>
+  </ul>
+</section>
+
+<section id="rule">
+  <h2>What leads, and when the caution chip shows</h2>
+  <div class="callout ok"><p><b>XIRR always leads.</b> The age and transaction-count tests no longer choose the headline. They only decide whether the XIRR wears a caution chip.</p></div>
+  <div class="grid2">
+    <div class="tablewrap"><table>
+      <tr><th>Portfolio or fund looks like</th><th>Headline</th><th>Chip on the XIRR</th></tr>
+      <tr><td>SIP started 3 months ago</td><td><span class="pill g">XIRR</span></td><td><span class="chip">held under 1 yr</span> (Q2)</td></tr>
+      <tr><td>Lump sum 14 months ago, nothing since</td><td><span class="pill g">XIRR</span></td><td><span class="chip info">one transaction</span> (Q1)</td></tr>
+      <tr><td>Lump sum 8 months ago</td><td><span class="pill g">XIRR</span></td><td><span class="chip">held under 1 yr</span> (wins over "one transaction")</td></tr>
+      <tr><td>Two buys, first one 2 years ago</td><td><span class="pill g">XIRR</span></td><td>None</td></tr>
+      <tr><td>SIP running for 3 years</td><td><span class="pill g">XIRR</span></td><td>None</td></tr>
+      <tr><td>All flows on one day, net zero</td><td>Dash</td><td>None (unchanged)</td></tr>
+    </table></div>
+    <div>
+      <p><b>The chip is a caution, not a switch.</b> Tooltip text: "Held under 1 year: an annualised rate can look very large over a short period. Open Returns to see the plain gain." For "one transaction": "One purchase only, so this is the yearly rate of a single investment."</p>
+      <p class="small">If both conditions apply, one chip shows, and "held under 1 yr" wins. That is my call; tell me if you want both.</p>
+      <p class="small">Each fund row, the Lifetime figure and and the Current-holdings figure (Q9) each get their own chip from their own flows.</p>
+    </div>
+  </div>
+  <h3>Where the pieces already are</h3>
+  <ul>
+    <li><code>portfolio_xirr_display()</code> in <code>backend/app/services/dashboard/xirr.py</code> is today the one place that swaps to since-purchase under 365 days. It will stop swapping. The tile, the holdings API and the per-fund benchmark rows all call it, so the change lands once.</li>
+    <li>The real annualised rate already travels in <code>lifetime_xirr</code>, <code>current_holdings_xirr</code> and <code>fund_xirr</code>. Nothing new to compute for XIRR.</li>
+    <li>The since-purchase figure is only filled under a year today. It must be filled whenever it can be worked out, because Returns now appears for every holding.</li>
+  </ul>
+</section>
+
+<section id="tiles">
+  <h2>Tile design: option D, flip the tile (chosen)</h2>
+  <p>The tile shows one measure at a time, with a "⟲ Show Returns" button in the title row. Pressing it turns the tile to its back face: Returns on top, with "⟲ Show XIRR" to turn back. XIRR is always the face the page opens on (Q4), and a flip lasts only until the page reloads. The Lifetime / Current toggle moves to its own row, because in your screenshots it collides with the caption text. Options A (title menu), B (two-segment switch) and C (popover) were dropped.</p>
+  <h3>Today versus after, young portfolio (your screenshot case)</h3>
+  <div class="grid3">
+    <div class="mock"><span class="tag bad">Now · label says XIRR, number is not</span>
+      <div class="tile"><div class="lab">XIRR ⓘ <span class="seg"><b>Lifetime</b><i style="font-style:normal">Current</i></span></div><div class="big">6.5%</div><div class="cap">Return since purchase, not annualised</div><div class="cap">Prices as on 23 Nov 2026</div></div></div>
+    <div class="mock"><span class="tag good">After · front (opens here)</span>
+      <div class="tile"><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><span class="seg" style="width:fit-content"><b>Lifetime</b><i style="font-style:normal;padding:0 6px">Current</i></span><div class="big pos">+41.8%</div><div class="cap">Annualised since your first investment</div><span class="chip">held under 1 yr</span><div class="cap">Prices as on 23 Nov 2026</div></div></div>
+    <div class="mock"><span class="tag good">After · back (after a flip)</span>
+      <div class="tile"><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><span class="seg" style="width:fit-content"><b>Lifetime</b><i style="font-style:normal;padding:0 6px">Current</i></span><div class="big pos">+6.5%</div><div class="cap">Since purchase, not annualised</div><div class="cap">Prices as on 23 Nov 2026</div></div></div>
+  </div>
+</section>
+
+<section id="optionD">
+  <h2>Option D · every state, front and back</h2>
+  <div class="grid2">
+<div class="mock"><span class="tag">1 · Young, multiple buys (SIP 3 months)</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="big pos">+41.8%</div><div class="cap">Annualised since your first investment</div><span class="chip">held under 1 yr</span></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="big pos">+6.5%</div><div class="cap">Since purchase, not annualised</div></div></div></div>
+<div class="mock"><span class="tag">2 · Mature, multiple buys</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="big pos">+12.4%</div><div class="cap">Annualised since your first investment</div></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="big pos">+38.2%</div><div class="cap">Since purchase, not annualised</div></div></div></div>
+<div class="mock"><span class="tag">3 · Mature, single transaction</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="big pos">+9.9%</div><div class="cap">Annualised since your first investment</div><span class="chip info">one transaction</span></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="big pos">+21.0%</div><div class="cap">Since purchase, not annualised</div></div></div></div>
+<div class="mock"><span class="tag">4 · Current-holdings view (own chip from its own flows, Q9)</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="cap">Current holdings</div><div class="big pos">+18.2%</div><div class="cap">Annualised since your first investment</div><span class="chip">held under 1 yr</span></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="cap">Current holdings</div><div class="big pos">+4.1%</div><div class="cap">Since purchase, not annualised</div></div></div></div>
+<div class="mock"><span class="tag">5 · Opening-balance disclaimer applies</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="big pos">+212%</div><div class="cap" style="color:var(--warn)">Opening-balance disclaimer may apply ›</div></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="big pos">+61.0%</div><div class="cap" style="color:var(--warn)">Opening-balance disclaimer may apply ›</div></div></div></div>
+<div class="mock"><span class="tag">6 · Not computable, or flows net to zero</span><div class="pair"><div class="tile"><span class="tag" style="margin:0">Front</span><div class="lab">XIRR ⓘ <span class="menu flipbtn">⟲ Show Returns</span></div><div class="big">—</div><div class="cap">Needs at least two dates to work out</div></div><div class="tile"><span class="tag" style="margin:0">Back</span><div class="lab">Returns ⓘ <span class="menu flipbtn">⟲ Show XIRR</span></div><div class="big">—</div><div class="cap">Needs at least two dates to work out</div></div></div></div>
+    <div class="mock"><span class="tag">7 · Loading and 8 · Could not load</span>
+      <div class="pair"><div class="tile"><div class="lab">XIRR ⓘ</div><span class="sk" style="width:70%;height:26px"></span><span class="sk" style="width:90%"></span></div>
+      <div class="tile"><div class="lab">XIRR ⓘ</div><div class="big">—</div><div class="cap">Couldn't load your returns.</div><span class="twin"><u>Retry</u></span></div></div>
+      <p class="small" style="margin:8px 0 0">The flip button is hidden until there is a number to flip.</p></div>
+    <div class="mock"><span class="tag">9 · Mid-flip</span>
+      <div class="tile" style="transform:rotateX(55deg);opacity:.6"><div class="lab">XIRR ⓘ</div><div class="big pos">+41.8%</div></div>
+      <p class="small" style="margin:8px 0 0">A quick 200 ms turn. Skipped for people who have reduced motion turned on; the face just swaps.</p></div>
+  </div>
+  <p class="small">The caution chip (Q1, Q2) sits on the XIRR face only; the Returns face needs none. The opening-balance disclaimer link appears on whichever face is showing, and its modal ("Why this return may be misleading") covers the number on top. Costs: an animation, a "flipped" state that resets on reload, and tests for both faces in every state.</p>
+</section>
+
+<section id="creative">
+  <h2>Try it (prototype, illustrative numbers; always opens on XIRR)</h2>
+  <div class="mock proto" id="proto">
+    <div class="ctl"><label for="case">Portfolio:</label>
+      <select id="case"><option value="young">Young, SIP 3 months</option><option value="mature">Mature, multiple buys</option><option value="single">Mature, single transaction</option></select>
+      <span class="small">Press the flip button in the title row.</span></div>
+    <div class="tile" style="max-width:320px" id="ptile"></div>
+  </div>
+</section>
+
+<section id="table">
+  <h2>Holdings list mockups</h2>
+  <p class="small"><span class="pill g">Decided, Q6</span> Column order is Gain/Loss, Returns, XIRR, with short headers and tooltips. Decided, Q5: both columns have equal weight, and the caution chip sits on the XIRR cell only where it applies.</p>
+  <h3>Single-member list</h3>
+  <div class="mock"><span class="tag bad">Now</span>
+    <div class="tablewrap"><table><tr><th>Fund</th><th class="n">Invested</th><th class="n">Value</th><th class="n">Gain/Loss</th><th class="n">XIRR</th></tr>
+    <tr><td>Fund A</td><td class="n">₹15,000</td><td class="n">₹14,985</td><td class="n">−₹15</td><td class="n">−0.1%<br><span class="small">since purchase</span></td></tr>
+    <tr><td>Fund B</td><td class="n">₹15,000</td><td class="n">₹15,735</td><td class="n">+₹735</td><td class="n">4.9%<br><span class="small">since purchase</span></td></tr></table></div></div>
+  <div class="mock" style="margin-top:12px"><span class="tag good">After</span>
+    <div class="tablewrap"><table><tr><th>Fund</th><th class="n">Invested</th><th class="n">Value</th><th class="n">Gain/Loss</th><th class="n"><span class="hl">Returns ⓘ</span></th><th class="n"><span class="hl">XIRR ⓘ</span></th></tr>
+    <tr><td>Fund A<br><span class="small">1 purchase, 3 months</span></td><td class="n">₹15,000</td><td class="n">₹14,985</td><td class="n">−₹15</td><td class="n">−0.1%</td><td class="n">−0.4% <span class="chip">under 1 yr</span></td></tr>
+    <tr><td>Fund B<br><span class="small">SIP, 3 years</span></td><td class="n">₹90,000</td><td class="n">₹1,12,000</td><td class="n">+₹22,000</td><td class="n">+24.4%</td><td class="n">11.9%</td></tr>
+    <tr><td>Fund C<br><span class="small">1 purchase, 20 months</span></td><td class="n">₹15,000</td><td class="n">₹18,150</td><td class="n">+₹3,150</td><td class="n">+21.0%</td><td class="n">12.3% <span class="chip info">one transaction</span></td></tr></table></div>
+    <p class="small" style="margin:8px 0 0">Both columns always show. The chip sits on the XIRR cell only, never on Returns. Header tooltips: Returns = "total gain as a share of money paid in, not annualised"; XIRR = "yearly rate, worked out from the dates of your investments". Both columns sort, and the sort menu gains "Returns". The sub-lines under the fund name are for this mockup only.</p></div>
+  <h3>Family view, consolidated row and its children</h3>
+  <div class="mock"><span class="tag good">After</span>
+    <div class="tablewrap"><table><tr><th>Fund</th><th class="n">Invested</th><th class="n">Current value</th><th class="n">Unrealised</th><th class="n">Realised</th><th class="n">Returns</th><th class="n">XIRR</th></tr>
+    <tr><td>Fund B (family)</td><td class="n">₹2,10,000</td><td class="n">₹2,64,000</td><td class="n">+₹54,000</td><td class="n">₹0</td><td class="n">+25.7%</td><td class="n">12.6%</td></tr>
+    <tr class="child"><td>↳ Member 1</td><td class="n">₹1,20,000</td><td class="n">₹1,52,000</td><td class="n">+₹32,000</td><td class="n">₹0</td><td class="n">+26.7%</td><td class="n">13.1%</td></tr>
+    <tr class="child"><td>↳ Member 2</td><td class="n">₹90,000</td><td class="n">₹92,000</td><td class="n">+₹2,000</td><td class="n">₹0</td><td class="n">+2.2%</td><td class="n">5.4% <span class="chip">under 1 yr</span></td></tr></table></div>
+    <p class="small" style="margin:8px 0 0">Each row, parent or child, gets its own chip from its own flows.</p></div>
+</section>
+
+<section id="other">
+  <h2>Unrealised Gain label (the only change outside the tiles and the list)</h2>
+  <div class="grid2">
+    <div class="mock"><span class="tag bad">Now</span><div class="tile"><div class="lab">Unrealised Gain</div><div class="big pos">+₹3,985</div><div class="pos" style="font-size:12px">+6.5%</div></div></div>
+    <div class="mock"><span class="tag good">After · decided, Q7</span><div class="tile"><div class="lab">Unrealised Gain</div><div class="big pos">+₹3,985</div><div class="pos" style="font-size:12px">+6.5% <span class="hl">return on invested</span> ⓘ</div></div></div>
+  </div>
+  <p class="small" style="margin-top:8px">Tooltip: "Unrealised gain as a share of what you currently have invested. Not annualised." It stays separate from the tile's Returns because the two differ once there are sales.</p>
+  <div class="callout ok"><p><b>Nothing else is touched (Q8).</b> The mobile dashboard, the Allocation fund manager card, the Performance page, the Analytics benchmark section and the individual fund page do not change. They already show the annualised XIRR, so after this change the tiles and the list agree with them instead of contradicting them.</p></div>
+</section>
+
+<section id="changes">
+  <h2>What changes where</h2>
+  <div class="tablewrap"><table>
+    <tr><th style="width:130px">Layer</th><th>Change</th><th style="width:150px">Size</th></tr>
+    <tr><td><b>Database schema</b></td><td><b>None.</b> No migration; Alembic stays 0054. Per-fund figures live in the JSON <code>payload</code> of <code>analytics_sections</code> (section <code>benchmark_funds</code>), which is schemaless.</td><td><span class="pill g">None</span></td></tr>
+    <tr><td><b>Stored results (data, not schema)</b></td><td>Stored per-fund payloads only carry <code>since_purchase_return</code> for under-a-year funds, so mature funds lack Returns until rebuilt. Decided (Q11): rebuild stored results for all households right after the backend deploys and before the frontend ships (the one-off price job plus recompute used for M2). A missing Returns twin shows a dash, never a wrong number.</td><td><span class="pill w">Ops step</span></td></tr>
+    <tr><td><b>Backend rule</b></td><td><code>services/dashboard/xirr.py</code>: <code>portfolio_xirr_display()</code> stops swapping to since-purchase. It always returns the annualised rate, always fills <code>since_purchase_return</code> when money was paid in, and works out the caution reason: first flow under 365 days (Q2) or exactly one dated purchase flow (Q1; reinvested dividends and the valuation do not count). Zero-net same-day dash unchanged. Field shape decided (Q10): the basis field stays for the old link but no longer drives the display; an optional caution (<code>young</code> or <code>single_transaction</code>) is added; both numbers are always sent.</td><td><span class="pill b">Small</span></td></tr>
+    <tr><td><b>Backend plumbing</b></td><td>The same function feeds the tile (<code>dashboard.py</code>, <code>portfolio_summary.py</code>, <code>aggregate.py</code>), holdings rows (<code>holdings.py</code>) and per-fund rows (<code>analytics/benchmark.py</code>, schemas in <code>analytics/schemas.py</code>, <code>dashboard/schemas.py</code>, <code>portfolio_schemas.py</code>). Pass the caution reason through, including <code>aggregate.py</code>, which whitelists the basis values.</td><td><span class="pill b">Small</span></td></tr>
+    <tr><td><b>API contract</b></td><td>Additive. See the JSON below. The old keys keep their names so the old staging link keeps working; the basis field stops driving the display.</td><td><span class="pill g">Additive</span></td></tr>
+    <tr><td><b>Frontend logic</b></td><td>Replace the swap in <code>lib/xirrDisplay.ts</code> (<code>resolveXirrDisplay</code>) with a function returning XIRR, Returns and the caution. Update types in <code>features/mutual-funds/types.ts</code> and <code>features/portfolio/types.ts</code>, and <code>mutual-funds/api.ts</code>, which copies the metadata keys.</td><td><span class="pill b">Medium</span></td></tr>
+    <tr><td><b>Frontend screens</b></td><td>Only: the two tiles (<code>portfolio/sections/SummaryStrip.tsx</code>, <code>mutual-funds/overview/SummaryStrip.tsx</code>): label menu, twin line, chip, toggle on its own row. The holdings table (<code>HoldingsTable.tsx</code>): Returns and XIRR columns for single-member and family views, sort key and sort menu. The Unrealised label. Nothing else.</td><td><span class="pill b">Medium</span></td></tr>
+    <tr><td><b>Tests</b></td><td>Update tests asserting the old caption (<code>SummaryStrip.test.tsx</code> in both features, <code>HoldingsTable.test.tsx</code>), <code>xirr_reference/test_xirr_short_period.py</code>, <code>test_xirr_metadata.py</code> and API route tests. New cases: the six states, single transaction over a year, two purchases the same day, zero-net dash, missing Returns.</td><td><span class="pill b">Medium</span></td></tr>
+    <tr><td><b>Docs</b></td><td><code>decisions.md</code>: a new entry that reverses the lead-with-Returns half of FX-8e. Update the M2 stakeholder message draft (it promises "return since purchase" for holdings under a year). <code>session.md</code>. The staging deploy guide gets the rebuild step.</td><td><span class="pill g">Small</span></td></tr>
+  </table></div>
+
+  <h3>API contract sketch (holdings and tile; per fund similar)</h3>
+<pre>// before (young portfolio)                       // after (any portfolio)
+lifetime_xirr:             "0.418"               lifetime_xirr:             "0.418"       // always annualised, always leads
+lifetime_xirr_basis:       "since_purchase"      lifetime_xirr_basis:       (no longer drives display; kept for the old link, Q10)
+lifetime_since_purchase:   "0.065"               lifetime_since_purchase:   "0.065"       // now filled for every portfolio and fund
+                                                 lifetime_xirr_caution:     "young"       // NEW: young | single_transaction | null
+// mature portfolio, before:                      // mature portfolio, after:
+lifetime_xirr_basis:       "annualised"          lifetime_since_purchase:   "0.382"       // was null
+lifetime_since_purchase:   null                  lifetime_xirr_caution:     null</pre>
+  <h3>Flow of one request after the change</h3>
+  <pre>transactions → cash flows → xirr() rate ──────┐
+                         └→ received/paid − 1 ───┼→ portfolio_xirr_display() → { rate, since_purchase_return, caution }
+first-flow age + purchase-flow count ───────────┘          │
+                                                           ├→ tile response (live)
+                                                           └→ per-fund rows → analytics_sections payload (stored) → holdings table</pre>
+  <div class="callout"><p><b>Worth knowing for the workers:</b> the per-fund column reads stored results, not a live calculation. A backend change alone will not change the table on staging until stored results are rebuilt. The handoff must include that step, and the frontend must show a dash for a missing Returns value.</p></div>
+</section>
+
+<section id="audit">
+  <h2>Audit: every place the two numbers appear</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Place</th><th>Shows today</th><th>After this plan</th></tr>
+    <tr><td>Portfolio tile</td><td>Swapped number under "XIRR"</td><td><b>Changed:</b> XIRR leads, Returns twin, chip</td></tr>
+    <tr><td>Mutual Funds tile</td><td>Same swap</td><td><b>Changed:</b> same as above</td></tr>
+    <tr><td>Holdings list, single and family, children</td><td>One swapped "XIRR" column</td><td><b>Changed:</b> Returns and XIRR columns</td></tr>
+    <tr><td>Unrealised Gain card %</td><td>Unlabelled</td><td><b>Changed:</b> labelled "return on invested"</td></tr>
+    <tr><td>Performance page, Fund vs Benchmark</td><td>Annualised XIRR</td><td>Unchanged (out of scope)</td></tr>
+    <tr><td>Analytics benchmark section</td><td>Annualised XIRR</td><td>Unchanged (out of scope)</td></tr>
+    <tr><td>Individual fund page tiles and returns table</td><td>Annualised XIRR from its own solve</td><td>Unchanged (out of scope)</td></tr>
+    <tr><td>Allocation, fund manager card</td><td>Annualised XIRR</td><td>Unchanged (out of scope)</td></tr>
+    <tr><td>Mobile dashboard</td><td>Annualised XIRR</td><td>Unchanged (out of scope)</td></tr>
+    <tr><td>Gold and Real Estate (planned)</td><td>Will reuse <code>portfolio_xirr_display</code></td><td>Not touched here. They inherit "XIRR leads" when built; say so if you want a different rule.</td></tr>
+  </table></div>
+</section>
+
+<section id="rollout">
+  <h2>Sequence, rollout and risks</h2>
+  <ol>
+    <li><b>Backend first</b> (stop the swap, always fill since-purchase, caution reason, tests). Per the orchestration rules this is a Codex task with a handoff doc, and the adversarial review gate applies before it counts as done.</li>
+    <li><b>Frontend after</b> the API shape is fixed (two tiles, the table, the Unrealised label). The frontend builder works from the mockups on this page; the orchestrator screenshots the result.</li>
+    <li><b>Deploy to staging (decided, Q11):</b> backend, then straight away a one-off rebuild of stored results for all households, then the frontend. No Alembic step.</li>
+    <li><b>Docs:</b> decision entry, M2 stakeholder message, deploy record.</li>
+  </ol>
+  <h3>Risks</h3>
+  <ul>
+    <li><b>Big numbers for young portfolios.</b> The same gain annualises to 109% over three months and 219% over one month, which is why FX-8e hid it. You chose XIRR as default knowingly; the caution chip and the Returns twin are the safeguards. The design PDFs reportedly say to hide XIRR under a year, so a stakeholder may ask.</li>
+    <li><b>Single transaction (Q1):</b> two things I am reading into your answer, for the backend worker to confirm in the handoff: two purchases on the same day are two flows (so "multiple"), and a switch-in counts as a purchase flow. These now only affect the chip.</li>
+    <li><b>Accepted limitation (Q2):</b> age is the first flow's date, so a SIP that began with one old tiny buy 13 months ago and is otherwise recent shows no chip.</li>
+    <li><b>Stale stored results</b> show a dash in Returns until the rebuild (decided to run it immediately).</li>
+    <li><b>M2 stakeholder message</b> told people the opposite; update it before it is sent.</li>
+    <li><b>Not verified:</b> I have not run the app or the solver on real flows; the numbers in the sketches are invented. I have not confirmed how switches and bonus units appear in the purchase-flow count.</li>
+  </ul>
+</section>
+
+<section id="questions">
+  <h2>Decisions (all 11 answered)</h2>
+  <p class="small">Every question is answered; your chosen option carries a "Your choice" badge and the recommended option keeps its "Recommended" badge. You can still change any answer: pick another option, copy the block at the bottom and paste it back, and I will update this page.</p>
+  <div id="qlist"></div>
+  <div class="answers">
+    <h3 style="margin-top:0">Your answers</h3>
+    <textarea id="out" rows="16" readonly aria-label="Answers to copy"></textarea>
+    <div class="row"><button id="copy" type="button">Copy my answers</button><span id="copied" class="small" aria-live="polite"></span></div>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+/* ---------- prototype ---------- */
+var D={
+ young:{returns:"+6.5%",xirr:"+41.8%",chip:"held under 1 yr",chipCls:"chip"},
+ mature:{returns:"+38.2%",xirr:"+12.4%",chip:"",chipCls:""},
+ single:{returns:"+21.0%",xirr:"+9.9%",chip:"one transaction",chipCls:"chip info"}
+};
+var cur=D.young,measure="xirr";
+var caseSel=document.getElementById("case"),tile=document.getElementById("ptile");
+function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+function render(anim){
+ var isX=measure==="xirr";
+ tile.textContent="";
+ var lab=el("div","lab");
+ lab.appendChild(document.createTextNode((isX?"XIRR":"Returns")+" ⓘ"));
+ var f=el("button","menu flipbtn",isX?"⟲ Show Returns":"⟲ Show XIRR");f.type="button";
+ f.addEventListener("click",function(){measure=isX?"returns":"xirr";render(true);});
+ lab.appendChild(f);
+ tile.appendChild(lab);
+ tile.appendChild(el("div","big pos",isX?cur.xirr:cur.returns));
+ tile.appendChild(el("div","cap",isX?"Annualised since your first investment":"Since purchase, not annualised"));
+ if(isX&&cur.chip)tile.appendChild(el("span",cur.chipCls,cur.chip));
+ if(anim){tile.classList.remove("turn");void tile.offsetWidth;tile.classList.add("turn");}
+}
+caseSel.addEventListener("change",function(){cur=D[caseSel.value];measure="xirr";render(false);});
+render(false);
+
+/* ---------- questions ---------- */
+var Q=[
+{id:"Q1",t:"What counts as a 'single transaction'?",why:"Now decides only the 'one transaction' caution chip on an XIRR, not which number leads. Real portfolios have edge cases: two purchases on one day, a small dividend reinvestment, a switch-in.",o:[
+ {k:"a",rec:1,l:"Exactly one dated purchase flow; dividend reinvestments and the final valuation do not count",d:"Simple to explain: 'you bought once'. Reinvested dividends are not a decision by the user, so they do not turn a lump sum into a multi-transaction portfolio."},
+ {k:"b",l:"Any number of purchases that all fall on the same day",d:"Catches someone who bought three funds on one day, but a fund bought twice on two different days is 'multiple'. Slightly harder to explain."},
+ {k:"c",l:"Count every cash-in or cash-out flow, including reinvestments",d:"Mechanical and easy to code, but a lump sum with quarterly dividend reinvestment would count as 'multiple' and show no chip."}]},
+{id:"Q2",t:"How is 'older than 365 days' measured?",why:"Now decides only the 'held under 1 yr' caution chip. Today the test is the date of the first flow. A SIP that began with one tiny buy 13 months ago and is otherwise 2 months old would show no chip.",o:[
+ {k:"a",rec:1,l:"Date of the first flow, as it works today (365 days or more)",d:"Unchanged, easy to explain, already tested. The odd case above is rare."},
+ {k:"b",l:"Money-weighted average age of the amount invested",d:"More faithful for a SIP, but harder to explain to users and a new calculation to build and test."},
+ {k:"c",l:"First flow at least 365 days AND the latest purchase at least 90 days ago",d:"Guards against a big recent top-up making an old portfolio look mature. Adds a second threshold."}]},
+{id:"Q3",t:"Which tile treatment: A or D?",why:"You kept A and D and dropped the other two (a two-segment switch and a popover-only twin). You chose D. XIRR is the default; this is only how Returns is reached.",o:[
+ {k:"A",rec:1,l:"Title as a menu + always-visible twin line",d:"The title ('XIRR ▾') is the dropdown and the twin line shows Returns at a glance, so nothing is hidden. The tile is one line taller. Not chosen; its mockups are removed from this page."},
+ {k:"D",l:"Flip the tile",d:"One measure at a time with a '⟲ Show Returns' button. Quietest tile, same height as today, but Returns is hidden until someone flips. Needs an animation, a flip state and tests for both faces in every state."}]},
+{id:"Q4",t:"Should a chosen measure be remembered?",why:"If someone switches a tile to Returns, what happens on the next visit?",o:[
+ {k:"a",rec:1,l:"No. Always open on XIRR; the choice lasts until the page reloads",d:"Predictable: every tile always opens on XIRR, which matches your 'XIRR is the default' rule and keeps screenshots and support calls consistent."},
+ {k:"b",l:"Remember per browser",d:"Respects a power user's preference, but then the tile can open on Returns for some people."},
+ {k:"c",l:"Remember per account",d:"Needs a stored setting on the backend (a database change), which this plan otherwise avoids."}]},
+{id:"Q5",t:"How should the two table columns be styled?",why:"Reworded: XIRR now leads everywhere, so the older 'bold headline, muted twin' idea no longer fits. Returns and XIRR are both always visible in the list.",o:[
+ {k:"a",rec:1,l:"Equal weight; the caution chip sits on the XIRR cell only where it applies",d:"Plain and honest. The chip does the warning, the columns do not compete."},
+ {k:"b",l:"XIRR in bold, Returns in normal weight",d:"Reinforces 'XIRR is the default' in the list too, at the cost of a slightly uneven table."},
+ {k:"c",l:"No chips in the table; header tooltips only",d:"Quietest table, but a young fund's large XIRR then shows bare, which the chip was meant to prevent."}]},
+{id:"Q6",t:"Column order and header wording",why:"Next to the existing Gain/Loss column.",o:[
+ {k:"a",rec:1,l:"Gain/Loss · Returns · XIRR, short headers with tooltips",d:"Money gain, then the same gain as a percentage, then the yearly rate. Short headers keep the table narrow."},
+ {k:"b",l:"Gain/Loss · XIRR · Returns",d:"XIRR first because it is the number you named."},
+ {k:"c",l:"Headers 'Return since purchase' and 'XIRR (annualised)'",d:"Self-explanatory but wide; they wrap in the family view and on laptops."}]},
+{id:"Q7",t:"Wording of the tile lines and the Unrealised card label",why:"Used under the tile figures and on the small percentage under Unrealised Gain.",o:[
+ {k:"a",rec:1,l:"Tile: 'Since purchase, not annualised' / 'Annualised since your first investment'. Unrealised: '+6.5% return on invested' with an ⓘ",d:"Plain, matches the table tooltips, and the Unrealised wording says its base so it is not mistaken for the tile's Returns."},
+ {k:"b",l:"Tile: 'Total return' / 'Yearly return (XIRR)'. Unrealised: '+6.5% of invested'",d:"Shorter, friendlier, but 'total return' blurs with the Unrealised card."},
+ {k:"c",l:"Keep today's tile caption, only change the label; Unrealised: tooltip, no visible label",d:"Smallest copy change, leaves the +6.5% unexplained at a glance, which you flagged."}]},
+{id:"Q8",t:"Which screens get Returns?",why:"Answered by your latest message: only the places you named. Reworded so the options match.",o:[
+ {k:"a",rec:1,l:"Only the two tiles, the holdings list and the Unrealised label; no other screen changes",d:"The mobile dashboard, the fund manager card, Performance, Analytics and the fund page stay exactly as they are. They already show the annualised XIRR, so they now agree with the tiles."},
+ {k:"b",l:"Also the mobile dashboard and the fund manager card",d:"Adds Returns on those screens too. Not what you asked for."},
+ {k:"c",l:"Every screen that shows an XIRR",d:"One behaviour everywhere. Much wider than you asked for."}]},
+{id:"Q9",t:"Is the Current-holdings chip judged on its own flows?",why:"Reworded. 'Lifetime' includes sold funds, 'Current' only what you hold now, so they can have different ages and purchase counts. XIRR leads in both; the question is only the caution chip.",o:[
+ {k:"a",rec:1,l:"Yes, each view gets its own chip from its own flows",d:"A mature portfolio can show no chip in Lifetime and a 'held under 1 yr' chip in Current if the held funds are recent. Accurate for what each number measures."},
+ {k:"b",l:"Use the Lifetime chip for both views",d:"The chip never changes when you toggle, but Current can show a large XIRR with no warning."}]},
+{id:"Q10",t:"How is the backend flag shaped now that XIRR always leads?",why:"Reworded. The existing basis field ('annualised' or 'since_purchase') was built to say which number to show. XIRR now always shows, so the frontend only needs the caution.",o:[
+ {k:"a",rec:1,l:"Keep the basis field for the old link but stop using it; add an optional caution (young or single_transaction); always send both numbers",d:"Additive, nothing breaks, one rule in one place. The schema notes that basis no longer drives the display."},
+ {k:"b",l:"Remove basis and replace it with the caution only",d:"Cleaner names, but touches about 8 schema files and breaks the old link."},
+ {k:"c",l:"Send the raw facts (first-flow date, purchase count) and let the frontend decide the chip",d:"No new flag, but the rule would live in two places."}]},
+{id:"Q11",t:"Rollout of stored results",why:"Per-fund figures live in stored results. Mature funds there currently lack the Returns value until they are rebuilt.",o:[
+ {k:"a",rec:1,l:"Rebuild stored results for all households right after the backend deploys, then ship the frontend",d:"The table shows both numbers from the first minute. Same one-off job used for M2."},
+ {k:"b",l:"Ship all and let the nightly recompute fill it",d:"No manual step, but up to a day of dashes in the Returns column."},
+ {k:"c",l:"Compute the missing Returns on read when the stored value is absent",d:"No waiting, but the table starts running live calculations, which the design avoided on purpose."}]}
+];
+var ANS={Q1:"a",Q2:"a",Q3:"D",Q4:"a",Q5:"a",Q6:"a",Q7:"a",Q8:"a",Q9:"a",Q10:"a",Q11:"a"};
+var list=document.getElementById("qlist");
+Q.forEach(function(q){
+ var d=document.createElement("div");d.className="q";
+ var h3=el("h3",null,q.id+" · "+q.t);if(ANS[q.id])h3.appendChild(el("span","badge ans","Answered"));d.appendChild(h3);
+ d.appendChild(el("p","why",q.why));
+ q.o.forEach(function(o){
+  var id=q.id+o.k;
+  var lab=el("label","o");lab.setAttribute("for",id);
+  var inp=document.createElement("input");inp.type="radio";inp.id=id;inp.name=q.id;inp.value=o.k;if(ANS[q.id]===o.k)inp.checked=true;
+  var box=el("div");var b=el("b",null,o.k.toUpperCase()+" · "+o.l);
+  if(o.rec)b.appendChild(el("span","badge","Recommended"));if(ANS[q.id]===o.k)b.appendChild(el("span","badge pick","Your choice"));
+  box.appendChild(b);box.appendChild(el("span","d",o.d));
+  lab.appendChild(inp);lab.appendChild(box);d.appendChild(lab);
+ });
+ var n=document.createElement("input");n.type="text";n.id=q.id+"n";n.placeholder="Optional note for "+q.id;n.setAttribute("aria-label","Note for "+q.id);
+ d.appendChild(n);list.appendChild(d);
+});
+var out=document.getElementById("out");
+function build(){
+ var s="My answers to the XIRR vs Returns plan v6 (Docs/orchestration/2026-11-24-xirr-vs-returns-plan.html). XIRR is always the default; Returns is added only on the two tiles, the holdings list and the Unrealised label. Update the whole document from these:\n";
+ Q.forEach(function(q){
+  var v=document.querySelector('input[name="'+q.id+'"]:checked');
+  var o=q.o.filter(function(x){return v&&x.k===v.value})[0];
+  s+="\n"+q.id+" ("+q.t+"): "+(o?o.k.toUpperCase()+" - "+o.l:"NOT ANSWERED YET");
+  var n=document.getElementById(q.id+"n").value.trim();
+  if(n)s+="\n   Note: "+n;
+ });
+ out.value=s;
+}
+list.addEventListener("input",build);build();
+var msg=document.getElementById("copied");
+document.getElementById("copy").addEventListener("click",function(){
+ function fb(){out.focus();out.select();msg.textContent="Selected. Press Ctrl+C to copy.";}
+ try{navigator.clipboard.writeText(out.value).then(function(){msg.textContent="Copied.";},fb);}catch(e){fb();}
+});
+})();
+</script>
