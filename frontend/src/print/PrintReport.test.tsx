@@ -13,6 +13,7 @@ import { useScope } from "../shell/scope/ScopeContext";
 import { usePrintOptions } from "./printOptionsContext";
 import { useMfAnalytics, analyticsStore } from "../features/mutual-funds/data/analyticsStore";
 import { analyticsMfC } from "../features/mutual-funds/fixtures/mfC";
+import { invalidateApiCache } from "../lib/apiClient";
 
 const ids = ["overview-sips", "performance-returns"];
 // These tests are about the route (readiness, theme, token, fragment), not about any section: every entry is put back to the
@@ -31,15 +32,18 @@ function Pending({ settled, failed = false }: { settled: boolean; failed?: boole
   return <SectionCard title="Demo" info="Explanation" state={failed ? "failed" : "ready"} onRetry={() => {}}>Ready</SectionCard>;
 }
 beforeEach(() => {
+  invalidateApiCache();
   fetchSpy.mockReset();
   analyticsStore.invalidate();
   fetchSpy.mockImplementation(async () => new Response(JSON.stringify(analyticsMfC()), { status: 200 }));
   vi.stubGlobal("fetch", fetchSpy);
+  vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
   Object.defineProperty(document, "fonts", { configurable: true, value: { ready: Promise.resolve() } });
   open();
 });
 afterEach(() => {
   cleanup();
+  invalidateApiCache();
   analyticsStore.invalidate();
   Object.assign(PRINT_SECTIONS, original);
   setTokenOverride(null);
@@ -121,7 +125,8 @@ it("makes no request for the member list", async () => {
   open([], members[0].id);
   render(<PrintReport />);
   await waitFor(() => expect(document.documentElement).toHaveAttribute("data-print-ready", "true"));
-  expect(fetchSpy).not.toHaveBeenCalled();
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+  expect(String(fetchSpy.mock.calls[0][0])).toContain(`/household-members/${members[0].id}/holdings`);
 });
 it("the scope provider exposes the members from the fragment", async () => {
   function MemberProbe() {
@@ -133,7 +138,7 @@ it("the scope provider exposes the members from the fragment", async () => {
   open([ids[0]]);
   render(<PrintReport />);
   expect(await screen.findByTestId("fragment-members")).toHaveTextContent(JSON.stringify(members));
-  expect(fetchSpy).not.toHaveBeenCalled();
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
 });
 it("usePrintOptions returns the options including meta", async () => {
   function OptionsProbe() {
@@ -145,7 +150,7 @@ it("usePrintOptions returns the options including meta", async () => {
   open([ids[0]]);
   render(<PrintReport />);
   expect(JSON.parse((await screen.findByTestId("print-options")).textContent!)).toEqual({ scope: "family", sectionIds: [ids[0]], cover: false, dataDates: true, showFolios: "masked", jobId: "demo-job", members, meta });
-  expect(fetchSpy).not.toHaveBeenCalled();
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
 });
 it("the pass is never written to localStorage, sessionStorage or document.cookie", async () => {
   const localWrite = vi.spyOn(localStorage, "setItem");
@@ -173,16 +178,18 @@ it("an unknown section id gives the error marker", () => {
   expect(document.documentElement).not.toHaveAttribute("data-print-ready");
   expect(fetchSpy).not.toHaveBeenCalled();
 });
-it("renders sections in the requested order", async () => {
+it("renders sections in canonical tab order", async () => {
   open([...ids].reverse());
   const { container } = render(<PrintReport />);
   await screen.findByText("SIPs");
-  expect([...container.querySelectorAll("[data-print-section]")].map(node => node.getAttribute("data-print-section"))).toEqual([...ids].reverse());
+  expect([...container.querySelectorAll("[data-print-section]")].map(node => node.getAttribute("data-print-section"))).toEqual(ids);
 });
 it("renders no app shell (no sidebar, top bar, section rail, search box)", async () => {
   render(<PrintReport />);
   await screen.findByText("SIPs");
-  for (const role of ["navigation", "banner", "searchbox", "complementary", "dialog"]) expect(screen.queryByRole(role)).toBeNull();
+  for (const role of ["navigation", "searchbox", "complementary", "dialog"]) expect(screen.queryByRole(role)).toBeNull();
+  expect(document.querySelectorAll("header")).toHaveLength(1);
+  expect(document.querySelector("header")).toHaveClass("print-running-header");
 });
 it("waits for fonts, images and two animation frames", async () => {
   let finishFonts!: () => void;

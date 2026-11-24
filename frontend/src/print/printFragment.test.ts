@@ -5,6 +5,14 @@ const member = { id: "11111111-1111-4111-8111-111111111111", name: "Demo Member"
 const options = { scope: "family", sectionIds: ["overview-sips"], cover: true, dataDates: false, showFolios: "masked", jobId: "job-demo", members: [member], meta: { holderName: "Demo Holder", scopeName: "Demo Family", memberCount: 1 } };
 const fragment = (value: unknown = options, pass = "invented-pass") => `#pass=${pass}&opts=${btoa(JSON.stringify(value)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")}`;
 
+it("accepts optional section and notes page numbers including the bounds", () => {
+  for (const pages of [{}, { "overview-sips": 1, notes: 9999 }]) expect(parsePrintFragment(fragment({ ...options, pages }))?.options.pages).toEqual(pages);
+  expect(parsePrintFragment(fragment())?.options).not.toHaveProperty("pages");
+});
+it.each<unknown>([null, [], 1, { unknown: 1 }, { toString: 1 }, { notes: 0 }, { notes: -1 }, { notes: 10000 }, { notes: 1.5 }, { notes: "2" }, { notes: true }])("rejects malformed pages %j", (pages: unknown) => {
+  expect(parsePrintFragment(fragment({ ...options, pages }))).toBeNull();
+});
+
 it("parses a valid fragment and ignores unknown keys", () => {
   expect(parsePrintFragment(fragment({ ...options, ignored: true, members: [{ ...member, profile: "discard" }], meta: { ...options.meta, ignored: true } }))).toEqual({ pass: "invented-pass", options });
 });

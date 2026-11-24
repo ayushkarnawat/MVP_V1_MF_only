@@ -9,6 +9,7 @@ export interface PrintOptions {
   jobId: string;
   members: { id: string; name: string }[];
   meta: { holderName: string | null; scopeName: string; memberCount: number };
+  pages?: Record<string, number>;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -50,12 +51,22 @@ export function parsePrintFragment(hash: string): { pass: string; options: Print
     const { scope, sectionIds, cover, dataDates, showFolios, jobId } = options;
     const members = parseMembers(options.members);
     const meta = parseMeta(options.meta);
+    let pages: Record<string, number> | undefined;
+    if (Object.hasOwn(options, "pages")) {
+      const supplied = record(options.pages);
+      if (!supplied) return null;
+      pages = {};
+      for (const [id, page] of Object.entries(supplied)) {
+        if ((id !== "notes" && !Object.hasOwn(PRINT_SECTIONS, id)) || typeof page !== "number" || !Number.isInteger(page) || page < 1 || page > 9999) return null;
+        pages[id] = page;
+      }
+    }
     if (typeof scope !== "string" || !scope.trim() ||
       !Array.isArray(sectionIds) || !sectionIds.every((id: unknown) => typeof id === "string" && Object.hasOwn(PRINT_SECTIONS, id)) ||
       typeof cover !== "boolean" || typeof dataDates !== "boolean" ||
       (showFolios !== "full" && showFolios !== "masked" && showFolios !== "none") ||
       typeof jobId !== "string" || !jobId.trim() || !members || !meta) return null;
-    return { pass, options: { scope, sectionIds, cover, dataDates, showFolios, jobId, members, meta } };
+    return { pass, options: { scope, sectionIds, cover, dataDates, showFolios, jobId, members, meta, ...(pages ? { pages } : {}) } };
   } catch {
     return null;
   }

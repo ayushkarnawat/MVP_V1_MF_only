@@ -1,0 +1,18 @@
+.print-section-marker {
+  font-size: 1px;
+  line-height: 1px;
+  color: transparent;
+  margin: 0;
+  height: 1px;
+  overflow: hidden;
+  break-after: avoid;
+}
+
+[data-print-notes] {
+  break-before: page;
+}
+
+[data-print-notes] .print-tab-heading {
+  break-before: auto;
+  page-break-before: auto;
+}
