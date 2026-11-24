@@ -34,7 +34,7 @@ At the end fill in step 10 and give the owner the report.
 ## Section 1: steps
 
 ### Step 0 (laptop): publish the frozen candidate
-`m4-candidate` is merged into `leapswitch-redesign` and the merge is tagged `m4-rc`. Publish: `git fetch origin && git push origin leapswitch-redesign m4-rc`. **Never force-push.** Commits after the tag are documents only; the deploy uses the tag. (The orchestrator does this at the freeze; confirm with `git ls-remote origin m4-rc` that the hash equals `355cc8a1f117210f3ec2a73a06e0ee33dac54951`.)
+`m4-candidate` is merged into `leapswitch-redesign` and the merge is tagged `m4-rc`. Publish: `git fetch origin && git push origin leapswitch-redesign m4-rc`. **Never force-push.** Commits after the tag are documents only; the deploy uses the tag. (The orchestrator does this at the freeze; confirm with `git ls-remote origin 'm4-rc^{}'` (the tag is annotated: the plain `m4-rc` line shows the tag object, the `^{}` line shows the commit) that the hash equals `355cc8a1f117210f3ec2a73a06e0ee33dac54951`.)
 
 ### Step 1 (laptop): the release touches only what it should
 ```bash
