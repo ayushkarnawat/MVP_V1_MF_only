@@ -1,6 +1,6 @@
 # Staging Deploy Guide: XIRR leads, Returns on the flip side (Batch XR) to `ls-redesign.unifolio.in`
 
-**Status:** READY FOR THE MANAGER'S CLAUDE once the tag `xr-rc` exists on `origin` (step 0 says how to check). Written 25 Nov 2026 by the orchestrator. **Nothing on the VM changes before step 7, and step 7 needs the owner's yes.** Plan: `Docs/superpowers/plans/2026-11-24-xirr-vs-returns-plan.md`; the design page (every state drawn): `Docs/orchestration/2026-11-24-xirr-vs-returns-plan.html`; record of the build: `Docs/orchestration/delegation-log.md` (entries of 24 Nov); decisions: `decisions.md`, entry "2026-11-24 - XIRR leads, Returns on the flip side". Candidate: `batch/xr-returns` merged into `leapswitch-redesign`, tag `xr-rc` = `<XR_RC_HASH>`.
+**Status:** READY FOR THE MANAGER'S CLAUDE once the tag `xr-rc` exists on `origin` (step 0 says how to check). Written 25 Nov 2026 by the orchestrator. **Nothing on the VM changes before step 7, and step 7 needs the owner's yes.** Plan: `Docs/superpowers/plans/2026-11-24-xirr-vs-returns-plan.md`; the design page (every state drawn): `Docs/orchestration/2026-11-24-xirr-vs-returns-plan.html`; record of the build: `Docs/orchestration/delegation-log.md` (entries of 24 Nov); decisions: `decisions.md`, entry "2026-11-24 - XIRR leads, Returns on the flip side". Candidate: `batch/xr-returns` merged into `leapswitch-redesign`, tag `xr-rc` = `942356f4df316279fdca871483d05be626c9fb0e`.
 
 This is the release that follows M4 (`m4-rc`, the PDF report and the floating CAMS checklist). It is the only unreleased change on `leapswitch-redesign`.
 
@@ -34,11 +34,11 @@ At the end fill in step 10 and give the owner the report.
 ## Section 1: steps
 
 ### Step 0 (laptop): the frozen candidate is on origin
-`batch/xr-returns` is merged into `leapswitch-redesign` and the merge is tagged `xr-rc` (`<XR_RC_HASH>`). Check it is published, and publish it if not:
+`batch/xr-returns` is merged into `leapswitch-redesign` and the merge is tagged `xr-rc` (`942356f4df316279fdca871483d05be626c9fb0e`). Check it is published, and publish it if not:
 ```bash
 git fetch origin && git rev-parse xr-rc && git ls-remote --tags origin xr-rc
 ```
-Expected: both lines show `<XR_RC_HASH>`. **STOP** if the tag is not on `origin` and tell the owner (the orchestrator pushes it). **Never force-push.** Commits after the tag on the branch are documents only; the deploy uses the tag.
+Expected: both lines show `942356f4df316279fdca871483d05be626c9fb0e`. **STOP** if the tag is not on `origin` and tell the owner (the orchestrator pushes it). **Never force-push.** Commits after the tag on the branch are documents only; the deploy uses the tag.
 
 ### Step 1 (laptop): the release touches only what it should
 ```bash
@@ -87,7 +87,7 @@ Nothing to add to `.env` (`AUTH_GUARD_SECRET`, `EXPORT_PASS_SECRET` and `EXPORT_
 ```bash
 cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign xr-rc && git rev-parse HEAD
 ```
-Expected: the full hash equals `<XR_RC_HASH>`. **STOP** if not.
+Expected: the full hash equals `942356f4df316279fdca871483d05be626c9fb0e`. **STOP** if not.
 
 ### Step 7 (VM): deploy. GATE: the owner's yes first
 ```bash
