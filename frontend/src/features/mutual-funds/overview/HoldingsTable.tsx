@@ -8,9 +8,8 @@ import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
 import { usePrintMode } from "../../../lib/printMode";
 import {
-  resolveXirrDisplay,
-  SINCE_PURCHASE_CAPTION,
-  SINCE_PURCHASE_SHORT_LABEL,
+  CAUTION_CHIP,
+  type XirrCaution,
 } from "../../../lib/xirrDisplay";
 import { paths } from "../../../shell/nav/paths";
 import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
@@ -35,6 +34,7 @@ export interface SchemeXirrMeta {
   xirr_as_of?: string | null;
   xirr_basis?: XirrBasis | null;
   since_purchase_return?: string | null;
+  xirr_caution?: XirrCaution | null;
 }
 
 export interface HoldingsTableProps {
@@ -50,30 +50,30 @@ export interface HoldingsTableProps {
   onCompareDistributors: () => void;
 }
 
-function XirrCellContent({
-  annualised,
-  basis,
-  sincePurchase,
-}: {
-  annualised: string | null | undefined;
-  basis: XirrBasis | null | undefined;
-  sincePurchase: string | null | undefined;
-}) {
-  const printMode = usePrintMode();
-  const display = resolveXirrDisplay(annualised, basis, sincePurchase);
-  if (!display.isSincePurchase) {
-    return <>{formatXirr(display.value)}</>;
-  }
+function CautionChip({ caution }: { caution: XirrCaution }) {
+  const { text, tip } = CAUTION_CHIP[caution];
+  const tone =
+    caution === "young"
+      ? "bg-[var(--warn-bg)] text-[var(--warn-text)]"
+      : "border border-[var(--ui-divider)] bg-[var(--ui-card)] text-[var(--ui-text-muted)]";
   return (
-    <div className="flex flex-col">
-      <span>{formatXirr(display.value)}</span>
-      <span
-        aria-label={SINCE_PURCHASE_CAPTION}
-        title={printMode ? undefined : SINCE_PURCHASE_CAPTION}
-        className="text-[11px] font-normal text-[var(--ui-text-muted)]"
-      >
-        {printMode ? SINCE_PURCHASE_CAPTION : SINCE_PURCHASE_SHORT_LABEL}
-      </span>
+    <span
+      role="note"
+      data-testid="xirr-caution"
+      title={tip}
+      aria-label={tip}
+      className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function XirrFigure({ value, caution }: { value: string | null | undefined; caution: XirrCaution | null | undefined }) {
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <span>{formatXirr(value)}</span>
+      {caution ? <CautionChip caution={caution} /> : null}
     </div>
   );
 }
@@ -148,24 +148,20 @@ function HoldingsTableContent({
 
   const filteredRows = filterHoldingRows(holdings.data, query, chips);
 
-  const displayedXirrByScheme: Record<string, string | null | undefined> = {};
+  const returnsByScheme: Record<string, string | null | undefined> = {};
   for (const row of filteredRows) {
-    const meta = xirrMetaByScheme?.[row.scheme_id];
-    displayedXirrByScheme[row.scheme_id] = resolveXirrDisplay(
-      xirrByScheme[row.scheme_id],
-      meta?.xirr_basis,
-      meta?.since_purchase_return,
-    ).value;
+    returnsByScheme[row.scheme_id] = xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return;
   }
 
-  const sortedRows = sortHoldings(filteredRows, sort, displayedXirrByScheme);
+  const sortedRows = sortHoldings(filteredRows, sort, xirrByScheme, returnsByScheme);
   const totals = holdingTotals(filteredRows);
 
-  const sortColumns: Array<{ key: SortKey; label: string }> = [
+  const sortColumns: Array<{ key: SortKey; label: string; title?: string }> = [
     { key: "invested", label: "Invested" },
     { key: "value", label: "Value" },
     { key: "gain", label: "Gain/Loss" },
-    { key: "xirr", label: "XIRR" },
+    { key: "returns", label: "Returns", title: "Total gain as a share of money paid in, not annualised." },
+    { key: "xirr", label: "XIRR", title: "Yearly rate, worked out from the dates of your investments." },
     { key: "today_change", label: "Today's change" },
   ];
 
@@ -216,7 +212,7 @@ function HoldingsTableContent({
                       : "ascending"
                     : "none";
                   return (
-                    <th key={col.key} aria-sort={ariaSort} className="py-3 px-4 font-medium">
+                    <th key={col.key} aria-sort={ariaSort} title={col.title} className="py-3 px-4 font-medium">
                       {printMode ? col.label : <button
                         type="button"
                         data-clickable=""
@@ -311,11 +307,13 @@ function HoldingsTableContent({
                         ? "—"
                         : formatSignedRupees(row.unrealized_gain)}
                     </td>
+                    <td data-testid="returns" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                      {formatXirr(xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return)}
+                    </td>
                     <td data-testid="xirr" className="py-3 px-4 font-medium text-[var(--ui-text)]">
-                      <XirrCellContent
-                        annualised={xirrByScheme[row.scheme_id]}
-                        basis={xirrMetaByScheme?.[row.scheme_id]?.xirr_basis}
-                        sincePurchase={xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return}
+                      <XirrFigure
+                        value={xirrByScheme[row.scheme_id]}
+                        caution={xirrMetaByScheme?.[row.scheme_id]?.xirr_caution}
                       />
                     </td>
                     <td
@@ -353,6 +351,7 @@ function HoldingsTableContent({
                 </td>
                 <td className="py-3 px-4"></td>
                 <td className="py-3 px-4"></td>
+                <td className="py-3 px-4"></td>
               </tr>
             </tfoot>
           </table>
@@ -380,9 +379,11 @@ function splitShares(units: string[]): string[] {
 }
 
 const MEMBER_COLOURS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
-const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey }> = [
+const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey; title?: string }> = [
   { label: "Fund" }, { label: "Units" }, { label: "Avg price" }, { label: "Invested", key: "invested" },
-  { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" }, { label: "XIRR", key: "xirr" },
+  { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" },
+  { label: "Returns", key: "returns", title: "Total gain as a share of money paid in, not annualised." },
+  { label: "XIRR", key: "xirr", title: "Yearly rate, worked out from the dates of your investments." },
 ];
 
 function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | ConsolidatedHoldingChild; child?: boolean }) {
@@ -398,10 +399,14 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>}
       {figure}
     </td>)}
-    <td data-testid={child ? "child-xirr" : undefined}
-      className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+    {/* The test ids sit on the figure itself, not the cell, so the phone-only column label in the cell is not part of the figure's text. */}
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>}
-      <XirrCellContent annualised={row.xirr} basis={row.xirr_basis} sincePurchase={row.since_purchase_return} />
+      <span data-testid={child ? "child-returns" : "returns"}>{formatXirr(row.since_purchase_return)}</span>
+    </td>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+      {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[8].label}</span>}
+      <div data-testid={child ? "child-xirr" : "xirr"}><XirrFigure value={row.xirr} caution={row.xirr_caution} /></div>
     </td>
   </>;
 }
@@ -426,9 +431,8 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     if (sort?.key === "invested") return r.amount_invested;
     if (sort?.key === "value") return r.nav_unavailable ? null : r.current_value;
     if (sort?.key === "gain") return r.nav_unavailable ? null : r.unrealized_gain;
-    if (sort?.key === "xirr") {
-      return resolveXirrDisplay(r.xirr, r.xirr_basis, r.since_purchase_return).value ?? null;
-    }
+    if (sort?.key === "returns") return r.since_purchase_return ?? null;
+    if (sort?.key === "xirr") return r.xirr ?? null;
     return null;
   };
   const shown = sort ? [...filtered].sort((a, b) => {
@@ -454,7 +458,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
       <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
         <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} className="px-4 py-4 font-medium" style={printMode && col.label === "Fund" ? { width: "28%" } : undefined}
+          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className="px-4 py-4 font-medium" style={printMode && col.label === "Fund" ? { width: "28%" } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
             {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
@@ -522,6 +526,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
             <td data-testid="foot-value" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
             <td data-testid="foot-gain" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
             <td data-testid="foot-realized" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
+            <td className="px-4 py-5">—</td>
             <td className="px-4 py-5">—</td>
           </tr>
         </tfoot>

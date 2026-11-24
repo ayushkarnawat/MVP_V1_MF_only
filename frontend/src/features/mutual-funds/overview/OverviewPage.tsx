@@ -168,6 +168,7 @@ function OverviewBody({
           xirr_as_of: fund.xirr_as_of,
           xirr_basis: fund.xirr_basis,
           since_purchase_return: fund.since_purchase_return,
+          xirr_caution: fund.xirr_caution,
         };
       }
     }

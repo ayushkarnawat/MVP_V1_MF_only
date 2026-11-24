@@ -42,7 +42,7 @@ export function MutualFundsSectionPrint() {
   const meta: Partial<Record<string, SchemeXirrMeta>> = {};
   for (const fund of bench.data?.funds ?? []) {
     rates[fund.scheme_id] = fund.fund_xirr;
-    meta[fund.scheme_id] = { xirr_as_of: fund.xirr_as_of, xirr_basis: fund.xirr_basis, since_purchase_return: fund.since_purchase_return };
+    meta[fund.scheme_id] = { xirr_as_of: fund.xirr_as_of, xirr_basis: fund.xirr_basis, since_purchase_return: fund.since_purchase_return, xirr_caution: fund.xirr_caution };
   }
   return <PrintLayout>
     <HoldingsTable holdings={holdings.holdings} consolidated={viewMode === "aggregate" ? holdings.consolidated.data : null} xirrByScheme={rates} xirrMetaByScheme={meta} sort={null} onSort={noop} query="" chips={[]} onAnalyse={noop} onCompareDistributors={noop} />
