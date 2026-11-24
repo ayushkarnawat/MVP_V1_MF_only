@@ -44,6 +44,7 @@ case "$lane" in
   ifx) SRC="$WT/unifolio-i-fe/frontend" ;;   # Batch I front end (print route and print mode)
   ie) SRC="$WT/unifolio-i-export/frontend" ;;   # Batch I (PDF export) base
   m3) SRC="$WT/unifolio-m3/frontend" ;;   # the merged M3 candidate (branch m3-candidate)
+  m4) SRC="$WT/unifolio-m4/frontend" ;;   # the merged M4 candidate (branch m4-candidate)
   ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
   ed) SRC="$WT/unifolio-e-dates/frontend" ;;   # Batch E (dates)
   fn) SRC="$WT/unifolio-f-nav/frontend" ;;   # Batch F (section index)
