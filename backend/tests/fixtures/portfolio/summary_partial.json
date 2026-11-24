@@ -38,5 +38,7 @@
   "lifetime_xirr_basis": "since_purchase",
   "current_holdings_xirr_basis": "since_purchase",
   "lifetime_since_purchase": "0.0505",
-  "current_holdings_since_purchase": "0.0505"
+  "current_holdings_since_purchase": "0.0505",
+  "lifetime_xirr_caution": "young",
+  "current_holdings_xirr_caution": "young"
 }

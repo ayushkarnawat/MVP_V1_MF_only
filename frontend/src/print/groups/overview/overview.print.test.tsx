@@ -9,7 +9,7 @@ import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatDate, formatPercent, formatRupees } from "../../../lib/format";
 import { maskFolio } from "../../../lib/folioVisibility";
 import { PrintModeProvider } from "../../../lib/printMode";
-import { SINCE_PURCHASE_CAPTION } from "../../../lib/xirrDisplay";
+import { CAUTION_CHIP } from "../../../lib/xirrDisplay";
 import { ScopeContext } from "../../../shell/scope/ScopeContext";
 import { PRINT_SECTIONS } from "../../sectionRegistry";
 import { PrintSettledContext } from "../../usePrintSettled";
@@ -39,8 +39,11 @@ function mount(id: string, memberId: string | null = null, folios: "full" | "mas
   return { ...view, settled, setMember };
 }
 function expectStatic(container: HTMLElement) {
-  expect(container.querySelector('button,[role="button"],[title],a,[data-clickable]')).toBeNull();
+  expect(container.querySelector('button,[role="button"],a,[data-clickable]')).toBeNull();
   expect(container.querySelector('[class*="overflow-x-auto"],[class*="max-h-"],[class*="min-w-["],[class*="truncate"]')).toBeNull();
+  for (const titled of container.querySelectorAll("[title]")) {
+    expect(titled.matches('[data-testid="xirr-caution"],th')).toBe(true);
+  }
   for (const element of container.querySelectorAll("*")) expect(["sticky", "fixed"]).not.toContain(getComputedStyle(element).position);
   for (const heading of container.querySelectorAll("h3,h4")) expect(heading).toHaveStyle({ breakAfter: "avoid" });
   for (const row of container.querySelectorAll("tr,li")) expect(row).toHaveStyle({ breakInside: "avoid" });
@@ -86,21 +89,26 @@ it("prints all active and stopped SIPs and the screen's monthly total without a 
   expect(within(tables[0]).getByText("Monthly SIP total").closest("tr")).toHaveTextContent(formatRupees(monthlySipTotal(rows)));
   expect(mocks.getSips.mock.calls[0].slice(0, 2)).toEqual([{ viewMode: "aggregate", memberId: null }, true]); expectStatic(view.container);
 });
-it("prints member holdings in default order with screen totals and since-purchase explanations", async () => {
-  const data = analyticsMfBMember(); const funds = fundBenchmark(); funds.funds = [{ ...funds.funds[0], scheme_id: "S-KOTAK", xirr_basis: "since_purchase", since_purchase_return: "0.20" }];
+it("printed_table_has_returns_and_xirr_columns_and_the_chip", async () => {
+  const data = analyticsMfBMember(); const funds = fundBenchmark(); funds.funds = [{ ...funds.funds[0], scheme_id: "S-KOTAK", xirr_basis: "since_purchase", since_purchase_return: "0.20", xirr_caution: "young", fund_xirr: "0.418" }];
   data.sections.benchmark_funds!.payload = funds as unknown as Record<string, unknown>; mocks.getAnalyticsScope.mockResolvedValue(data);
   const view = mount(ids[2], "m1"); await screen.findByTestId("foot-value");
   const order = sortHoldings(fx.holdings(), null, {});
   expect([...view.container.querySelectorAll('[data-testid^="row-"]')].map(row => row.getAttribute("data-testid"))).toEqual(order.map(row => `row-${row.scheme_id}:${row.household_member_id}`));
   const totals = holdingTotals(fx.holdings()); expect(screen.getByTestId("foot-invested")).toHaveTextContent(formatRupees(totals.invested)); expect(screen.getByTestId("foot-value")).toHaveTextContent(formatRupees(totals.value));
   expect(screen.getByTestId("foot-gain")).toHaveTextContent(formatSignedRupees(totals.unrealised));
-  expect(within(screen.getByTestId("row-S-KOTAK:m1")).getByTestId("xirr")).toHaveTextContent(SINCE_PURCHASE_CAPTION);
+  const cells = within(screen.getByTestId("row-S-KOTAK:m1"));
+  expect(screen.getAllByRole("columnheader").map(h => h.textContent?.trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "Returns", "XIRR", "Today's change"]);
+  expect(cells.getByTestId("returns").textContent).toBe(formatXirr("0.20"));
+  expect(cells.getByTestId("xirr")).toHaveTextContent(formatXirr("0.418"));
+  expect(within(cells.getByTestId("xirr")).getByTestId("xirr-caution").textContent).toBe(CAUTION_CHIP.young.text);
+  expect(within(cells.getByTestId("returns")).queryByTestId("xirr-caution")).toBeNull();
   expectStatic(view.container);
 });
 it.each(["full", "masked", "none"] as const)("forces a family table and expands every member with %s folios", async folios => {
   const family = parents(); mocks.getHoldingsBundle.mockResolvedValue(bundle(family));
   const view = mount(ids[2], null, folios); const table = await screen.findByRole("table", { name: "Mutual Funds (1)" });
-  expect(table).toHaveStyle({ display: "table" }); expect(within(table).getAllByRole("columnheader")).toHaveLength(8);
+  expect(table).toHaveStyle({ display: "table" }); expect(within(table).getAllByRole("columnheader")).toHaveLength(9);
   for (const child of family[0].children) {
     const row = screen.getByTestId(`member-S-KOTAK:direct:${child.household_member_id}`);
     expect(row).toHaveStyle({ display: "table-row" }); expect(row).toHaveTextContent(child.household_member_name); expect(row).toHaveTextContent(formatXirr(child.xirr));
@@ -110,11 +118,15 @@ it.each(["full", "masked", "none"] as const)("forces a family table and expands 
   }
   expectStatic(view.container);
 });
-it("prints full since-purchase wording and every child even with one-member ownership", async () => {
+it("printed_table_no_longer_shows_the_since_purchase_sub_label", async () => {
   const family = parents(); family[0].children[0].xirr_basis = "since_purchase"; family[0].children[0].since_purchase_return = "0.20";
   family[0].children = [family[0].children[0]];
   mocks.getHoldingsBundle.mockResolvedValue(bundle(family)); mount(ids[2]);
-  const row = await screen.findByTestId("member-S-KOTAK:direct:m1"); expect(row).toHaveTextContent(SINCE_PURCHASE_CAPTION); expect(row).toHaveTextContent(formatXirr("0.20"));
+  const row = await screen.findByTestId("member-S-KOTAK:direct:m1");
+  expect(within(row).getByTestId("child-returns").textContent).toBe(formatXirr("0.20"));
+  expect(within(row).getByTestId("child-xirr").textContent).toBe(formatXirr(family[0].children[0].xirr));
+  expect(within(row).queryByText("since purchase")).toBeNull();
+  expect(row).not.toHaveTextContent("Return since purchase, not annualised");
 });
 it("includes fully sold funds expanded and respects the member scope", async () => {
   const data = bundle(); data.realized!.funds.push({ ...data.realized!.funds[0], scheme_id: "demo-unsold", scheme_name: "Demo Not Fully Sold", fully_sold: false }, { ...data.realized!.funds[0], scheme_id: "demo-other", scheme_name: "Demo Other Member Sold", household_member_id: "m2" });
@@ -158,4 +170,21 @@ it("prints empty history and SIP states without controls", async () => {
 it("prints a zero monthly total when there are only stopped SIPs", async () => {
   mocks.getSips.mockResolvedValue(fx.sips().sips.filter(row => row.status === "stopped")); mount(ids[1]);
   expect(await screen.findByText("Stopped SIPs")).toBeInTheDocument(); expect(screen.getByText(/Monthly SIP total/)).toHaveTextContent(formatRupees(monthlySipTotal([])));
+});
+
+it("print_mapping_passes_xirr_caution", async () => {
+  const data = analyticsMfBMember(); const funds = fundBenchmark();
+  funds.funds = fx.holdings().slice(0, 3).map((row, index) => ({
+    ...funds.funds[0], scheme_id: row.scheme_id, fund_xirr: "0.418", since_purchase_return: "0.065",
+    xirr_caution: index === 0 ? "young" : index === 1 ? "single_transaction" : null,
+  }));
+  data.sections.benchmark_funds!.payload = funds as unknown as Record<string, unknown>;
+  mocks.getAnalyticsScope.mockResolvedValue(data); mount(ids[2], "m1");
+  for (const fund of funds.funds) {
+    const holding = fx.holdings().find(row => row.scheme_id === fund.scheme_id)!;
+    const cells = within(await screen.findByTestId(`row-${fund.scheme_id}:${holding.household_member_id}`));
+    await waitFor(() => expect(cells.getByTestId("returns").textContent).toBe(formatXirr(fund.since_purchase_return)));
+    if (fund.xirr_caution) expect(within(cells.getByTestId("xirr")).getByTestId("xirr-caution").textContent).toBe(CAUTION_CHIP[fund.xirr_caution].text);
+    else expect(cells.queryByTestId("xirr-caution")).toBeNull();
+  }
 });

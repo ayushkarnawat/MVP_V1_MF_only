@@ -13,7 +13,7 @@ from app.models.transaction import Transaction
 from app.models.enums import TransactionOrigin, TransactionType
 from app.services.analytics.xirr import xirr
 from app.services.dashboard.cash_flow import _CREDIT_TYPES, _DEBIT_TYPES
-from app.services.dashboard.schemas import HoldingRow, XirrBasis, XirrDisclaimerOut
+from app.services.dashboard.schemas import HoldingRow, XirrBasis, XirrCaution, XirrDisclaimerOut
 from app.services.lot_rules import LOT_CONSUMING_TYPES, apply_lot_rules, cost_per_unit, paid_amount
 
 # #3: a gift isn't cash, but for returns a gift received is money put in at
@@ -68,6 +68,8 @@ class DashboardXirrSummary:
     current_holdings_xirr_basis: XirrBasis | None = None
     lifetime_since_purchase: str | None = None
     current_holdings_since_purchase: str | None = None
+    lifetime_xirr_caution: XirrCaution | None = None
+    current_holdings_xirr_caution: XirrCaution | None = None
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,7 @@ class PortfolioXirrDisplay:
     rate: Decimal | None = None
     basis: XirrBasis | None = None
     since_purchase_return: Decimal | None = None
+    caution: XirrCaution | None = None
 
 
 def _signed_amount(
@@ -121,19 +124,29 @@ def portfolio_xirr(
 
 def portfolio_xirr_display(rate: Decimal | None, cash_flows: list[tuple[date, Decimal]]) -> PortfolioXirrDisplay:
     """Choose the tile or fund-column display using the exact flows passed to the solver."""
+    # Owner decision, 24 Nov 2026: XIRR always leads; caution only warns about its interpretation.
+    # Keep basis for the old link (ls-staging and older bundles still read it); the new screens do not.
     end = cash_flows[-1][0]
     if all(day == end for day, _ in cash_flows):
         # A same-day balance of zero fits every rate. Keep the raw solve for window callers.
         return PortfolioXirrDisplay(rate if sum(amount for _, amount in cash_flows) else None)
-    if (end - min(day for day, _ in cash_flows)).days >= 365:
-        return PortfolioXirrDisplay(rate, "annualised" if rate is not None else None)
+    age = (end - min(day for day, _ in cash_flows)).days
+    basis: XirrBasis | None = "annualised" if age >= 365 and rate is not None else None
     paid = sum((-amount for _, amount in cash_flows if amount < 0), Decimal("0"))
     if not paid:
-        return PortfolioXirrDisplay(rate)
+        return PortfolioXirrDisplay(rate, basis)
+    if age < 365:
+        basis = "since_purchase"
     received = sum((amount for _, amount in cash_flows if amount > 0), Decimal("0"))
     # No trailing zeros (0.2, not 0.20000), so the tile and the fund column write the same figure the same way.
     absolute = (received / paid - 1).normalize()
-    return PortfolioXirrDisplay(rate, "since_purchase", Decimal(format(absolute, "f")))
+    caution: XirrCaution | None = None
+    if rate is not None:
+        if age < 365:
+            caution = "young"
+        elif sum(amount < 0 for _, amount in cash_flows[:-1]) == 1:
+            caution = "single_transaction"
+    return PortfolioXirrDisplay(rate, basis, Decimal(format(absolute, "f")), caution)
 
 
 def latest_holding_price_date(holdings: list[HoldingRow]) -> date | None:
@@ -359,6 +372,8 @@ def calculate_dashboard_xirr(
         current_holdings_xirr_basis=current.basis,
         lifetime_since_purchase=xirr_string(lifetime.since_purchase_return),
         current_holdings_since_purchase=xirr_string(current.since_purchase_return),
+        lifetime_xirr_caution=lifetime.caution,
+        current_holdings_xirr_caution=current.caution,
         lifetime_xirr_disclaimer=_build_disclaimer(
             transactions, _RELEVANT_TYPES, frozenset(), lifetime_value, lifetime.rate,
             lineage_by_scheme, scheme_totals, None, opening_sold_share, price_date,

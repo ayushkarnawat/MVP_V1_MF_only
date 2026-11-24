@@ -347,7 +347,7 @@ export function excludedFundCount(coverage: LookthroughCoverage): number {
   return coverageHeadline(coverage).excluded.length;
 }
 
-export type SortKey = "invested" | "value" | "gain" | "xirr" | "today_change";
+export type SortKey = "invested" | "value" | "gain" | "returns" | "xirr" | "today_change";
 export type SortDir = "asc" | "desc";
 export interface SortState {
   key: SortKey;
@@ -358,7 +358,7 @@ export function parseSortParams(search: string): SortState | null {
   const params = new URLSearchParams(search.startsWith("?") ? search : `?${search}`);
   const key = params.get("sort");
   if (!key) return null;
-  const validKeys: SortKey[] = ["invested", "value", "gain", "xirr", "today_change"];
+  const validKeys: SortKey[] = ["invested", "value", "gain", "returns", "xirr", "today_change"];
   if (!validKeys.includes(key as SortKey)) return null;
 
   const dirParam = params.get("dir");
@@ -376,7 +376,8 @@ export function nextSort(current: SortState | null, key: SortKey): SortState {
 export function sortHoldings(
   rows: HoldingRow[],
   sort: SortState | null,
-  xirrByScheme: Record<string, string | null | undefined>
+  xirrByScheme: Record<string, string | null | undefined>,
+  returnsByScheme?: Record<string, string | null | undefined>
 ): HoldingRow[] {
   const copy = [...rows];
   if (!sort) return copy;
@@ -389,6 +390,8 @@ export function sortHoldings(
         return row.nav_unavailable ? null : row.current_value;
       case "gain":
         return row.nav_unavailable ? null : row.unrealized_gain;
+      case "returns":
+        return returnsByScheme?.[row.scheme_id] ?? null;
       case "xirr":
         return xirrByScheme[row.scheme_id] ?? null;
       case "today_change":

@@ -7,7 +7,7 @@ from typing import Sequence
 
 from app.core.decimal_utils import quantize_amount
 from app.services.dashboard.portfolio_schemas import zero_unsigned
-from app.services.dashboard.schemas import HoldingRow, RealizedSummary, XirrBasis, XirrDisclaimerOut
+from app.services.dashboard.schemas import HoldingRow, RealizedSummary, XirrBasis, XirrCaution, XirrDisclaimerOut
 from app.services.dashboard.xirr import DashboardXirrSummary
 from app.services.home.movers import Movers
 
@@ -34,6 +34,8 @@ class PortfolioSummary:
     current_holdings_xirr_basis: XirrBasis | None = None
     lifetime_since_purchase: str | None = None
     current_holdings_since_purchase: str | None = None
+    lifetime_xirr_caution: XirrCaution | None = None
+    current_holdings_xirr_caution: XirrCaution | None = None
 
 
 def compute_portfolio_summary(
@@ -72,6 +74,8 @@ def compute_portfolio_summary(
         current_holdings_xirr_basis=xirr_summary.current_holdings_xirr_basis,
         lifetime_since_purchase=xirr_summary.lifetime_since_purchase,
         current_holdings_since_purchase=xirr_summary.current_holdings_since_purchase,
+        lifetime_xirr_caution=xirr_summary.lifetime_xirr_caution,
+        current_holdings_xirr_caution=xirr_summary.current_holdings_xirr_caution,
         lifetime_xirr_disclaimer=(
             xirr_summary.lifetime_xirr_disclaimer.to_schema()
             if xirr_summary.lifetime_xirr_disclaimer else None

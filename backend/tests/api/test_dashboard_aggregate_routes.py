@@ -47,6 +47,8 @@ def test_member_holdings_response_includes_xirr_summary(client):
         "current_holdings_xirr_basis": None,
         "lifetime_since_purchase": None,
         "current_holdings_since_purchase": None,
+        "lifetime_xirr_caution": None,
+        "current_holdings_xirr_caution": None,
     }
 
 

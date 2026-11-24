@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { MeasureFlip } from "../../../components/MeasureFlip";
 import { Modal } from "../../../components/Modal";
+import { XirrCautionChip } from "../../../components/XirrCautionChip";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { formatDataDate } from "../../../lib/dataDates";
 import { toPercentString } from "../../../lib/decimal";
 import { formatPercent, formatRupees } from "../../../lib/format";
-import { resolveXirrDisplay, SINCE_PURCHASE_CAPTION } from "../../../lib/xirrDisplay";
+import { RETURNS_CAPTION, resolveFigures, XIRR_CAPTION } from "../../../lib/xirrDisplay";
 import { InfoMark } from "../common/SectionCard";
 import {
   changeDirection,
@@ -34,6 +36,7 @@ export function SummaryStrip({
 }: SummaryStripProps) {
   const [basis, setBasis] = useState<"lifetime" | "current">("lifetime");
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+  const [face, setFace] = useState<"xirr" | "returns">("xirr");
 
   if (holdings.status === "loading") {
     return (
@@ -89,22 +92,27 @@ export function SummaryStrip({
     return "text-[var(--ui-text-muted)]";
   };
 
-  const xirrDisplay =
-    xirr.data !== null
+  const figures =
+    xirr.status === "data" && xirr.data !== null
       ? basis === "lifetime"
-        ? resolveXirrDisplay(
+        ? resolveFigures(
             xirr.data.lifetime,
-            xirr.data.lifetime_xirr_basis,
             xirr.data.lifetime_since_purchase,
+            xirr.data.lifetime_xirr_caution,
           )
-        : resolveXirrDisplay(
+        : resolveFigures(
             xirr.data.current,
-            xirr.data.current_holdings_xirr_basis,
             xirr.data.current_holdings_since_purchase,
+            xirr.data.current_holdings_xirr_caution,
           )
-      : { value: null, isSincePurchase: false };
+      : { xirr: null, returns: null, caution: null };
 
-  const currentXirrValue = xirrDisplay.value;
+  const canFlip =
+    xirr.status === "data" &&
+    figures.xirr !== null &&
+    figures.returns !== null;
+  const shownFace = canFlip ? face : "xirr";
+  const shownFigure = shownFace === "xirr" ? figures.xirr : figures.returns;
 
   const currentDisclaimer =
     xirr.data !== null
@@ -112,12 +120,6 @@ export function SummaryStrip({
         ? xirr.data.disclaimers.lifetime
         : xirr.data.disclaimers.current
       : null;
-
-  const caption = xirrDisplay.isSincePurchase
-    ? SINCE_PURCHASE_CAPTION
-    : basis === "lifetime"
-      ? "Since inception"
-      : "Current holdings";
 
   const xirrAsOf =
     xirr.status === "data" &&
@@ -273,11 +275,17 @@ export function SummaryStrip({
               {formatSignedRupees(totals.unrealised)}
             </span>
             {totals.unrealisedPct !== null && (
-              <div
-                data-testid="delta-unrealised"
-                className={`text-xs ${dirColor(unrealisedDir)}`}
-              >
-                {formatSignedPercent(totals.unrealisedPct, 1)}
+              <div className="flex items-center gap-1.5">
+                <div
+                  data-testid="delta-unrealised"
+                  className={`text-xs ${dirColor(unrealisedDir)}`}
+                >
+                  {`${formatSignedPercent(totals.unrealisedPct, 1)} return on invested`}
+                </div>
+                <InfoMark
+                  text="Unrealised gain as a share of what you currently have invested. Not annualised."
+                  testId="info-unrealised"
+                />
               </div>
             )}
           </div>
@@ -310,85 +318,107 @@ export function SummaryStrip({
             data-testid="metric-xirr"
             className="flex flex-col gap-1"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--ui-text-muted)]">
-                <span>XIRR</span>
+            <MeasureFlip
+              face={shownFace}
+              onFlip={() => setFace(shownFace === "xirr" ? "returns" : "xirr")}
+              canFlip={canFlip}
+              labelXirr="XIRR"
+              labelReturns="Returns"
+              titleExtra={
                 <InfoMark
-                  text="Annualised return since inception. May include an opening balance from before you started tracking in Unifolio."
+                  text={
+                    shownFace === "xirr"
+                      ? "Annualised return since inception. May include an opening balance from before you started tracking in Unifolio."
+                      : "Total gain as a share of money paid in, not annualised."
+                  }
                   testId="info-xirr"
                 />
-              </div>
-              <div
-                role="group"
-                aria-label="XIRR basis"
-                className="inline-flex rounded-lg border border-[var(--ui-divider)] p-0.5 text-[11px]"
-              >
-                <button
-                  type="button"
-                  aria-pressed={basis === "lifetime"}
-                  data-clickable=""
-                  data-effect="switch"
-                  onClick={() => {
-                    setBasis("lifetime");
-                    setIsDisclaimerOpen(false);
-                  }}
-                  className={`rounded px-1.5 py-0.5 font-medium transition-colors ${
-                    basis === "lifetime"
-                      ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
-                      : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
-                  }`}
-                >
-                  Lifetime
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={basis === "current"}
-                  data-clickable=""
-                  data-effect="switch"
-                  onClick={() => {
-                    setBasis("current");
-                    setIsDisclaimerOpen(false);
-                  }}
-                  className={`rounded px-1.5 py-0.5 font-medium transition-colors ${
-                    basis === "current"
-                      ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
-                      : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
-                  }`}
-                >
-                  Current
-                </button>
-              </div>
-            </div>
+              }
+              belowTitle={
+                <div className="flex">
+                  <div
+                    role="group"
+                    aria-label="XIRR basis"
+                    className="inline-flex rounded-lg border border-[var(--ui-divider)] p-0.5 text-[11px]"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={basis === "lifetime"}
+                      data-clickable=""
+                      data-effect="switch"
+                      onClick={() => {
+                        setBasis("lifetime");
+                        setIsDisclaimerOpen(false);
+                      }}
+                      className={`rounded px-1.5 py-0.5 font-medium transition-colors ${
+                        basis === "lifetime"
+                          ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
+                          : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+                      }`}
+                    >
+                      Lifetime
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={basis === "current"}
+                      data-clickable=""
+                      data-effect="switch"
+                      onClick={() => {
+                        setBasis("current");
+                        setIsDisclaimerOpen(false);
+                      }}
+                      className={`rounded px-1.5 py-0.5 font-medium transition-colors ${
+                        basis === "current"
+                          ? "bg-[var(--ui-card)] text-[var(--ui-text)] shadow-sm"
+                          : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+                      }`}
+                    >
+                      Current
+                    </button>
+                  </div>
+                </div>
+              }
+            >
+              {xirr.status === "loading" ? (
+                <Skeleton className="h-7 w-20" />
+              ) : (
+                <span data-testid="value-xirr" className="text-xl font-bold text-[var(--ui-text)]">
+                  {xirr.status === "error" ? "—" : formatXirr(shownFigure)}
+                </span>
+              )}
 
-            {xirr.status === "loading" ? (
-              <Skeleton className="h-7 w-20" />
-            ) : (
-              <span data-testid="value-xirr" className="text-xl font-bold text-[var(--ui-text)]">
-                {xirr.status === "error" ? "—" : formatXirr(currentXirrValue)}
-              </span>
-            )}
-
-            {currentDisclaimer ? (
-              <button
-                type="button"
-                data-clickable=""
-                data-effect="open"
-                onClick={() => setIsDisclaimerOpen(true)}
-                className="text-left text-xs text-[var(--ui-text-muted)] hover:underline"
-              >
-                {caption} — opening-balance disclaimer may apply ›
-              </button>
-            ) : (
-              <div data-testid="xirr-caption" className="text-xs text-[var(--ui-text-muted)]">
-                {caption}
+              <div className={currentDisclaimer ? "min-h-[4.25rem]" : "min-h-8"}>
+                {currentDisclaimer ? (
+                  <button
+                    type="button"
+                    data-clickable=""
+                    data-effect="open"
+                    onClick={() => setIsDisclaimerOpen(true)}
+                    className="text-left text-xs text-[var(--ui-text-muted)] hover:underline"
+                  >
+                    {shownFace === "xirr"
+                      ? `${basis === "lifetime" ? "Since inception" : "Current holdings"} — opening-balance disclaimer may apply ›`
+                      : `${RETURNS_CAPTION} — opening-balance disclaimer may apply ›`}
+                  </button>
+                ) : (
+                  <div data-testid="xirr-caption" className="text-xs text-[var(--ui-text-muted)]">
+                    {shownFace === "xirr" ? XIRR_CAPTION : RETURNS_CAPTION}
+                  </div>
+                )}
               </div>
-            )}
 
-            {xirrAsOf !== null && (
-              <div data-testid="xirr-as-of" className="text-xs text-[var(--ui-text-muted)]">
-                {formatDataDate("prices", xirrAsOf)}
+              <div className="min-h-6">
+                {shownFace === "xirr" && figures.caution !== null && (
+                  <XirrCautionChip caution={figures.caution} />
+                )}
               </div>
-            )}
+
+              {xirrAsOf !== null && (
+                <div data-testid="xirr-as-of" className="text-xs text-[var(--ui-text-muted)]">
+                  {formatDataDate("prices", xirrAsOf)}
+                </div>
+              )}
+            </MeasureFlip>
           </div>
         </div>
       </section>
@@ -415,7 +445,7 @@ export function SummaryStrip({
                   Shown {basis === "lifetime" ? "Lifetime" : "Current"} XIRR
                 </div>
                 <div data-testid="disclaimer-shown" className="mt-1 text-lg font-semibold text-[var(--ui-text)]">
-                  {formatXirr(currentXirrValue)}
+                  {formatXirr(figures.xirr)}
                 </div>
               </div>
               <div className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3">

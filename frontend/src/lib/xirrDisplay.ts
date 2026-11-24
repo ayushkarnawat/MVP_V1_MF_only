@@ -1,18 +1,23 @@
-export const SINCE_PURCHASE_CAPTION = "Return since purchase, not annualised";
-export const SINCE_PURCHASE_SHORT_LABEL = "since purchase";
+// XIRR always leads (owner, 24 Nov 2026). The old helper that swapped to the since-purchase figure under a year is gone.
+export type XirrCaution = "young" | "single_transaction";
 
-export interface XirrDisplayResult {
-  value: string | null | undefined;
-  isSincePurchase: boolean;
+export const XIRR_CAPTION = "Annualised since your first investment";
+export const RETURNS_CAPTION = "Since purchase, not annualised";
+export const CAUTION_CHIP: Record<XirrCaution, { text: string; tip: string }> = {
+  young: { text: "held under 1 yr", tip: "Held under 1 year: an annualised rate can look very large over a short period. Open Returns to see the plain gain." },
+  single_transaction: { text: "one transaction", tip: "One purchase only, so this is the yearly rate of a single investment." },
+};
+
+export interface Figures {
+  xirr: string | null;
+  returns: string | null;
+  caution: XirrCaution | null;
 }
 
-export function resolveXirrDisplay(
-  annualised: string | null | undefined,
-  basis: XirrBasis | null | undefined,
+export function resolveFigures(
+  xirr: string | null | undefined,
   sincePurchase: string | null | undefined,
-): XirrDisplayResult {
-  if (basis === "since_purchase" && sincePurchase != null) {
-    return { value: sincePurchase, isSincePurchase: true };
-  }
-  return { value: annualised, isSincePurchase: false };
+  caution: XirrCaution | null | undefined,
+): Figures {
+  return { xirr: xirr ?? null, returns: sincePurchase ?? null, caution: caution ?? null };
 }

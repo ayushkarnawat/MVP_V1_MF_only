@@ -26,7 +26,7 @@ from app.models.reference import Scheme
 from app.models.transaction import Transaction
 from app.models.user import HouseholdMember
 from app.services.dashboard.nav import get_nav_on_or_before, get_navs_on_or_before, get_previous_nav_from_cache
-from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary, FolioSlice, ConsolidatedHolding, ConsolidatedHoldingChild, XirrBasis
+from app.services.dashboard.schemas import HoldingRow, OpeningLotInfo, RealizedFund, RealizedSummary, FolioSlice, ConsolidatedHolding, ConsolidatedHoldingChild, XirrBasis, XirrCaution
 from app.services.dashboard.allocation_labels import asset_class_bucket
 
 # Single source of the lot rules (Phase 3 review): see app/services/lot_rules.py.
@@ -370,6 +370,7 @@ class HoldingXirrFields(TypedDict, total=False):
     xirr_as_of: str | None
     xirr_basis: XirrBasis | None
     since_purchase_return: str | None
+    xirr_caution: XirrCaution | None
 
 
 def consolidate_holdings(

@@ -9,6 +9,7 @@ from app.models.enums import ArnStatus, PlanType, Relationship, TransactionType
 
 
 XirrBasis = Literal["annualised", "since_purchase"]
+XirrCaution = Literal["young", "single_transaction"]
 
 
 class HouseholdMemberCreate(BaseModel):
@@ -98,6 +99,7 @@ class ConsolidatedHoldingChild(HoldingRow):
     xirr_as_of: str | None = None
     xirr_basis: XirrBasis | None = None
     since_purchase_return: str | None = None
+    xirr_caution: XirrCaution | None = None
 
 
 class ConsolidatedHolding(BaseModel):
@@ -126,6 +128,7 @@ class ConsolidatedHolding(BaseModel):
     xirr_as_of: str | None = None
     xirr_basis: XirrBasis | None = None
     since_purchase_return: str | None = None
+    xirr_caution: XirrCaution | None = None
     children: list[ConsolidatedHoldingChild] = Field(default_factory=list)
 
 
@@ -295,6 +298,8 @@ class AggregateHoldingsResponse(BaseModel):
     current_holdings_xirr_basis: XirrBasis | None = None
     lifetime_since_purchase: str | None = None
     current_holdings_since_purchase: str | None = None
+    lifetime_xirr_caution: XirrCaution | None = None
+    current_holdings_xirr_caution: XirrCaution | None = None
     lifetime_xirr_disclaimer: XirrDisclaimerOut | None = None
     current_holdings_xirr_disclaimer: XirrDisclaimerOut | None = None
 
@@ -309,6 +314,8 @@ class MemberHoldingsResponse(BaseModel):
     current_holdings_xirr_basis: XirrBasis | None = None
     lifetime_since_purchase: str | None = None
     current_holdings_since_purchase: str | None = None
+    lifetime_xirr_caution: XirrCaution | None = None
+    current_holdings_xirr_caution: XirrCaution | None = None
     lifetime_xirr_disclaimer: XirrDisclaimerOut | None = None
     current_holdings_xirr_disclaimer: XirrDisclaimerOut | None = None
 

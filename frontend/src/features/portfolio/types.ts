@@ -1,3 +1,5 @@
+import type { XirrCaution } from "../../lib/xirrDisplay";
+
 // Contract file for the Portfolio page. Orchestrator-owned: mirrors the pydantic models in
 // backend/app/services/dashboard/portfolio_schemas.py (and the Home envelope in app/services/home/schemas.py).
 // Every amount and percentage is a plain decimal string, every date is ISO text. The golden JSON responses in
@@ -64,7 +66,9 @@ export interface PortfolioSummaryResponse extends Envelope {
   current_holdings_xirr: string | null;
   xirr_as_of?: string | null;
   lifetime_xirr_basis?: XirrBasis | null;
+  lifetime_xirr_caution?: XirrCaution | null;
   current_holdings_xirr_basis?: XirrBasis | null;
+  current_holdings_xirr_caution?: XirrCaution | null;
   lifetime_since_purchase?: string | null;
   current_holdings_since_purchase?: string | null;
   lifetime_xirr_disclaimer: XirrDisclaimerOut | null;

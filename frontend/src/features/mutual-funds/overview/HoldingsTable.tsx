@@ -8,9 +8,8 @@ import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
 import { usePrintMode } from "../../../lib/printMode";
 import {
-  resolveXirrDisplay,
-  SINCE_PURCHASE_CAPTION,
-  SINCE_PURCHASE_SHORT_LABEL,
+  CAUTION_CHIP,
+  type XirrCaution,
 } from "../../../lib/xirrDisplay";
 import { paths } from "../../../shell/nav/paths";
 import { useAppNavigate } from "../../../shell/nav/useAppNavigate";
@@ -35,6 +34,7 @@ export interface SchemeXirrMeta {
   xirr_as_of?: string | null;
   xirr_basis?: XirrBasis | null;
   since_purchase_return?: string | null;
+  xirr_caution?: XirrCaution | null;
 }
 
 export interface HoldingsTableProps {
@@ -50,30 +50,34 @@ export interface HoldingsTableProps {
   onCompareDistributors: () => void;
 }
 
-function XirrCellContent({
-  annualised,
-  basis,
-  sincePurchase,
-}: {
-  annualised: string | null | undefined;
-  basis: XirrBasis | null | undefined;
-  sincePurchase: string | null | undefined;
-}) {
+function CautionChip({ caution }: { caution: XirrCaution }) {
   const printMode = usePrintMode();
-  const display = resolveXirrDisplay(annualised, basis, sincePurchase);
-  if (!display.isSincePurchase) {
-    return <>{formatXirr(display.value)}</>;
-  }
+  const { text, tip } = CAUTION_CHIP[caution];
+  const tone =
+    caution === "young"
+      ? "bg-[var(--warn-bg)] text-[var(--warn-text)]"
+      : "border border-[var(--ui-divider)] bg-[var(--ui-card)] text-[var(--ui-text-muted)]";
+  const size = printMode
+    ? "px-1.5 py-0.5 text-[10px] leading-tight text-center whitespace-normal"
+    : "px-2 py-0.5 text-[11px]";
   return (
-    <div className="flex flex-col">
-      <span>{formatXirr(display.value)}</span>
-      <span
-        aria-label={SINCE_PURCHASE_CAPTION}
-        title={printMode ? undefined : SINCE_PURCHASE_CAPTION}
-        className="text-[11px] font-normal text-[var(--ui-text-muted)]"
-      >
-        {printMode ? SINCE_PURCHASE_CAPTION : SINCE_PURCHASE_SHORT_LABEL}
-      </span>
+    <span
+      role="note"
+      data-testid="xirr-caution"
+      title={tip}
+      aria-label={tip}
+      className={`inline-flex w-fit items-center rounded-full font-medium ${size} ${tone}`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function XirrFigure({ value, caution }: { value: string | null | undefined; caution: XirrCaution | null | undefined }) {
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <span>{formatXirr(value)}</span>
+      {caution ? <CautionChip caution={caution} /> : null}
     </div>
   );
 }
@@ -148,24 +152,20 @@ function HoldingsTableContent({
 
   const filteredRows = filterHoldingRows(holdings.data, query, chips);
 
-  const displayedXirrByScheme: Record<string, string | null | undefined> = {};
+  const returnsByScheme: Record<string, string | null | undefined> = {};
   for (const row of filteredRows) {
-    const meta = xirrMetaByScheme?.[row.scheme_id];
-    displayedXirrByScheme[row.scheme_id] = resolveXirrDisplay(
-      xirrByScheme[row.scheme_id],
-      meta?.xirr_basis,
-      meta?.since_purchase_return,
-    ).value;
+    returnsByScheme[row.scheme_id] = xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return;
   }
 
-  const sortedRows = sortHoldings(filteredRows, sort, displayedXirrByScheme);
+  const sortedRows = sortHoldings(filteredRows, sort, xirrByScheme, returnsByScheme);
   const totals = holdingTotals(filteredRows);
 
-  const sortColumns: Array<{ key: SortKey; label: string }> = [
+  const sortColumns: Array<{ key: SortKey; label: string; title?: string }> = [
     { key: "invested", label: "Invested" },
     { key: "value", label: "Value" },
     { key: "gain", label: "Gain/Loss" },
-    { key: "xirr", label: "XIRR" },
+    { key: "returns", label: "Returns", title: "Total gain as a share of money paid in, not annualised." },
+    { key: "xirr", label: "XIRR", title: "Yearly rate, worked out from the dates of your investments." },
     { key: "today_change", label: "Today's change" },
   ];
 
@@ -206,8 +206,9 @@ function HoldingsTableContent({
           <table className={`w-full text-left text-sm${printMode ? " table-fixed" : ""}`}>
             <thead>
               <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
-                <th className="py-3 pr-4 font-medium">Fund</th>
-                <th className="py-3 px-4 font-medium">Category</th>
+                {/* Print widths: with the two extra columns the six figure columns need about 11.7% each (about 71 px of text at an A4 content width) so a rupee amount such as ₹12,00,000 does not run into its neighbour. */}
+                <th className={printMode ? "py-3 px-1 font-medium" : "py-3 pr-4 font-medium"} style={printMode ? { width: "20%" } : undefined}>Fund</th>
+                <th className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"} style={printMode ? { width: "10%" } : undefined}>Category</th>
                 {sortColumns.map(col => {
                   const isSorted = sort?.key === col.key;
                   const ariaSort = isSorted
@@ -216,7 +217,7 @@ function HoldingsTableContent({
                       : "ascending"
                     : "none";
                   return (
-                    <th key={col.key} aria-sort={ariaSort} className="py-3 px-4 font-medium">
+                    <th key={col.key} aria-sort={ariaSort} title={col.title} className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"}>
                       {printMode ? col.label : <button
                         type="button"
                         data-clickable=""
@@ -255,7 +256,7 @@ function HoldingsTableContent({
                     }}
                     className={printMode ? "" : "cursor-pointer hover:bg-[var(--ui-row-hover)]"}
                   >
-                    <td className="py-3 pr-4">
+                    <td className={printMode ? "py-3 px-1" : "py-3 pr-4"}>
                       <div className="flex items-center gap-3">
                         {!printMode && <span data-testid="fund-logo" className="shrink-0">
                           <SchemeLogo
@@ -287,13 +288,13 @@ function HoldingsTableContent({
                         </div>
                       </div>
                     </td>
-                    <td data-testid="category" className="py-3 px-4 text-[var(--ui-text-muted)]">
+                    <td data-testid="category" className={`py-3 ${printMode ? "px-1" : "px-4"} text-[var(--ui-text-muted)]`}>
                       {categoryLabel(row.sebi_category)}
                     </td>
-                    <td data-testid="invested" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="invested" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       {formatRupees(row.amount_invested)}
                     </td>
-                    <td data-testid="value" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="value" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       {row.nav_unavailable || row.current_value == null
                         ? "—"
                         : formatRupees(row.current_value)}
@@ -305,17 +306,19 @@ function HoldingsTableContent({
                           ? undefined
                           : changeDirection(row.unrealized_gain)
                       }
-                      className="py-3 px-4 font-medium"
+                      className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium`}
                     >
                       {row.nav_unavailable || row.unrealized_gain == null
                         ? "—"
                         : formatSignedRupees(row.unrealized_gain)}
                     </td>
-                    <td data-testid="xirr" className="py-3 px-4 font-medium text-[var(--ui-text)]">
-                      <XirrCellContent
-                        annualised={xirrByScheme[row.scheme_id]}
-                        basis={xirrMetaByScheme?.[row.scheme_id]?.xirr_basis}
-                        sincePurchase={xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return}
+                    <td data-testid="returns" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
+                      {formatXirr(xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return)}
+                    </td>
+                    <td data-testid="xirr" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
+                      <XirrFigure
+                        value={xirrByScheme[row.scheme_id]}
+                        caution={xirrMetaByScheme?.[row.scheme_id]?.xirr_caution}
                       />
                     </td>
                     <td
@@ -323,7 +326,7 @@ function HoldingsTableContent({
                       data-direction={
                         todayPct !== null ? changeDirection(row.today_gain) : undefined
                       }
-                      className="py-3 px-4 font-medium"
+                      className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium`}
                     >
                       {todayPct !== null ? (
                         <div className="flex flex-col">
@@ -340,19 +343,20 @@ function HoldingsTableContent({
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[var(--ui-divider)] font-semibold text-[var(--ui-text)]">
-                <td className="py-3 pr-4">Total</td>
-                <td className="py-3 px-4"></td>
-                <td data-testid="foot-invested" className="py-3 px-4">
+                <td className={printMode ? "py-3 px-1" : "py-3 pr-4"}>Total</td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td data-testid="foot-invested" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatRupees(totals.invested)}
                 </td>
-                <td data-testid="foot-value" className="py-3 px-4">
+                <td data-testid="foot-value" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatRupees(totals.value)}
                 </td>
-                <td data-testid="foot-gain" className="py-3 px-4">
+                <td data-testid="foot-gain" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatSignedRupees(totals.unrealised)}
                 </td>
-                <td className="py-3 px-4"></td>
-                <td className="py-3 px-4"></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
               </tr>
             </tfoot>
           </table>
@@ -380,9 +384,18 @@ function splitShares(units: string[]): string[] {
 }
 
 const MEMBER_COLOURS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
-const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey }> = [
+// Print widths of the nine family columns (sum 100%). Measured in a browser at an A4 content width with 11 px text and large amounts:
+// the short columns (Units, Avg price) give way so the money columns keep about 70 px of text and a rupee amount such as
+// +₹6,80,000 is not split in the middle of the number.
+const FAMILY_PRINT_WIDTHS: Record<string, string> = {
+  Fund: "19%", Units: "9%", "Avg price": "9%", Invested: "11.5%", "Current value": "11.5%",
+  Unrealised: "11.5%", Realised: "9.5%", Returns: "9%", XIRR: "10%",
+};
+const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey; title?: string }> = [
   { label: "Fund" }, { label: "Units" }, { label: "Avg price" }, { label: "Invested", key: "invested" },
-  { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" }, { label: "XIRR", key: "xirr" },
+  { label: "Current value", key: "value" }, { label: "Unrealised", key: "gain" }, { label: "Realised" },
+  { label: "Returns", key: "returns", title: "Total gain as a share of money paid in, not annualised." },
+  { label: "XIRR", key: "xirr", title: "Yearly rate, worked out from the dates of your investments." },
 ];
 
 function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | ConsolidatedHoldingChild; child?: boolean }) {
@@ -398,10 +411,14 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>}
       {figure}
     </td>)}
-    <td data-testid={child ? "child-xirr" : undefined}
-      className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+    {/* The test ids sit on the figure itself, not the cell, so the phone-only column label in the cell is not part of the figure's text. */}
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>}
-      <XirrCellContent annualised={row.xirr} basis={row.xirr_basis} sincePurchase={row.since_purchase_return} />
+      <span data-testid={child ? "child-returns" : "returns"}>{formatXirr(row.since_purchase_return)}</span>
+    </td>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+      {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[8].label}</span>}
+      <div data-testid={child ? "child-xirr" : "xirr"}><XirrFigure value={row.xirr} caution={row.xirr_caution} /></div>
     </td>
   </>;
 }
@@ -426,9 +443,8 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     if (sort?.key === "invested") return r.amount_invested;
     if (sort?.key === "value") return r.nav_unavailable ? null : r.current_value;
     if (sort?.key === "gain") return r.nav_unavailable ? null : r.unrealized_gain;
-    if (sort?.key === "xirr") {
-      return resolveXirrDisplay(r.xirr, r.xirr_basis, r.since_purchase_return).value ?? null;
-    }
+    if (sort?.key === "returns") return r.since_purchase_return ?? null;
+    if (sort?.key === "xirr") return r.xirr ?? null;
     return null;
   };
   const shown = sort ? [...filtered].sort((a, b) => {
@@ -454,7 +470,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
       <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
         <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} className="px-4 py-4 font-medium" style={printMode && col.label === "Fund" ? { width: "28%" } : undefined}
+          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : "px-4 py-4 font-medium"} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
             {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
@@ -516,13 +532,14 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
         })}
         <tfoot className={printMode ? "table-footer-group" : "block sm:table-footer-group"}>
           <tr className={printMode ? "table-row border-t-2 border-[var(--ui-divider)] font-semibold" : "grid grid-cols-2 border-t-2 border-[var(--ui-divider)] font-semibold sm:table-row"}>
-            <td className="col-span-2 px-4 py-5">Total</td>
-            <td className="px-4 py-5">—</td><td className="px-4 py-5">—</td>
-            <td data-testid="foot-invested" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Invested</span>}{formatRupees(totalFor("amount_invested"))}</td>
-            <td data-testid="foot-value" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
-            <td data-testid="foot-gain" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
-            <td data-testid="foot-realized" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
-            <td className="px-4 py-5">—</td>
+            <td className={printMode ? "col-span-2 px-1 py-5" : "col-span-2 px-4 py-5"}>Total</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td><td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
+            <td data-testid="foot-invested" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Invested</span>}{formatRupees(totalFor("amount_invested"))}</td>
+            <td data-testid="foot-value" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
+            <td data-testid="foot-gain" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
+            <td data-testid="foot-realized" className={printMode ? "px-1 py-5" : "px-4 py-5"}>{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
+            <td className={printMode ? "px-1 py-5" : "px-4 py-5"}>—</td>
           </tr>
         </tfoot>
       </table>

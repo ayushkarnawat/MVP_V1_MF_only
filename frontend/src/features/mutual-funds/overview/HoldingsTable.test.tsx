@@ -1,3 +1,4 @@
+import { CAUTION_CHIP } from "../../../lib/xirrDisplay";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,7 +18,7 @@ const XIRR = { "S-KOTAK": "0.1420", "S-JM": "0.1860", "S-HDFC": "0.2130" };
 // FE-1b contract: OverviewPage builds xirrMetaByScheme from bench.data.funds in the
 // same mapping as xirrByScheme. Keys are scheme_id and metadata keeps the API names.
 // The optional prop is declared here so these tests type-check before the table accepts it.
-type XirrMetaByScheme = Partial<Record<string, Pick<FundBenchmarkRow, "xirr_as_of" | "xirr_basis" | "since_purchase_return">>>;
+type XirrMetaByScheme = Partial<Record<string, Pick<FundBenchmarkRow, "xirr_as_of" | "xirr_basis" | "since_purchase_return" | "xirr_caution">>>;
 type TableOverrides = Partial<Parameters<typeof HoldingsTable>[0]> & { xirrMetaByScheme?: XirrMetaByScheme };
 
 function table(over: TableOverrides = {}, routes = buildRegistry()) {
@@ -33,7 +34,7 @@ describe("HoldingsTable", () => {
   it("has the live count in its heading and the mockup's columns", () => {
     table();
     expect(screen.getByRole("heading", { name: "Mutual Funds (5)" })).toBeInTheDocument();
-    expect(screen.getAllByRole("columnheader").map(header => header.textContent?.replace(/[↑↓]/g, "").trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "XIRR", "Today's change"]);
+    expect(screen.getAllByRole("columnheader").map(header => header.textContent?.replace(/[↑↓]/g, "").trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "Returns", "XIRR", "Today's change"]);
   });
   it("shows a fund's figures, plan badge under the name and its category", () => {
     table();
@@ -102,9 +103,9 @@ describe("HoldingsTable", () => {
     expect(screen.getByTestId("sort-arrow")).toHaveTextContent("↑");
     expect(screen.getByRole("columnheader", { name: /Invested/ })).toHaveAttribute("aria-sort", "none");
   });
-  it("makes the five numeric headers sortable and leaves Fund and Category plain", () => {
+  it("makes the six numeric headers sortable and leaves Fund and Category plain", () => {
     table();
-    for (const name of ["Invested", "Value", "Gain/Loss", "XIRR", "Today's change"]) expect(screen.getByRole("button", { name: new RegExp(`^${name.replace("/", "\\/")}`) })).toBeInTheDocument();
+    for (const name of ["Invested", "Value", "Gain/Loss", "Returns", "XIRR", "Today's change"]) expect(screen.getByRole("button", { name: new RegExp(`^${name.replace("/", "\\/")}`) })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Fund$/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Category/ })).not.toBeInTheDocument();
   });
@@ -241,7 +242,6 @@ describe("HoldingsTable", () => {
   });
 });
 
-
 function familyParents() {
   const first = fx.holdings()[0];
   const children = [
@@ -256,27 +256,13 @@ function familyParents() {
 }
 
 describe("HoldingsTable: per-fund return basis", () => {
-  const shortReturn = { xirr_basis: "since_purchase", since_purchase_return: "0.2" } as const;
-  const shortLabel = "since purchase";
-  const shortAccessibleName = "Return since purchase, not annualised";
-
-  it("shows the main row's return since purchase with a visible and accessible label", () => {
-    table({
-      xirrByScheme: { "S-KOTAK": "0.8" },
-      xirrMetaByScheme: { "S-KOTAK": shortReturn },
-    });
-    const cell = within(row("S-KOTAK:m1")).getByTestId("xirr");
-    expect.soft(within(cell).queryByText(formatXirr("0.2"))).toBeInTheDocument();
-    expect(within(cell).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
-  });
-
   it.each(["annualised", "absent"] as const)("keeps the main-row value when the return basis is %s", basis => {
     table(basis === "absent" ? {} : {
       xirrMetaByScheme: { "S-KOTAK": { xirr_basis: "annualised", since_purchase_return: "0.2" } },
     });
     const cell = within(row("S-KOTAK:m1")).getByTestId("xirr");
     expect(cell).toHaveTextContent(/^14\.2%$/);
-    expect(within(cell).queryByText(shortLabel)).not.toBeInTheDocument();
+    expect(within(cell).queryByText("since purchase")).not.toBeInTheDocument();
   });
 
   it("shows the existing dash when same-day flows have null XIRR", () => {
@@ -284,57 +270,14 @@ describe("HoldingsTable: per-fund return basis", () => {
       xirrByScheme: { "S-KOTAK": null },
       xirrMetaByScheme: { "S-KOTAK": { xirr_basis: null, since_purchase_return: null } },
     });
-    expect(within(row("S-KOTAK:m1")).getByTestId("xirr")).toHaveTextContent(/^—$/);
-  });
-
-  it("sorts main rows by the displayed returns in both directions", () => {
-    const { props, rerender } = table({
-      holdings: loaded(fx.holdings().slice(0, 3)),
-      xirrByScheme: { ...XIRR, "S-KOTAK": "0.8" },
-      xirrMetaByScheme: { "S-KOTAK": shortReturn, "S-HDFC": { xirr_basis: "annualised" } },
-      sort: { key: "xirr", dir: "desc" },
-    });
-    expect.soft(rowIds()).toEqual(["S-HDFC:m3", "S-KOTAK:m1", "S-JM:m2"]);
-    rerender({ ...props, sort: { key: "xirr", dir: "asc" } });
-    expect(rowIds()).toEqual(["S-JM:m2", "S-KOTAK:m1", "S-HDFC:m3"]);
-  });
-
-  it("shows a consolidated parent row's own return since purchase and label", () => {
-    const parent: ConsolidatedHolding = { ...familyParents()[0], xirr: "0.8", ...shortReturn };
-    table({ consolidated: [parent] });
-    const cells = within(screen.getByTestId("parent-S-KOTAK:direct")).getAllByRole("cell");
-    const xirr = cells[cells.length - 1];
-    expect.soft(within(xirr).queryByText(formatXirr("0.2"))).toBeInTheDocument();
-    expect(within(xirr).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
-  });
-
-  it("sorts consolidated parents by the displayed returns", () => {
-    const short: ConsolidatedHolding = { ...familyParents()[0], xirr: "0.8", ...shortReturn };
-    const annualised: ConsolidatedHolding = {
-      ...familyParents()[0], scheme_id: "S-FABLE", scheme_name: "Fable Equity Fund", xirr: "0.21", xirr_basis: "annualised",
-    };
-    table({ consolidated: [short, annualised], sort: { key: "xirr", dir: "desc" } });
-    expect(screen.getAllByTestId(/^parent-/).map(parent => parent.getAttribute("data-testid"))).toEqual([
-      "parent-S-FABLE:direct", "parent-S-KOTAK:direct",
-    ]);
-  });
-
-  it("uses the expanded child's own return since purchase and label", () => {
-    const parent: ConsolidatedHolding = familyParents()[0];
-    parent.children[0] = { ...parent.children[0], xirr: "0.8", ...shortReturn };
-    table({ consolidated: [parent] });
-    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
-    const child = screen.getByTestId("member-S-KOTAK:direct:m1");
-    const cell = within(child).getByTestId("child-xirr");
-    expect.soft(within(cell).queryByText(formatXirr("0.2"))).toBeInTheDocument();
-    expect(within(cell).getByText(shortLabel)).toHaveAccessibleName(shortAccessibleName);
+    expect(within(row("S-KOTAK:m1")).getByTestId("xirr").textContent).toBe(formatXirr(null));
   });
 });
 
 describe("consolidated family holdings", () => {
   it("parent_row_shows_all_requirement_2_2_columns_and_a_split_bar", () => {
     table({ consolidated: familyParents() });
-    expect(screen.getAllByRole("columnheader").map(x => x.textContent)).toEqual(["Fund", "Units", "Avg price", "Invested", "Current value", "Unrealised", "Realised", "XIRR"]);
+    expect(screen.getAllByRole("columnheader").map(x => x.textContent)).toEqual(["Fund", "Units", "Avg price", "Invested", "Current value", "Unrealised", "Realised", "Returns", "XIRR"]);
     const parent = screen.getByTestId("parent-S-KOTAK:direct");
     expect(parent).toHaveTextContent("13.75");
     expect(parent).toHaveTextContent("₹550");
@@ -369,7 +312,7 @@ describe("consolidated family holdings", () => {
   });
   it("single_member_view_is_unchanged", () => {
     table();
-    expect(screen.getAllByRole("columnheader").map(x => x.textContent?.trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "XIRR", "Today's change"]);
+    expect(screen.getAllByRole("columnheader").map(x => x.textContent?.trim())).toEqual(["Fund", "Category", "Invested", "Value", "Gain/Loss", "Returns", "XIRR", "Today's change"]);
     expect(screen.queryByTestId("split-bar")).not.toBeInTheDocument();
   });
   it("fund_held_by_one_member_has_no_expander_or_bar", () => {
@@ -385,7 +328,6 @@ describe("consolidated family holdings", () => {
   });
 });
 
-
 it("keeps the family totals and never counts the expanded children twice", () => {
   table({ consolidated: familyParents() });
   expect(screen.getByTestId("foot-invested")).toHaveTextContent("₹550");
@@ -399,7 +341,6 @@ it("does not announce sorting on unsortable family columns", () => {
   table({ consolidated: familyParents() });
   expect(screen.getByRole("columnheader", { name: "Fund" })).not.toHaveAttribute("aria-sort");
 });
-
 
 it("split_shares_survives_exponent_negative_or_junk_units_without_crashing", () => {
   const parents = familyParents();
@@ -467,5 +408,130 @@ describe("holdings folio numbers: full, with one eye that hides them all", () =>
     const number = within(a).getByText("10234567 / 0");
     expect(number).toHaveClass("font-mono");
     expect(number).toHaveClass("[overflow-wrap:anywhere]");
+  });
+});
+
+describe("Returns and annualised XIRR columns", () => {
+  const meta: XirrMetaByScheme = {
+    "S-KOTAK": { xirr_basis: "since_purchase", since_purchase_return: "0.065", xirr_caution: "young" },
+    "S-JM": { since_purchase_return: "-0.001", xirr_caution: "single_transaction" },
+    "S-HDFC": { since_purchase_return: "0", xirr_caution: null },
+  };
+  const rates = { "S-KOTAK": "0.418", "S-JM": "0.1", "S-HDFC": "0" };
+  const show = () => table({ xirrByScheme: rates, xirrMetaByScheme: meta });
+  const cell = (key: string, id: string) => within(row(key)).getByTestId(id);
+  it("columns_are_gain_loss_returns_xirr_in_that_order", () => {
+    show(); const headers = screen.getAllByRole("columnheader").map(h => h.textContent?.trim());
+    expect(headers.slice(headers.indexOf("Gain/Loss"), headers.indexOf("XIRR") + 1)).toEqual(["Gain/Loss", "Returns", "XIRR"]);
+  });
+  it("returns_cell_shows_the_since_purchase_return_for_every_row", () => {
+    show();
+    for (const holding of fx.holdings()) {
+      expect(cell(`${holding.scheme_id}:${holding.household_member_id}`, "returns").textContent).toBe(formatXirr(meta[holding.scheme_id]?.since_purchase_return));
+    }
+  });
+  it("xirr_cell_shows_the_annualised_rate_never_the_since_purchase_figure", () => {
+    show();
+    expect(cell("S-KOTAK:m1", "xirr")).toHaveTextContent(formatXirr("0.418"));
+    expect(cell("S-KOTAK:m1", "xirr")).not.toHaveTextContent(formatXirr("0.065"));
+  });
+  it("chip_sits_on_the_xirr_cell_only_where_the_caution_applies", () => {
+    show();
+    for (const [id, caution] of [["S-KOTAK:m1", "young"], ["S-JM:m2", "single_transaction"]] as const) {
+      const chip = within(cell(id, "xirr")).getByTestId("xirr-caution");
+      expect(chip.textContent).toBe(CAUTION_CHIP[caution].text);
+      expect(chip).toHaveAttribute("title", CAUTION_CHIP[caution].tip);
+      expect(chip).toHaveAttribute("aria-label", CAUTION_CHIP[caution].tip);
+      expect(within(cell(id, "returns")).queryByTestId("xirr-caution")).toBeNull();
+    }
+    expect(within(cell("S-HDFC:m3", "xirr")).queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("the_since_purchase_sub_label_under_xirr_is_gone", () => {
+    show(); expect(screen.queryByText("since purchase")).toBeNull();
+  });
+  it("a_fund_bought_once_gets_one_transaction_while_its_neighbours_do_not", () => {
+    show(); expect(within(cell("S-JM:m2", "xirr")).getByText("one transaction")).toBeInTheDocument();
+    expect(within(row("S-HDFC:m3")).queryByTestId("xirr-caution")).toBeNull();
+    expect(within(row("S-KOTAK:m1")).queryByText("one transaction")).toBeNull();
+  });
+  it("family_parent_and_each_child_get_their_own_chip", () => {
+    const parent: ConsolidatedHolding = { ...familyParents()[0], xirr: "0.418", since_purchase_return: "0.065", xirr_caution: "young" };
+    parent.children[0] = { ...parent.children[0], since_purchase_return: "0", xirr_caution: "single_transaction" };
+    parent.children[1] = { ...parent.children[1], xirr: "-0.001", since_purchase_return: "-0.001", xirr_caution: "young" };
+    table({ consolidated: [parent] });
+    const parentRow = within(screen.getByTestId("parent-S-KOTAK:direct"));
+    expect(parentRow.getByTestId("returns").textContent).toBe(formatXirr("0.065"));
+    expect(within(parentRow.getByTestId("xirr")).getByTestId("xirr-caution").textContent).toBe(CAUTION_CHIP.young.text);
+    expect(within(parentRow.getByTestId("returns")).queryByTestId("xirr-caution")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+    for (const child of parent.children) {
+      const cells = within(screen.getByTestId(`member-S-KOTAK:direct:${child.household_member_id}`));
+      expect(cells.getByTestId("child-returns").textContent).toBe(formatXirr(child.since_purchase_return));
+      expect(cells.getByTestId("child-xirr")).toHaveTextContent(formatXirr(child.xirr));
+      const chip = within(cells.getByTestId("child-xirr")).getByTestId("xirr-caution");
+      expect(chip.textContent).toBe(CAUTION_CHIP[child.xirr_caution!].text);
+      expect(within(cells.getByTestId("child-returns")).queryByTestId("xirr-caution")).toBeNull();
+    }
+  });
+  it("more_than_four_members_shows_dashes_for_child_rows", () => {
+    const parent: ConsolidatedHolding = { ...familyParents()[0], since_purchase_return: "0.065" };
+    parent.children = ["m1", "m2", "m3", "m4", "m5"].map(id => ({ ...parent.children[0], household_member_id: id, household_member_name: id, xirr: null, since_purchase_return: null, xirr_caution: null }));
+    table({ consolidated: [parent] });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Kotak Multi Cap Fund" }));
+    for (const child of parent.children) {
+      const cells = within(screen.getByTestId(`member-S-KOTAK:direct:${child.household_member_id}`));
+      for (const id of ["child-xirr", "child-returns"]) expect(cells.getByTestId(id).textContent).toBe(formatXirr(null));
+      expect(cells.queryByTestId("xirr-caution")).toBeNull();
+    }
+    expect(within(screen.getByTestId("parent-S-KOTAK:direct")).getByTestId("returns").textContent).toBe(formatXirr("0.065"));
+  });
+  it("missing_returns_shows_a_dash_and_xirr_still_shows", () => {
+    table(); expect(cell("S-KOTAK:m1", "returns").textContent).toBe(formatXirr(null));
+    expect(cell("S-KOTAK:m1", "xirr").textContent).toBe(formatXirr(XIRR["S-KOTAK"]));
+    expect(within(row("S-KOTAK:m1")).queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("net_zero_row_shows_dashes_in_both", () => {
+    table({ xirrByScheme: { "S-KOTAK": null }, xirrMetaByScheme: { "S-KOTAK": { since_purchase_return: null, xirr_caution: null } } });
+    for (const id of ["returns", "xirr"]) expect(cell("S-KOTAK:m1", id).textContent).toBe(formatXirr(null));
+    expect(within(row("S-KOTAK:m1")).queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("sorts_by_returns_and_by_xirr_with_missing_values_last", () => {
+    const { props, rerender, unmount } = show();
+    for (const key of ["returns", "xirr"] as const) {
+      for (const dir of ["asc", "desc"] as const) {
+        rerender({ ...props, sort: { key, dir } });
+        const ordered = key === "returns" ? ["S-JM:m2", "S-HDFC:m3", "S-KOTAK:m1"] : ["S-HDFC:m3", "S-JM:m2", "S-KOTAK:m1"];
+        expect(rowIds().slice(0, 3)).toEqual(dir === "asc" ? ordered : [...ordered].reverse());
+        expect(rowIds().slice(3)).toEqual(["S-SBI:m3", "S-AXIS:m1"]);
+      }
+    }
+    unmount();
+    const parents: ConsolidatedHolding[] = [
+      { ...familyParents()[0], scheme_id: "S-A", xirr: "0.418", since_purchase_return: "-0.001", xirr_basis: "since_purchase" },
+      { ...familyParents()[0], scheme_id: "S-B", xirr: "0", since_purchase_return: "0.065" },
+      { ...familyParents()[0], scheme_id: "S-C", xirr: null, since_purchase_return: null },
+    ];
+    const family = table({ consolidated: parents });
+    for (const key of ["returns", "xirr"] as const) {
+      for (const dir of ["asc", "desc"] as const) {
+        family.rerender({ ...family.props, sort: { key, dir } });
+        const ordered = key === "returns" ? ["S-A", "S-B"] : ["S-B", "S-A"];
+        const expected = dir === "asc" ? ordered : [...ordered].reverse();
+        expect(screen.getAllByTestId(/^parent-/).map(parent => parent.getAttribute("data-testid"))).toEqual([...expected, "S-C"].map(id => `parent-${id}:direct`));
+      }
+    }
+  });
+  it("sort_menu_has_a_returns_entry", () => {
+    const { props } = show();
+    const controls = screen.getAllByRole("columnheader").map(h => within(h).queryByRole("button")).filter(h => h !== null);
+    const labels = controls.map(h => h.textContent?.trim());
+    expect(labels.slice(labels.indexOf("Gain/Loss"), labels.indexOf("XIRR") + 1)).toEqual(["Gain/Loss", "Returns", "XIRR"]);
+    fireEvent.click(screen.getByRole("button", { name: /^Returns/ }));
+    expect(props.onSort).toHaveBeenCalledWith({ key: "returns", dir: "desc" });
+  });
+  it("header_tooltips_use_the_owner_wording", () => {
+    show();
+    expect(screen.getByRole("columnheader", { name: /^Returns/ })).toHaveAttribute("title", "Total gain as a share of money paid in, not annualised.");
+    expect(screen.getByRole("columnheader", { name: /^XIRR/ })).toHaveAttribute("title", "Yearly rate, worked out from the dates of your investments.");
   });
 });
