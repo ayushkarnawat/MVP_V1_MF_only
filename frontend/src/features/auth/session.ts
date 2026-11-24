@@ -6,9 +6,14 @@ export interface SignInNotice {
 }
 
 let signInNotice: string | SignInNotice | null = null;
+let tokenOverride: string | null = null;
+
+export function setTokenOverride(token: string | null): void {
+  tokenOverride = token;
+}
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return tokenOverride ?? localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {

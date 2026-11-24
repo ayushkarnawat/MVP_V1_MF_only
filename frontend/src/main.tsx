@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { PrintAnalyticsView } from './features/analytics/print/PrintAnalyticsView.tsx'
+import { PrintReport } from './print/PrintReport.tsx'
 import { ReverseContactChangePage } from './features/auth/ReverseContactChangePage.tsx'
 import { UndoHeadChangePage } from './features/auth/UndoHeadChangePage.tsx'
 import { LegalPage, legalTypeForPath } from './features/legal/LegalPage.tsx'
@@ -18,7 +19,9 @@ const isReverseContactChangeRoute =
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isPrintRoute ? (
+    {window.location.pathname.replace(/\/+$/, "") === "/print/report" ? (
+      <PrintReport />
+    ) : isPrintRoute ? (
       <PrintAnalyticsView />
     ) : legalType ? (
       <LegalPage type={legalType} />

@@ -20,6 +20,7 @@ import {
   stockKey,
 } from "./holdingsLogic";
 import { filterStockRows, stockSearchNote } from "./stockSearch";
+import { usePrintMode } from "../../../lib/printMode";
 
 export function AllStocksTable({
   state,
@@ -30,15 +31,19 @@ export function AllStocksTable({
 }: AnalyticsCardProps<StockHoldingsSummary> & { anchor?: string; query?: string }) {
   const [sort, setSort] = useState<StockSort>("weight");
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const printMode = usePrintMode();
+  const RowControl = printMode ? "div" : "button";
+  const effectiveQuery = printMode ? "" : query;
+  const effectiveSort = printMode ? "weight" : sort;
 
   const rawRows = useMemo(() => equityRows(data), [data]);
   const filteredRows = useMemo(
-    () => (query ? filterStockRows(rawRows, query) : rawRows),
-    [rawRows, query],
+    () => (effectiveQuery ? filterStockRows(rawRows, effectiveQuery) : rawRows),
+    [rawRows, effectiveQuery],
   );
-  const sortedRows = useMemo(() => sortStocks(filteredRows, sort), [filteredRows, sort]);
+  const sortedRows = useMemo(() => sortStocks(filteredRows, effectiveSort), [filteredRows, effectiveSort]);
   const searchNote =
-    data && query && query.trim().length > 0
+    data && effectiveQuery && effectiveQuery.trim().length > 0
       ? stockSearchNote(data, rawRows.length)
       : null;
 
@@ -59,7 +64,7 @@ export function AllStocksTable({
             <p className="text-xs text-[var(--ui-text-muted)]">{searchNote}</p>
           )}
           {/* Sort stocks controls */}
-          <div
+          {!printMode && <div
             role="group"
             aria-label="Sort stocks"
             className="inline-flex self-start rounded-lg border border-[var(--ui-divider)] p-0.5"
@@ -84,11 +89,11 @@ export function AllStocksTable({
                 </button>
               );
             })}
-          </div>
+          </div>}
 
-          <p className="text-xs text-[var(--ui-text-muted)]">
+          {!printMode && <p className="text-xs text-[var(--ui-text-muted)]">
             Click a stock to see exactly which of your funds hold it, and at what weight within each fund.
-          </p>
+          </p>}
 
           <CoverageBanner coverage={data.coverage} excludedShare={data.excluded_share} />
 
@@ -97,10 +102,10 @@ export function AllStocksTable({
               No equity stocks disclosed for this selection
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className={printMode ? undefined : "overflow-x-auto"}>
               <table
                 aria-label="All stock holdings"
-                className="w-full text-left text-xs"
+                className={printMode ? "w-full table-fixed text-left text-xs" : "w-full text-left text-xs"}
               >
                 <thead>
                   <tr className="border-b border-[var(--ui-divider)] text-[var(--ui-text-muted)]">
@@ -113,7 +118,7 @@ export function AllStocksTable({
                 <tbody className="divide-y divide-[var(--ui-divider)]">
                   {sortedRows.map((row, index) => {
                     const key = stockKey(row);
-                    const isOpen = activeOpenKey === key;
+                    const isOpen = Boolean(printMode) || activeOpenKey === key;
 
                     return (
                       <tr
@@ -125,22 +130,22 @@ export function AllStocksTable({
                           {index + 1}
                         </td>
                         <th scope="row" className="py-2.5 font-normal text-[var(--ui-text)]">
-                          <button
-                            type="button"
-                            aria-expanded={isOpen}
-                            data-clickable=""
-                            data-effect="expand"
-                            onClick={() => setOpenKey(isOpen ? null : key)}
+                          <RowControl
+                            type={printMode ? undefined : "button"}
+                            aria-expanded={printMode ? undefined : isOpen}
+                            data-clickable={printMode ? undefined : ""}
+                            data-effect={printMode ? undefined : "expand"}
+                            onClick={printMode ? undefined : () => setOpenKey(isOpen ? null : key)}
                             className="flex items-center gap-1.5 text-left font-medium hover:text-[var(--pos-text)]"
                           >
-                            <ChevronRight
+                            {!printMode && <ChevronRight
                               aria-hidden="true"
                               className={`h-3.5 w-3.5 shrink-0 transition-transform ${
                                 isOpen ? "rotate-90" : ""
                               }`}
-                            />
+                            />}
                             <span>{row.instrument_name}</span>
-                          </button>
+                          </RowControl>
                           {row.sector_raw && (
                             <span className="block text-[11px] text-[var(--ui-text-muted)] pl-5">
                               {row.sector_raw}
@@ -158,7 +163,7 @@ export function AllStocksTable({
                   }).flatMap((el, idx) => {
                     const row = sortedRows[idx];
                     const key = stockKey(row);
-                    const isOpen = activeOpenKey === key;
+                    const isOpen = Boolean(printMode) || activeOpenKey === key;
 
                     if (!isOpen) return [el];
 
@@ -185,9 +190,9 @@ export function AllStocksTable({
                                   data-testid={`stock-fund-${key}-${fund.scheme_id}`}
                                   className="flex items-center gap-2"
                                 >
-                                  <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                                  {printMode ? <span aria-hidden="true">{fund.scheme_name.slice(0, 1)}</span> : <SchemeLogo schemeName={fund.scheme_name} size="sm" />}
                                   <span>
-                                    <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink> · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
+                                    {printMode ? fund.scheme_name : <FundLink schemeId={fund.scheme_id}>{fund.scheme_name}</FundLink>} · {lookthroughPercent(fund.stock_weight_pct)}% of fund ·{" "}
                                     {lookthroughPercent(prod)}% of portfolio
                                     {age ? ` · ${age}` : ""}
                                   </span>
@@ -214,12 +219,14 @@ export function AllStocksTable({
                 : `${data.total_stock_count} distinct stocks held across your funds.`}
             </p>
 
-            <AppLink
+            {printMode ? <span className="text-[var(--ui-text-muted)]">
+              {formatPercent(data.non_equity_share, { digits: 1 })} in non-equity positions — debt, gold, cash and other holdings
+            </span> : <AppLink
               to={paths.mutualFunds.allocation()}
               className="text-[var(--pos-text)] hover:underline self-start font-medium"
             >
               {formatPercent(data.non_equity_share, { digits: 1 })} in non-equity positions — debt, gold, cash and other holdings
-            </AppLink>
+            </AppLink>}
           </div>
         </div>
       )}

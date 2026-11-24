@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
 import { ImportContext, ScopeContext } from "../scope/ScopeContext";
 import { TopBar } from "./TopBar";
+vi.mock("../../features/auth/AuthContext", () => ({ useAuth: () => ({ me: null }) }));
 
 function mount(path = "/home") {
   const openImport = vi.fn();
@@ -68,4 +69,23 @@ it("no-selector pages omit the selector without moving the rest", () => {
 it("the bar uses only shell tokens: no hex colour in its markup", () => {
   mount();
   expect(document.body.innerHTML).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+});
+
+it("the Export PDF button is first in the right-hand group, before the family selector", () => {
+  mount();
+  const mira = screen.getByRole("button", { name: /Ask Mira/ });
+  const exportBtn = screen.getByRole("button", { name: "Export PDF" });
+  const selector = screen.getByRole("combobox", { name: "Portfolio scope" });
+  expect(before(mira, exportBtn)).toBe(true);
+  expect(before(exportBtn, selector)).toBe(true);
+});
+
+it("it renders with hasData from useHasFunds (unknown shows it enabled)", () => {
+  mount();
+  const exportBtn = screen.getByRole("button", { name: "Export PDF" });
+  expect(exportBtn).not.toHaveAttribute("aria-disabled", "true");
+});
+
+it("the wired ExportHost opens choose from the existing top-bar position", () => {
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Export PDF" })); expect(screen.getByRole("dialog", { name: "Export a PDF report" })).toBeInTheDocument();
 });

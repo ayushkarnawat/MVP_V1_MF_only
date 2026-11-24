@@ -108,6 +108,18 @@ export function formatDataDate(kind: DataDateKind, iso: string | null | undefine
   return `${KIND_FORMAT[kind].noun} ${tail}`;
 }
 
+export function formatDataDateParts(kind: DataDateKind, iso: string | null | undefined): { label: string; value: string } | null {
+  const parsed = parseCalendarDate(iso);
+  if (!parsed) return null;
+  const spec = KIND_FORMAT[kind];
+  return {
+    label: `${spec.noun} ${spec.prep}`,
+    value: spec.tier === "day"
+      ? `${parsed.day} ${SHORT_MONTHS[parsed.month - 1]} ${parsed.year}`
+      : `${FULL_MONTHS[parsed.month - 1]} ${parsed.year}`,
+  };
+}
+
 /**
  * Returns whether a data date is older than its expected cadence relative to `today`.
  * Kinds without a defined cadence always return `{ older: false, label: null }`.

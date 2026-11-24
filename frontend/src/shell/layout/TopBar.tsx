@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { Button } from "../../components/ui/button";
+import { ExportHost } from "../../features/export/ExportHost";
 import { useImport } from "../scope/ScopeContext";
 import { MiraComingSoonDialog } from "../mira/MiraComingSoonDialog";
 import { FamilySelector } from "./FamilySelector";
@@ -20,6 +21,7 @@ export function TopBar() {
       <span className="truncate text-[var(--shell-text-secondary)]">Ask anything about your funds…</span>
     </button>
     <div className="ml-auto flex flex-wrap items-center gap-3">
+      <ExportHost />
       <FamilySelector />
       <Button variant="outline" onClick={() => openImport()} className="rounded-xl border-[var(--shell-border-input)] text-[var(--shell-text)] hover:bg-[var(--shell-page)] focus-visible:ring-[var(--shell-accent)]">+ Add data</Button>
       <span role="separator" aria-orientation="vertical" className="h-6 w-px bg-[var(--shell-border-input)]" />
