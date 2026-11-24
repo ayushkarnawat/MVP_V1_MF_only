@@ -1,4 +1,5 @@
-# M4 lane board (updated 2026-11-24; the single page to follow)
+# M4 lane board (updated 2026-11-24, late; the single page to follow)
+**STATUS 24 Nov, late: the build is finished and frozen.** All lanes are done and merged (`batch/i-be`, `batch/i-fe`, `batch/h-checklist` into `m4-candidate`, then into `leapswitch-redesign`); tag `m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951` is pushed; the independent security review found no blockers and its fixes are in; the manager's Claude is running the staging deploy from `2026-11-24-staging-deploy-guide-m4.md`. **Nothing is queued for Codex or Antigravity** (a fix packet is written only if the deploy's step 9 or the QA round finds a problem). The sections below are the history of how it was built.
 **Same workflow as M3: two Codex lanes and four Antigravity lanes, each lane is one project that does one task after another. The orchestrator (Claude) writes every handoff and packet, runs every check, and commits. The owner relays a prompt, pastes the report back, and gets the next prompt.**
 Milestone M4 = **Batch I (PDF export)** + **Batch H part 2 (the floating checklist)**, then the owner's one QA round, then the M4 staging deploy by the manager. Decisions: `decisions.md` (24 Nov), `2026-11-24-print-audit.md`.
 

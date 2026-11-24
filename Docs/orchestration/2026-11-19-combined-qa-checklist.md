@@ -1,4 +1,4 @@
-# Combined QA checklist (the one QA round, after M4)
+# Combined QA checklist (the one QA round, after M4; M1 to M4 sections all written, 24 Nov 2026)
 
 **Living document.** Started 19 Nov 2026 when M1 went to staging. Each milestone adds its section when it is frozen (the deploy guide's "facts for the checklist"), so by the end of M4 this is the one list for the single QA round the program plan calls for (`2026-11-17-program-execution-and-deployment-plan.html`, section 10). Milestones get only a quick verify when they deploy; everything below is checked **once, together, after M4**, then each defect becomes a failing test first, then a fix, then a patch deploy.
 
@@ -95,11 +95,50 @@ Part 2 of Batch D (benchmark checklist and legend, the day's-change pop-up, the 
 
 Known open owner decisions from this release: whether Sectoral and Thematic funds should rank in one pool (AMFI's October report counts them as two categories; `2026-11-20-rk5-cross-checks-part-2.md`); keep or remove `home-tokens.css` and the four undefined Home variables (`decisions.md`, 20 Nov).
 
-## M3 (search and navigation): to be added when M3 is frozen
-Known so far: the search box on every page; scope switching and Undo; logout clears the search; the section index on each tab and the strip; no new dates where none existed (Batches K, F, E).
+## M3 (deployed 23 Nov 2026 from `2026-11-23-staging-deploy-guide-m3.md`, tag `m3-rc` = `9f776a34`, Alembic 0054): search (Batch K), dates (Batch E), the section index (Batch F)
+| # | Step | Expected | Result |
+|---|---|---|---|
+| M3-1 | Top bar on every page | Ask Mira is a wide soft-green pill at the left; the family selector, + Add data, a divider and the theme toggle are at the right; the old "Search investments" input is gone | |
+| M3-2 | Search box on Mutual Funds Overview: press Ctrl+S (Cmd+S on Mac) | The box opens; typing a fund house, a category, a manager, a member, a SIP or a page word shows a dropdown with chips and groups; recent funds and recent searches appear when the box is empty | |
+| M3-3 | Pick a result that lives on another tab or section | You land on it with the place highlighted; if the jump needs another family member, the selector switches and an **Undo** notice appears; Undo restores the previous selection | |
+| M3-4 | Press Enter with a word in the box, on each tab: Overview, Transactions, Holdings, Performance, Overlap, Other Analytics | The list you are looking at filters (Overview funds and SIPs; Transactions ledger, a type word such as "SIP" drives the type toggle; Holdings all-stocks table; Performance fund versus benchmark; Overlap pairs and common stocks; Other Analytics per-fund lists); clearing the box restores the list | |
+| M3-5 | A fund name with a number ("Nifty 500", "Nifty 50") | Should find the fund (the number must not be read as an amount or a year). `decisions.md` 23 Nov records this as a finding: note whether it was fixed or still loses the word | |
+| M3-6 | Home, History, Portfolio, Planning and a fund page | Jump-only search (no list filtering); Planning's three views have the box | |
+| M3-7 | The all-holdings pop-up, the compare list on a fund page, Import history | Each has its own search field ("Search imports" on Import history) | |
+| M3-8 | Sign out and sign in as another user | The search box shows no recents from the previous user | |
+| M3-9 | "On this page" rail on Overview, Performance, Allocation, Overlap, Other Analytics | A frosted rail at the right edge lists the sections; clicking jumps; the highlight follows the scroll; Pin keeps it open; below 1100 px it is a corner pill | |
+| M3-10 | Dates | Prices read "Prices as on 12 Nov 2026"; monthly data reads as a month ("Holdings as on September 2026", "Fees as on March 2026"); the market-cap list reads "Market-cap list effective 1 Jul 2026" | |
+| M3-11 | Allocation and Other Analytics | A date strip sits under the tabs; an amber "N funds have older holdings" marker appears when some funds are behind; no strip appears on other tabs | |
+| M3-12 | Every small "i" (hover, focus, click) | The same pop-up opens; click pins it; Escape closes it; light and dark | |
+| M3-13 | Other Analytics, Valuation by Fund | No source pills, no footnote, no "As on" column; one "i" per fund | |
+| M3-14 | The day's-change pop-up note | Reads "Prices as on <weekday date>" | |
+| M3-15 | The old link `ls-staging.unifolio.in` | Still works; two sentences read with a month ("holdings as on September 2026", the printed-benchmark note shows "September 2026", not an ISO date) | |
+| M3-16 | `GET /household/search-index` without a token | `401` (new route live and protected) | |
 
-## M4 (final): to be added when M4 is frozen
-Known so far: a full PDF report for a large household, the disclaimer line, memory within limits during an export, a failed export offering the browser fallback (Batch I); the CAMS tutorial video and the floating checklist (Batch H); Firefox and Safari for the tutorial fallback.
+Known open items from this release (`decisions.md`): the Overview sold list, the Transactions period panel, the Holdings fund chip, the Performance month table, Allocation's "open this slice", picking a Planning scenario from search; the search endpoint was tested on SQLite, not yet against real Postgres data.
+
+## M4 (frozen 24 Nov 2026, tag `m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`, Alembic 0054; guide `2026-11-24-staging-deploy-guide-m4.md`): the PDF report (Batch I) and the floating CAMS checklist (Batch H part 2)
+**The pipeline had never run end to end outside tests before the deploy: every row below is a first real check.** The manager's Claude runs step 9 of the guide (including the owner's first real export); this section is the full pass.
+| # | Step | Expected | Result |
+|---|---|---|---|
+| M4-1 | Mutual Funds pages: the **Export PDF** button in the top bar | Visible (disabled with "Add data first" tooltip when there are no funds); opens the dialog | |
+| M4-2 | Dialog choices | "Who it is for": the family or one member; "What to include": Full report, This tab, Custom (a section tree you can expand); Cover page, "Data dates on every page", "Show folio numbers" switches; "Choose at least one section" when none is ticked | |
+| M4-3 | Export a Full report for the family (invented household) | A progress state, then "Your report is ready" and the file saves by itself; "Download again" saves a second copy from the browser | |
+| M4-4 | Open the PDF | Cover (Prepared for, scope line, data dates), a contents page **with page numbers that match the real pages**, a heading page per tab, every section drawn for paper, a running header and footer ("Generated ... Prices as on ...", page X of Y), a notes page last | |
+| M4-5 | Look for a PAN-like string and the folio numbers | No PAN anywhere; folios print in full, masked or not at all as the dialog option says | |
+| M4-6 | Export one member, then "This tab" from the Allocation tab, then a Custom pick of two sections with the cover off | Each PDF matches its choice; with the cover off there is no cover and no contents | |
+| M4-7 | Click Export twice in a row | The second is refused with a calm "wait" message (one report at a time, 15-second cool-down), not an error page | |
+| M4-8 | A large household (the biggest synthetic statements) | Finishes; time and page count are noted; if it fails, the dialog offers "Try again", "Export fewer sections" and "Print it from your browser instead" | |
+| M4-9 | A page that cannot be drawn | The report still prints; that section shows "failed to load" in place | |
+| M4-10 | Open the Overlap and Other Analytics sections in a real PDF | Drawn with real data (these were not drawn with real data before the deploy: the heatmap prints as the screen's bands) | |
+| M4-11 | Memory and temporary files, as read by the manager's Claude after the exports | No `500` in the log; `/tmp/unifolio-export/jobs` is empty after downloads; backend memory stays within limits | |
+| M4-12 | Import, upload from CAMS | The green button opens the **floating checklist**; its first step's "Open the CAMS form" button opens CAMS; it stays on top; ticks survive a reload; light and dark | |
+| M4-13 | The checklist in Chrome and in Edge; then in a browser without the floating window (Firefox, Safari) | Chrome and Edge: the floating window; Firefox and Safari: the same checklist as an in-page panel | |
+| M4-14 | The checklist's closed card and banners | Closing the window leaves the closed card; no extra card around the banner | |
+| M4-15 | `POST /export/report` without a token | `401` (live and protected) | |
+| M4-16 | The old analytics "Download PDF" | Still works as before (left in place on purpose) | |
+
+Known open items from this release (`decisions.md`, 24 Nov): the new wording list in each Codex report, for the owner's review (for example "Showing 15 of N fund pairs.", "<scope name>, <n> sections", "Member report · N funds · N folios"); the real recording of the CAMS walk-through video (H-5); the accepted security follow-ups (an old-file sweep at start-up, WebSocket filter, a pass tied to its job, one status code for every refusal, the Chromium sandbox); the heatmap stays as screen bands.
 
 ## Cross-batch regression list (kept from the program plan, section 10)
 Sign-up, sign-in and OTP with a real inbox and a real phone; import and the new member (the drop-down, the landing, the wrong-person case, the tutorial link); the numbers (XIRR tile and column, a rank and its total, the category average, the same household before and after); folios (eye and Copy); charts; search; navigation and dates; PDF; browser and size (Chrome and Edge at three laptop sizes, light and dark).
