@@ -125,7 +125,7 @@ def portfolio_xirr(
 def portfolio_xirr_display(rate: Decimal | None, cash_flows: list[tuple[date, Decimal]]) -> PortfolioXirrDisplay:
     """Choose the tile or fund-column display using the exact flows passed to the solver."""
     # Owner decision, 24 Nov 2026: XIRR always leads; caution only warns about its interpretation.
-    # Keep basis for the old link; no screen reads it any more.
+    # Keep basis for the old link (ls-staging and older bundles still read it); the new screens do not.
     end = cash_flows[-1][0]
     if all(day == end for day, _ in cash_flows):
         # A same-day balance of zero fits every rate. Keep the raw solve for window callers.
