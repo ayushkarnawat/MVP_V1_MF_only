@@ -1,0 +1,16 @@
+:root {
+  --print-white: #ffffff;
+  --print-ink: #111111;
+  --print-ink-2: #475467;
+  --print-ink-3: #667085;
+  --print-green: #22c55e;
+  --print-green-ink: #15803d;
+  --print-band-1: #14532d;
+  --print-band-2: #15803d;
+  --print-band-3: #22c55e;
+  --print-band-ring: rgba(255, 255, 255, 0.18);
+  --print-band-eyebrow: #bbf7d0;
+  --print-hairline: #e6e9ec;
+  --print-leader: #cad0ca;
+  --print-row-rule: #f5f6f5;
+}

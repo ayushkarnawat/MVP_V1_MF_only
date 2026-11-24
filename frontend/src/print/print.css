@@ -1,0 +1,466 @@
+@page {
+  size: A4;
+  margin: 24mm 15mm 16mm 15mm;
+
+  @top-left {
+    content: "Mutual Fund Portfolio Report";
+    font-family: "DM Sans", sans-serif;
+    font-weight: 700;
+    font-size: 9.4pt;
+    color: var(--print-ink);
+    background: url("./logos/ring.png") no-repeat -1.3mm 6.2mm;
+    background-size: 8.4mm;
+    padding-left: 7.6mm;
+    vertical-align: top;
+    padding-top: 10.9mm;
+    border-bottom: 1pt solid var(--print-green);
+  }
+
+  @top-center {
+    content: "";
+    border-bottom: 1pt solid var(--print-green);
+  }
+
+  @top-right {
+    content: var(--print-header-scope, "");
+    font-family: "Manrope", sans-serif;
+    font-weight: 400;
+    font-size: 8.8pt;
+    color: var(--print-ink-2);
+    vertical-align: top;
+    padding-top: 9.2mm;
+    border-bottom: 1pt solid var(--print-green);
+  }
+
+  @bottom-left {
+    content: var(--print-footer-left, "");
+    font-family: "Manrope", sans-serif;
+    font-weight: 400;
+    font-size: 8pt;
+    color: var(--print-ink-3);
+    vertical-align: top;
+    padding-top: 4mm;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: "Manrope", sans-serif;
+    font-weight: 400;
+    font-size: 8pt;
+    color: var(--print-ink-3);
+    vertical-align: top;
+    padding-top: 4mm;
+  }
+}
+
+@page cover {
+  margin: 0;
+
+  @top-left {
+    content: none;
+  }
+
+  @top-center {
+    content: none;
+  }
+
+  @top-right {
+    content: none;
+  }
+
+  @bottom-left {
+    content: none;
+  }
+
+  @bottom-right {
+    content: none;
+  }
+}
+
+:root, body {
+  margin: 0;
+  padding: 0;
+}
+
+.print-template {
+  background: var(--print-white);
+  color: var(--print-ink);
+  font-family: "Manrope", sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Cover (page 1) */
+.print-cover {
+  page: cover;
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  background: var(--print-white);
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+}
+
+.print-cover-band {
+  position: relative;
+  width: 100%;
+  height: 148mm;
+  background: linear-gradient(135deg, var(--print-band-1) 0%, var(--print-band-2) 55%, var(--print-band-3) 100%);
+  overflow: hidden;
+}
+
+.print-cover-ring {
+  position: absolute;
+  left: calc(170.5mm - 79.6mm);
+  top: calc(53.6mm - 79.6mm);
+  width: 159.2mm;
+  height: 159.2mm;
+  border-radius: 50%;
+  border: 18.6mm solid var(--print-band-ring);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.print-cover-logo-card {
+  position: absolute;
+  left: 15mm;
+  top: 15mm;
+  width: 41.2mm;
+  height: 17.2mm;
+  border-radius: 3.5mm;
+  background: var(--print-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.print-cover-logo {
+  width: 30mm;
+  height: auto;
+  display: block;
+}
+
+.print-cover-eyebrow {
+  position: absolute;
+  left: 15mm;
+  top: 70.2mm;
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  font-size: 8pt;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--print-band-eyebrow);
+}
+
+.print-cover-title {
+  position: absolute;
+  left: 15mm;
+  top: 78.5mm;
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 40pt;
+  line-height: 44pt;
+  color: var(--print-white);
+}
+
+.print-cover-prepared-label {
+  position: absolute;
+  left: 15.2mm;
+  top: 165.5mm;
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 8.3pt;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--print-ink-3);
+}
+
+.print-cover-name {
+  position: absolute;
+  left: 15.2mm;
+  top: 172.5mm;
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 22pt;
+  line-height: 1.15;
+  color: var(--print-ink);
+}
+
+.print-cover-sub {
+  position: absolute;
+  left: 15.2mm;
+  top: 183.4mm;
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 11pt;
+  line-height: 1.3;
+  color: var(--print-ink-2);
+}
+
+.print-cover-rule {
+  position: absolute;
+  left: 15mm;
+  top: 212mm;
+  width: 180mm;
+  height: 1px;
+  background: var(--print-hairline);
+}
+
+.print-cover-meta {
+  position: absolute;
+  left: 15.2mm;
+  top: 217.4mm;
+  width: 180mm;
+  display: grid;
+  grid-template-columns: 61.6mm 61.8mm 56.6mm;
+}
+
+.print-cover-meta-label {
+  margin: 0 0 0.4mm 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 8.3pt;
+  line-height: 1.2;
+  color: var(--print-ink-3);
+}
+
+.print-cover-meta-value {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 10.6pt;
+  line-height: 1.3;
+  color: var(--print-ink);
+}
+
+.print-cover-disclaimer {
+  position: absolute;
+  left: 15mm;
+  top: 273.2mm;
+  width: 178.1mm;
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 7pt;
+  line-height: 3.9mm;
+  color: var(--print-ink-3);
+}
+
+/* Running header & footer (DOM fallback for non-print preview/tests; hidden when @page margin boxes draw) */
+.print-running-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 3mm;
+  margin-bottom: 4mm;
+  border-bottom: 1pt solid var(--print-green);
+}
+
+.print-running-header-left {
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+}
+
+.print-running-header-logo {
+  width: 6.8mm;
+  height: 6.8mm;
+  display: block;
+}
+
+.print-running-header-title {
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 8.5pt;
+  color: var(--print-ink);
+}
+
+.print-running-header-scope {
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 9pt;
+  color: var(--print-ink-2);
+}
+
+.print-running-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 7pt;
+  color: var(--print-ink-3);
+  margin-top: 6mm;
+}
+
+@media print {
+  .print-running-header,
+  .print-running-footer {
+    display: none;
+  }
+}
+
+/* Contents */
+.print-contents {
+  width: 180mm;
+}
+
+.print-contents-eyebrow {
+  margin: 0.5mm 0 4.2mm 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 8.5pt;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--print-green-ink);
+}
+
+.print-contents-title {
+  margin: 0 0 10.6mm 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 27pt;
+  line-height: 1.15;
+  color: var(--print-ink);
+}
+
+.print-contents-group {
+  margin-bottom: 2.2mm;
+}
+
+.print-contents-group-label {
+  margin: 0 0 3.7mm 0;
+  padding-top: 1.1mm;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 7.5pt;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--print-green-ink);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.print-contents-row {
+  display: flex;
+  align-items: baseline;
+  height: 9.65mm;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--print-row-rule);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-contents-entry-title {
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  font-size: 10.5pt;
+  color: var(--print-ink);
+}
+
+.print-contents-leader {
+  flex: 1;
+  border-bottom: 1px dotted var(--print-leader);
+  margin: 0 2.5mm;
+  transform: translateY(-0.25em);
+}
+
+.print-contents-page {
+  font-family: "Manrope", sans-serif;
+  font-weight: 500;
+  font-size: 10.5pt;
+  color: var(--print-ink);
+  text-align: right;
+  min-width: 6mm;
+}
+
+/* Tab and Section Headings */
+.print-tab-heading {
+  break-before: page;
+  page-break-before: always;
+  margin-bottom: 8mm;
+}
+
+.print-tab-eyebrow {
+  margin: 1.1mm 0 3mm 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 700;
+  font-size: 8.5pt;
+  line-height: 1;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--print-green-ink);
+}
+
+.print-tab-title {
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 28pt;
+  line-height: 1.15;
+  color: var(--print-ink);
+}
+
+.print-section-heading {
+  margin-bottom: 5.6mm;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.print-section-title {
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 16pt;
+  line-height: 1;
+  color: var(--print-ink);
+}
+
+.print-section-subtitle {
+  margin: 2.5mm 0 0 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 8.5pt;
+  line-height: 1.3;
+  color: var(--print-ink-3);
+}
+
+/* Notes page */
+.print-notes-list {
+  margin-top: 3mm;
+}
+
+.print-notes-block {
+  margin-bottom: 5.4mm;
+  max-width: 180mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-notes-heading {
+  margin: 0 0 1.7mm 0;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
+  font-size: 10.5pt;
+  line-height: 1.3;
+  color: var(--print-ink);
+}
+
+.print-notes-paragraph {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-weight: 400;
+  font-size: 9.5pt;
+  line-height: 1.55;
+  color: var(--print-ink-2);
+}
