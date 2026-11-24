@@ -51,18 +51,22 @@ export interface HoldingsTableProps {
 }
 
 function CautionChip({ caution }: { caution: XirrCaution }) {
+  const printMode = usePrintMode();
   const { text, tip } = CAUTION_CHIP[caution];
   const tone =
     caution === "young"
       ? "bg-[var(--warn-bg)] text-[var(--warn-text)]"
       : "border border-[var(--ui-divider)] bg-[var(--ui-card)] text-[var(--ui-text-muted)]";
+  const size = printMode
+    ? "px-1.5 py-0.5 text-[10px] leading-tight text-center whitespace-normal"
+    : "px-2 py-0.5 text-[11px]";
   return (
     <span
       role="note"
       data-testid="xirr-caution"
       title={tip}
       aria-label={tip}
-      className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}
+      className={`inline-flex w-fit items-center rounded-full font-medium ${size} ${tone}`}
     >
       {text}
     </span>
@@ -202,8 +206,8 @@ function HoldingsTableContent({
           <table className={`w-full text-left text-sm${printMode ? " table-fixed" : ""}`}>
             <thead>
               <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
-                <th className="py-3 pr-4 font-medium">Fund</th>
-                <th className="py-3 px-4 font-medium">Category</th>
+                <th className="py-3 pr-4 font-medium" style={printMode ? { width: "24%" } : undefined}>Fund</th>
+                <th className="py-3 px-4 font-medium" style={printMode ? { width: "11%" } : undefined}>Category</th>
                 {sortColumns.map(col => {
                   const isSorted = sort?.key === col.key;
                   const ariaSort = isSorted
@@ -251,7 +255,7 @@ function HoldingsTableContent({
                     }}
                     className={printMode ? "" : "cursor-pointer hover:bg-[var(--ui-row-hover)]"}
                   >
-                    <td className="py-3 pr-4">
+                    <td className={printMode ? "py-3 px-1" : "py-3 pr-4"}>
                       <div className="flex items-center gap-3">
                         {!printMode && <span data-testid="fund-logo" className="shrink-0">
                           <SchemeLogo
@@ -283,13 +287,13 @@ function HoldingsTableContent({
                         </div>
                       </div>
                     </td>
-                    <td data-testid="category" className="py-3 px-4 text-[var(--ui-text-muted)]">
+                    <td data-testid="category" className={`py-3 ${printMode ? "px-1" : "px-4"} text-[var(--ui-text-muted)]`}>
                       {categoryLabel(row.sebi_category)}
                     </td>
-                    <td data-testid="invested" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="invested" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       {formatRupees(row.amount_invested)}
                     </td>
-                    <td data-testid="value" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="value" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       {row.nav_unavailable || row.current_value == null
                         ? "—"
                         : formatRupees(row.current_value)}
@@ -301,16 +305,16 @@ function HoldingsTableContent({
                           ? undefined
                           : changeDirection(row.unrealized_gain)
                       }
-                      className="py-3 px-4 font-medium"
+                      className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium`}
                     >
                       {row.nav_unavailable || row.unrealized_gain == null
                         ? "—"
                         : formatSignedRupees(row.unrealized_gain)}
                     </td>
-                    <td data-testid="returns" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="returns" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       {formatXirr(xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return)}
                     </td>
-                    <td data-testid="xirr" className="py-3 px-4 font-medium text-[var(--ui-text)]">
+                    <td data-testid="xirr" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
                       <XirrFigure
                         value={xirrByScheme[row.scheme_id]}
                         caution={xirrMetaByScheme?.[row.scheme_id]?.xirr_caution}
@@ -321,7 +325,7 @@ function HoldingsTableContent({
                       data-direction={
                         todayPct !== null ? changeDirection(row.today_gain) : undefined
                       }
-                      className="py-3 px-4 font-medium"
+                      className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium`}
                     >
                       {todayPct !== null ? (
                         <div className="flex flex-col">
@@ -338,20 +342,20 @@ function HoldingsTableContent({
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[var(--ui-divider)] font-semibold text-[var(--ui-text)]">
-                <td className="py-3 pr-4">Total</td>
-                <td className="py-3 px-4"></td>
-                <td data-testid="foot-invested" className="py-3 px-4">
+                <td className={printMode ? "py-3 px-1" : "py-3 pr-4"}>Total</td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td data-testid="foot-invested" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatRupees(totals.invested)}
                 </td>
-                <td data-testid="foot-value" className="py-3 px-4">
+                <td data-testid="foot-value" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatRupees(totals.value)}
                 </td>
-                <td data-testid="foot-gain" className="py-3 px-4">
+                <td data-testid="foot-gain" className={printMode ? "py-3 px-1" : "py-3 px-4"}>
                   {formatSignedRupees(totals.unrealised)}
                 </td>
-                <td className="py-3 px-4"></td>
-                <td className="py-3 px-4"></td>
-                <td className="py-3 px-4"></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
+                <td className={printMode ? "py-3 px-1" : "py-3 px-4"}></td>
               </tr>
             </tfoot>
           </table>
