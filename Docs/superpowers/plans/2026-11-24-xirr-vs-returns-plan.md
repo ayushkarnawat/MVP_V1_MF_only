@@ -322,4 +322,7 @@ The packet states exactly:
 - **G1 (24 Nov):** Codex adversarial review of the backend (`346559bf..e11e101c`): PASS, no actionable findings (details in `delegation-log.md`).
 - **Deployment (owner, 24 Nov):** one combined staging guide deploys everything together once everything is done; Task 9's guide is an input to it, and Task 10 follows that combined guide.
 
+- **Visual fixes (24 Nov):** found in a throwaway browser harness (1440x900, light and dark): tile height jumps on a flip (fixed: chip row `min-h-6`, caption `min-h-[4.25rem]` with a disclaimer) and a cramped PDF-page table (fixed: print widths, `px-1`, two-line chip, Fund 20% and Category 10%). Details and numbers: `Docs/orchestration/2026-11-24-xr-visual-fixes.md` and `delegation-log.md`.
+- **Merged-tree verification (24 Nov, 23:59):** backend 4294 passed, 0 failed; front end 7178 passed, 1 failed (`route.test.tsx`, also fails on the untouched `m4-candidate`: pre-existing, not from this release).
+
 *(Claude appends below: deviations, gate results, deploy record link.)*
