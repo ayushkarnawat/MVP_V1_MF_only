@@ -14,8 +14,8 @@
 
 | Role | Does | Does not |
 |---|---|---|
-| **Claude (orchestrator)** | Wave-start check, the front-end contract (types and the shared helper), every handoff and packet, merges, commits, runs every worker's tests itself, screenshots from a real browser, reviews, docs, deploy guide, the deploy at the owner's go | Delegate design, the helper's interface, or anything about who sees what |
-| **Codex (backend worker)** | Backend rule and plumbing, backend tests, and **front-end red tests** (test files only) | Run FastAPI `TestClient` or async tests in its sandbox (they stall: it writes them, tries once, reports BLOCKED; Claude runs them), run WSL, commit |
+| **Claude (orchestrator)** | Wave-start check, **the contract written in this plan** (interfaces, JSON shapes, test names and ids), every handoff and packet, merges, commits, runs every worker's tests itself, screenshots from a real browser, reviews, docs, deploy guide, the deploy at the owner's go | Write product code (a worker does), delegate design, the interface in this plan, or anything about who sees what |
+| **Codex (backend worker)** | Backend rule and plumbing, backend tests, and **the front-end foundation (FE-1a, as in M2): the types, the small shared helper with its unit tests, and the front-end red tests** | Run FastAPI `TestClient` or async tests in its sandbox (they stall: it writes them, tries once, reports BLOCKED; Claude runs them), run WSL, commit |
 | **Antigravity (frontend worker)** | The flip component, both tiles, the Unrealised label, the holdings table; red tests first (shows them fail), then builds; runs checks through `wave-fe-check.sh` | Touch `backend/**`, edit a red test, commit, change any copy |
 Fallback if a worker runs out: Antigravity with Claude Sonnet 5.5 high, then "Gemini 4 Argon", then Gemini 3.8 high, then inline in Claude (memory: worker fallback order). The packets stay model-neutral.
 
@@ -76,13 +76,13 @@ Integration branch `batch/xr-returns` cut from `leapswitch-redesign`. Workers' f
 | Lane | Task | Worker | Folder | Branch |
 |---|---|---|---|---|
 | BE | 2, then 3 (in order) | Codex | `C:\Users\Dell\lanes\unifolio-xr-be` (new worktree) | `batch/xr-be` |
-| RT | 4 (front-end red tests, test files only) | Codex | `C:\Users\Dell\lanes\unifolio-xr-rt` (new worktree) | `batch/xr-rt` |
+| RT | 1 and 4 together (one handoff, FE-1a: types, helper, red tests) | Codex | `C:\Users\Dell\lanes\unifolio-xr-rt` (new worktree) | `batch/xr-rt` |
 | FE-1 | 5 | Antigravity | `C:\Users\Dell\ag-xr1` (new clone) | `ag/xr1-tiles` |
 | FE-2 | 6 | Antigravity | `C:\Users\Dell\ag-xr2` (new clone) | `ag/xr2-table` |
-| Claude | 0, 1, 7 to 11 | Claude | `C:\Users\Dell\lanes\unifolio-xr-returns` (integration worktree; check lane `xr`) and the docs worktree for documents | `batch/xr-returns` |
+| Claude | 0, 7 to 10 (no product code) | Claude | `C:\Users\Dell\lanes\unifolio-xr-returns` (integration worktree; check lane `xr`) and the docs worktree for documents | `batch/xr-returns` |
 Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at once, on disjoint files. Check lanes in `wave-fe-check.sh`: `xr` (integration), `ag-xr1`, `ag-xr2`. On this laptop run it with `wsl.exe -d Ubuntu -- env UNIFOLIO_WT_ROOT=/mnt/c/Users/Dell/lanes UNIFOLIO_AG_ROOT=/mnt/c/Users/Dell bash <script> <lane> <mode> <paths>` (literal values only; never shell variables through wsl.exe). Back-end test command: `cd backend; "C:\Users\Dell\Desktop\MVP v1\MVP_V1_MF_only\backend\.venv\Scripts\python.exe" -m pytest <files> -q -p no:cacheprovider`. Setup script for new worktrees and clones: `Docs/orchestration/2026-11-23-new-laptop-lane-setup.ps1`.
 
-**Order (fewest relays):** Round 1: Tasks 0 and 1 (Claude, no relay). Relay wave A (when Task 1 lands): Task 2 (Codex BE) and Task 4 (Codex RT) together, two Codex tasks on disjoint files (Task 4 needs only Task 1's contract, not Task 2). Relay wave B (when Tasks 2 and 4 land): Task 3 (Codex BE) and Tasks 5 and 6 (Antigravity) together; the front-end lanes use fixtures, not the live backend. Relay wave C: the G1 Codex review of the backend. Then only fix rounds, if any. Round 4: Tasks 7 to 9 (Claude). Round 5: Task 10 at the owner's go, then QA.
+**Order (fewest relays):** Round 1: Task 0 (done). Relay wave A: Task 2 (Codex BE) and Tasks 1 and 4 as one handoff (Codex RT, FE-1a) together, two Codex tasks on disjoint files (the RT lane needs only the contract in this plan, not Task 2). Relay wave B (when Task 2 and FE-1a land and I have verified and committed them): Task 3 (Codex BE) and Tasks 5 and 6 (Antigravity) together; the front-end lanes use fixtures, not the live backend. Relay wave C: the G1 Codex review of the backend. Then only fix rounds, if any. Round 4: Tasks 7 to 9 (Claude). Round 5: Task 10 at the owner's go, then QA.
 
 ## Handoff and packet rules (how Claude writes them later, during execution)
 
@@ -109,14 +109,14 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 - [ ] **Step 4: Record the baseline.** Run `backend/tests/services/analytics/xirr_reference/`, `backend/tests/api/test_dashboard_aggregate_routes.py`, `test_dashboard_holdings_route.py`, `test_portfolio_routes.py`, and the front-end files `features/portfolio/sections/SummaryStrip.test.tsx`, `features/mutual-funds/overview/{SummaryStrip,HoldingsTable,OverviewPage}.test.tsx`, `lib/xirrDisplay.test.ts` (if present). Record pass counts.
 - [ ] **Step 5: Palette decision for the `one transaction` chip.** Read the palette reference; the page drew it in a blue tint, which may not exist as a token. Default if none: a neutral chip (`--ui-card` background, `--ui-text-muted` text, `--ui-divider` border). Record the token in the drift note. **Decided in Task 0 (see the execution log):** the app has no informational tokens, so `one transaction` uses the neutral chip and `held under 1 yr` uses the existing partial-price chip look (`bg-[var(--warn-bg)] text-[var(--warn-text)]`, `rounded-full px-2 py-0.5 text-xs`). The legacy `components/Badge` is not reused (different token system, forces capitalised text).
 
-## Task 1: Front-end contract: types and the shared helper (Claude)
+## Task 1: Front-end foundation: types and the shared helper (Codex, lane RT; one handoff with Task 4, the M2 "FE-1a" pattern)
 
 **Files:**
 - Modify: `frontend/src/features/portfolio/types.ts`, `frontend/src/features/mutual-funds/types.ts`, `frontend/src/features/mutual-funds/api.ts`
 - Modify: `frontend/src/lib/xirrDisplay.ts` (keep the old exports until Task 7)
 - Test: `frontend/src/lib/xirrDisplay.test.ts` (new file; none exists today)
 
-**Interfaces:**
+**Interfaces (the contract: fixed here by the orchestrator, built by the worker):**
 - Produces (types, all optional so old payloads still type-check): `type XirrCaution = "young" | "single_transaction"`; `xirr_caution?: XirrCaution | null` on the per-fund and consolidated row types; `lifetime_xirr_caution?` and `current_holdings_xirr_caution?: XirrCaution | null` on the tile response types and on `XirrBundle`.
 - Produces (helper):
   ```ts
@@ -134,8 +134,8 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 - [ ] **Step 1: Write the failing tests** in `xirrDisplay.test.ts`: `resolveFigures_passes_both_numbers_and_the_caution`, `resolveFigures_turns_undefined_into_null`, `resolveFigures_keeps_a_zero_return_as_the_string_0` (assert `"0"` is not treated as missing), `caution_chip_text_and_tip_match_the_owner_wording` (exact strings above), `captions_match_the_owner_wording`; in `api.test.ts` (mutual-funds): `getHoldingsBundle_copies_the_two_caution_keys_when_present_and_omits_them_when_absent`.
 - [ ] **Step 2: Run them; confirm they fail** (`npx vitest run src/lib/xirrDisplay.test.ts src/features/mutual-funds/api.test.ts` through `wave-fe-check.sh`).
 - [ ] **Step 3: Implement** the types, `resolveFigures`, the constants and the bundle copy. One line of why in a comment on `resolveFigures`: "XIRR always leads; the old swap to the since-purchase figure is gone (owner, 24 Nov 2026)".
-- [ ] **Step 4: Run tests, `npx tsc -b`, `npx oxlint src/lib src/features/portfolio src/features/mutual-funds`; all green.** The old `resolveXirrDisplay` and its tests still pass.
-- [ ] **Step 5: Commit** `feat(xirr): front-end contract for the caution and the shared figures helper`.
+- [ ] **Step 4: Codex reports BLOCKED on running (no WSL); Claude runs the tests, `npx tsc -b` and `npx oxlint src/lib src/features/portfolio src/features/mutual-funds`: all green.** The old `resolveXirrDisplay` and the tests that use it still pass.
+- [ ] **Step 5: Claude verifies** (runs the tests through `wave-fe-check.sh`, since Codex cannot run WSL), reads the diff against the allowed list, and commits `feat(xirr): front-end types and the shared figures helper`. Codex writes the code; the interface above is the contract I fixed.
 
 ## Task 2: Backend rule and the tile path (Codex, lane BE)
 
@@ -185,15 +185,15 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 - [ ] **Step 4: Run; Claude runs the route tests itself** from the worktree's `backend/` with the Windows venv.
 - [ ] **Step 5: Gate G1 (mandatory):** dispatch `codex:codex-rescue` with `/codex:adversarial-review` against the Task 2 and 3 diff (read-only, never `isolation: worktree`), run in the background; the owner relays the review by hand. Findings are closed only by a fix with a red test first, or by the owner accepting them. Then Claude commits `feat(xirr): caution and since-purchase on holdings, consolidated and stored fund rows`.
 
-## Task 4: Front-end red tests (Codex, lane RT, test files only)
+## Task 4: Front-end red tests (Codex, lane RT; the second half of the same handoff as Task 1)
 
-**Files (only these; no source file):**
+**Files (test files only here; Task 1's own files are listed in Task 1):**
 - Modify: `frontend/src/features/portfolio/sections/SummaryStrip.test.tsx`, `frontend/src/features/mutual-funds/overview/SummaryStrip.test.tsx`, `frontend/src/features/mutual-funds/overview/HoldingsTable.test.tsx`, `frontend/src/features/mutual-funds/overview/OverviewPage.test.tsx`
 - Modify: `frontend/src/print/groups/overview/overview.print.test.tsx` (it imports `SINCE_PURCHASE_CAPTION`; it must assert the new columns and no old caption instead)
 - Create: `frontend/src/components/MeasureFlip.test.tsx`
 
 **Interfaces:**
-- Consumes: Task 1's `resolveFigures`, `CAUTION_CHIP`, `XIRR_CAPTION`, `RETURNS_CAPTION`.
+- Consumes: Task 1's `resolveFigures`, `CAUTION_CHIP`, `XIRR_CAPTION`, `RETURNS_CAPTION` (written in the same handoff, first).
 - **Fixes the component and the test ids that Tasks 5 and 6 must satisfy:**
   ```tsx
   // frontend/src/components/MeasureFlip.tsx (Task 5 creates it)
@@ -210,7 +210,7 @@ Capacity (owner, current): up to two Codex tasks and four Antigravity lanes at o
 
 - [ ] **Step 1: Write the red tests (names fixed).** `MeasureFlip.test.tsx`: `renders_the_children_and_the_title_of_the_current_face`, `button_name_is_show_returns_on_the_xirr_face_and_show_xirr_on_the_returns_face`, `calls_onFlip_on_click_enter_and_space`, `hides_the_button_when_canFlip_is_false`, `has_data_clickable_and_a_polite_live_region`, `focus_stays_on_the_button_after_a_flip`. Both tile test files (same set, adapted to each tile's data): `opens_on_xirr_with_the_annualised_caption`, `young_portfolio_shows_the_annualised_figure_and_the_held_under_1_yr_chip`, `flip_shows_returns_with_the_since_purchase_caption_and_no_chip`, `flip_back_returns_to_xirr`, `face_survives_the_lifetime_current_toggle`, `current_view_uses_its_own_figures_and_chip`, `single_transaction_shows_the_one_transaction_chip`, `both_conditions_show_only_held_under_1_yr`, `mature_multiple_buys_have_no_chip`, `opening_balance_disclaimer_link_works_on_either_face`, `not_computable_shows_a_dash_and_hides_the_flip_button`, `missing_since_purchase_hides_the_flip_button_and_xirr_still_shows`, `loading_and_error_states_are_unchanged`, `the_old_return_since_purchase_not_annualised_caption_is_gone_from_the_xirr_face`, `unrealised_percent_reads_return_on_invested_with_the_tooltip`, `old_payload_without_the_new_keys_renders_as_a_mature_portfolio_without_a_chip`. `HoldingsTable.test.tsx`: `columns_are_gain_loss_returns_xirr_in_that_order`, `returns_cell_shows_the_since_purchase_return_for_every_row`, `xirr_cell_shows_the_annualised_rate_never_the_since_purchase_figure`, `chip_sits_on_the_xirr_cell_only_where_the_caution_applies`, `the_since_purchase_sub_label_under_xirr_is_gone`, `a_fund_bought_once_gets_one_transaction_while_its_neighbours_do_not`, `family_parent_and_each_child_get_their_own_chip`, `more_than_four_members_shows_dashes_for_child_rows`, `missing_returns_shows_a_dash_and_xirr_still_shows`, `net_zero_row_shows_dashes_in_both`, `sorts_by_returns_and_by_xirr_with_missing_values_last`, `sort_menu_has_a_returns_entry`, `header_tooltips_use_the_owner_wording` (exact, as on the approved page: Returns = "Total gain as a share of money paid in, not annualised."; XIRR = "Yearly rate, worked out from the dates of your investments."). `OverviewPage.test.tsx`: `meta_mapping_passes_since_purchase_return_and_xirr_caution_for_every_fund`. `overview.print.test.tsx`: `printed_table_has_returns_and_xirr_columns_and_the_chip`, `printed_table_no_longer_shows_the_since_purchase_sub_label`, `print_mapping_passes_xirr_caution`.
 - [ ] **Step 2: Run them (Claude runs through `wave-fe-check.sh`; Codex cannot run WSL). Confirm each fails for the stated reason** (missing component, missing ids, old caption), and that the guard tests (`guards.test.ts`) still pass on today's tree.
-- [ ] **Step 3: Claude reads the diff, confirms only test files changed, commits** `test(xirr): red tests for the flip tile and the Returns and XIRR columns`. The red files are now fixed for Antigravity.
+- [ ] **Step 3: Claude reads the diff, confirms only the allowed files changed (the helper, types, `api.ts` and test files), commits** `test(xirr): red tests for the flip tile and the Returns and XIRR columns`. The red files are now fixed for Antigravity.
 
 ## Task 5: The flip component, both tiles and the Unrealised label (Antigravity, lane FE-1)
 
@@ -308,5 +308,7 @@ The packet states exactly:
 - **Q1 assumptions, checked in `backend/app/services/dashboard/xirr.py`:** (a) `DIVIDEND_REINVEST` appears only in `_LINEAGE_QUERY_TYPES` (the lineage replay), not in `_RELEVANT_TYPES` or `_FUND_RELEVANT_TYPES`, so a reinvested dividend is never a cash flow, as the owner decided. (b) `SWITCH_IN` is a debit only through `extra_debit_types` (the Current-holdings flows and the per-fund flows); the lifetime flows are filtered to `_RELEVANT_TYPES`, which has no switch types. So "count the negative flows the solver receives" already means what the owner decided; a gift received (`GIFT_IN`) is a debit and therefore counts as a purchase flow. Two purchases on one day are two flows.
 - **Baseline (before any change, on `batch/xr-returns` = `d9670b77`):** backend `tests/services/analytics/xirr_reference` plus `tests/services/dashboard/test_xirr.py`: **111 passed, 3 xfailed**; backend API `test_dashboard_aggregate_routes.py`, `test_dashboard_holdings_route.py`, `test_portfolio_routes.py`: **35 passed**; front end (portfolio SummaryStrip test, `features/mutual-funds/overview`, `mutual-funds/api.test.ts`, `guards.test.ts`, `print/groups/overview`): **15 files, 290 tests passed**.
 - **Chip token decision:** see Task 0 step 5.
+
+- **Plan change, 24 Nov 2026 (owner's question, checked against the M2 precedent):** in M2, FE-1a (front-end types and red tests) was a **Codex** task (`delegation-log.md`, 20 Nov: "FE-1a front-end red tests ... Codex, orchestrator ran and committed"), and Antigravity's packet FE-1b says "the red tests and types are done". This plan first had Claude writing Task 1's types and helper; it now follows the precedent: Tasks 1 and 4 are one Codex handoff (FE-1a). "Contract" means the interfaces, shapes and test names fixed in this plan, not the Antigravity packets.
 
 *(Claude appends below: deviations, gate results, deploy record link.)*
