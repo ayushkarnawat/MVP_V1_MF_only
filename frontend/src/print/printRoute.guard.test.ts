@@ -8,8 +8,8 @@ function files(folder: string): string[] {
 }
 const source = files(root).filter(file => /\.(tsx?|css)$/.test(file) && !/\.test\.tsx?$/.test(file));
 const read = (file: string) => readFileSync(file, "utf8");
-it("no hex colour or rgb() in print/ except print-runtime.css and the fonts file", () => {
-  expect(source.filter(file => !/print-runtime\.css$|print-fonts(?:\.stub)?\.css$/.test(file) && /#[\da-f]{3,8}\b|rgba?\(/i.test(read(file)))).toEqual([]);
+it("no hex colour or rgb() in print/ except print-runtime.css, print-tokens.css and the fonts files", () => {
+  expect(source.filter(file => !/print-runtime\.css$|print-tokens\.css$|print-fonts(?:\.stub)?\.css$/.test(file) && /#[\da-f]{3,8}\b|rgba?\(/i.test(read(file)))).toEqual([]);
 });
 it("no external URL in any style or font file", () => {
   expect(source.filter(file => /\.css$/.test(file) && /(?:https?:)?\/\/|@import\s+["']/.test(read(file)))).toEqual([]);
@@ -23,7 +23,7 @@ it("fonts load from the bundle, not Google", () => {
   }
 });
 it("no parseFloat, toFixed, Intl, console, any in print/", () => {
-  expect(source.filter(file => /parseFloat|toFixed|\bIntl\b|\bconsole\b|\bany\b/.test(read(file)))).toEqual([]);
+  expect(source.filter(file => /parseFloat|toFixed|\bIntl\b|\bconsole\b|:\s*any\b|\bas\s+any\b|<any>/.test(read(file)))).toEqual([]);
 });
 it("no import from another feature except the section components and session", () => {
   const offenders: string[] = [];

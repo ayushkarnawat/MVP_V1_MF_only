@@ -19,7 +19,7 @@ function walk(dir: string): string[] {
 
 const allFiles = walk(PRINT_DIR);
 // The guard itself names the patterns it forbids, so it is not scanned.
-const sourceFiles = allFiles.filter((f) => /\.(ts|tsx|css)$/.test(f) && !f.endsWith("printTemplate.guard.test.ts"));
+const sourceFiles = allFiles.filter((f) => /\.(ts|tsx|css)$/.test(f) && !/\.guard\.test\.ts$/.test(f));
 const nonTestSourceFiles = sourceFiles.filter((f) => !/\.test\.(ts|tsx)$/.test(f));
 
 describe("print template guard rails", () => {
@@ -28,7 +28,8 @@ describe("print template guard rails", () => {
     const rgbRe = new RegExp("rgba?\\s*\\(", "i");
     for (const file of sourceFiles) {
       const rel = relative(PRINT_DIR, file).replace(/\\/g, "/");
-      if (rel === "print-tokens.css") continue;
+      // The tokens file holds the template's colours; the route's runtime stylesheet and fonts stub belong to the print route.
+      if (/^(print-tokens|print-runtime)\.css$/.test(rel) || /^print-fonts(\.stub)?\.css$/.test(rel)) continue;
       const content = readFileSync(file, "utf8");
       expect(content, `${rel} contains hex colour`).not.toMatch(hexRe);
       expect(content, `${rel} contains rgb()`).not.toMatch(rgbRe);
@@ -89,7 +90,10 @@ describe("print template guard rails", () => {
       const content = readFileSync(file, "utf8");
       for (const match of content.matchAll(importRe)) {
         const target = match[1];
-        if (target.startsWith("@/features/") || target.includes("/features/")) {
+        // The template pieces import nothing from a feature; the route and the section wrappers may import the Mutual Funds
+        // sections, their types and the session (the route's own guard enforces the same rule from the other side).
+        const allowed = /\/features\/(?:mutual-funds\/|auth\/session$)/.test(target);
+        if ((target.startsWith("@/features/") || target.includes("/features/")) && !allowed) {
           throw new Error(`${rel} imports from another feature: ${target}`);
         }
       }
