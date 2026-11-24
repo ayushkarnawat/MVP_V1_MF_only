@@ -10,7 +10,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session as DbSession
 
 from app.db.session import get_db
@@ -124,10 +124,29 @@ def get_current_session(
     return session
 
 
+def get_optional_session(
+    authorization: str | None = Header(default=None),
+    db: DbSession = Depends(get_db),
+) -> SessionModel | None:
+    from app.services.export.pass_token import PASS_PREFIX
+
+    token = _extract_bearer_token(authorization)
+    if token.startswith(PASS_PREFIX):
+        return None
+    return get_current_session(authorization=authorization, db=db)
+
+
 def get_current_user(
-    session: SessionModel = Depends(get_current_session),
+    request: Request = None,
+    session: SessionModel | None = Depends(get_optional_session),
+    authorization: str | None = Header(default=None),
+    x_export_proof: str | None = Header(default=None),
     db: DbSession = Depends(get_db),
 ) -> User:
+    if session is None:
+        from app.services.export.pass_token import user_from_pass
+
+        return user_from_pass(request, _extract_bearer_token(authorization), x_export_proof, db)
     user = db.get(User, session.user_id)
     if not user:
         raise HTTPException(status_code=401, detail="Session references a deleted user.")

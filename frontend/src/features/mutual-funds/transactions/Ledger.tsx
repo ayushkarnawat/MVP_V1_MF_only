@@ -10,6 +10,7 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { FolioNumber } from "../../../components/mf/FolioNumber";
 import { transactionLabel } from "../../../components/mf/periodBreakdown";
 import { formatDate, formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import type { SearchChip } from "../../../components/search/usePageSearchState";
 import type { InvestmentWithdrawalBucket } from "../types";
 import { searchLedgerRows } from "./ledgerSearch";
@@ -58,11 +59,13 @@ function kindBgClass(kind: LedgerKind): string {
 export function Ledger({ buckets, filter, onFilter, search }: LedgerProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const printMode = usePrintMode();
+  const effectiveFilter = printMode ? "all" : filter;
 
-  const baseRows = useMemo(() => ledgerRows(buckets, filter), [buckets, filter]);
+  const baseRows = useMemo(() => ledgerRows(buckets, effectiveFilter), [buckets, effectiveFilter]);
   const rows = useMemo(
-    () => (search ? searchLedgerRows(baseRows, search.text, search.chips) : baseRows),
-    [baseRows, search]
+    () => (search && !printMode ? searchLedgerRows(baseRows, search.text, search.chips) : baseRows),
+    [baseRows, search, printMode]
   );
 
   // If currently open row leaves the filtered list, forget it
@@ -71,6 +74,35 @@ export function Ledger({ buckets, filter, onFilter, search }: LedgerProps) {
   }
 
   const displayedRows = showAll ? rows : rows.slice(0, LEDGER_PAGE);
+
+  if (printMode) {
+    const showFolios = printMode.folios !== "none";
+    if (rows.length === 0) return <p data-testid="ledger-empty" className="text-xs text-[var(--ui-text-muted)] py-4">No transactions yet</p>;
+    return <table aria-label="All transactions" className="w-full table-fixed text-left text-xs">
+      <thead style={{ display: "table-header-group" }} className="text-[var(--ui-text-muted)]">
+        <tr style={{ breakInside: "avoid" }}>
+          {["Date", "Fund", ...(showFolios ? ["Folio"] : []), "Type", "Units", "NAV", "Amount"].map(label => <th key={label} scope="col" className="pb-2 font-medium">{label}</th>)}
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-[var(--ui-divider)]">
+        {rows.map(({ entry }) => {
+          const detail = ledgerDetail(entry);
+          return <tr key={entry.transaction_id} data-testid={`ledger-row-${entry.transaction_id}`} style={{ breakInside: "avoid" }}>
+            <td className="py-2.5 align-top text-[var(--ui-text-muted)]">{formatDate(entry.date)}</td>
+            <th scope="row" className="py-2.5 align-top font-medium text-[var(--ui-text)]">
+              {entry.scheme_name}
+              <span className="block text-[11px] font-normal text-[var(--ui-text-muted)]">{entry.household_member_name}</span>
+            </th>
+            {showFolios && <td className="py-2.5 align-top">{detail?.folio ? <FolioNumber value={detail.folio} /> : "—"}</td>}
+            <td className="py-2.5 align-top">{transactionLabel(entry)}</td>
+            <td className="py-2.5 align-top break-words">{detail?.units ?? "—"}</td>
+            <td className="py-2.5 align-top break-words">{detail?.nav ?? "—"}</td>
+            <td className="py-2.5 align-top break-words">{formatRupees(entry.amount)}</td>
+          </tr>;
+        })}
+      </tbody>
+    </table>;
+  }
 
   return (
     <div className="flex flex-col gap-4">

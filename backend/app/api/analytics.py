@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
@@ -24,6 +24,7 @@ from app.services.analytics.schemas import (
 from app.services.analytics.scorer import compute_fund_score
 from app.services.auth.session import get_data_user
 from app.services.dashboard.member_details import require_member
+from app.services.export.pass_token import is_export_pass
 
 router = APIRouter(prefix="/analytics", tags=["analytics"]) #for analytics related endpoints
 
@@ -49,6 +50,7 @@ async def get_fund_score(
 @router.get("/{scope}", response_model=AnalyticsScopeResponse)
 def get_analytics_scope(
     scope: str,
+    request: Request = None,
     user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
@@ -76,6 +78,9 @@ def get_analytics_scope(
         row.section: AnalyticsSectionState(payload=row.payload, computed_at=row.computed_at, failed_at=row.failed_at)
         for row in rows
     }
+
+    if request is not None and is_export_pass(request):
+        return AnalyticsScopeResponse(scope=scope_key, recomputing=False, sections=sections)
 
     # should_dispatch_recompute is staleness-aware (unlike a raw started_at
     # is not None check), so a crashed/killed run's stuck flag doesn't

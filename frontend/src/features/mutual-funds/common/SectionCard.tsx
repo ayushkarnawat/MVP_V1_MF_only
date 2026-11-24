@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { InfoPopover } from "../../../components/info/InfoPopover";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { usePrintMode } from "../../../lib/printMode";
 
 export interface InfoMarkProps {
   text: string;
@@ -10,6 +11,8 @@ export interface InfoMarkProps {
 }
 
 export function InfoMark({ text, testId, content }: InfoMarkProps) {
+  const printMode = usePrintMode();
+  if (printMode) return null;
   return (
     <InfoPopover
       label={text}
@@ -52,6 +55,7 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   const headingId = useId();
+  const printMode = usePrintMode();
 
   return (
     <section
@@ -67,10 +71,10 @@ export function SectionCard({
         <h3 id={headingId} className="text-base font-semibold text-[var(--ui-text)]">
           {title}
         </h3>
-        {info && <InfoMark text={info} />}
+        {info && !printMode && <InfoMark text={info} />}
       </div>
 
-      {state === "loading" && (
+      {state === "loading" && !printMode && (
         <div role="status" aria-label={`Loading ${title}`}>
           {skeleton ?? <Skeleton className="h-24 w-full rounded-lg" />}
         </div>
@@ -81,7 +85,7 @@ export function SectionCard({
           <p className="text-sm text-[var(--ui-text-muted)]">
             This section failed to load, but the rest of the page is unaffected.
           </p>
-          {onRetry && (
+          {onRetry && !printMode && (
             <button
               type="button"
               onClick={onRetry}

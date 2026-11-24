@@ -1,6 +1,7 @@
 import { type ComponentType, type KeyboardEvent, useState } from "react";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import type { Slice } from "../types";
 
 export interface ChartTypeToggleProps<T extends string> {
@@ -160,6 +161,7 @@ export function SlicedDonut({
   centre,
   ariaLabel = "Allocation chart",
 }: SlicedDonutProps) {
+  const printing = usePrintMode() !== null;
   const R = 70;
   const GAP = 4;
   const POP = 7;
@@ -215,12 +217,6 @@ export function SlicedDonut({
             <g
               key={slice.key}
               data-testid={`slice-${slice.key}`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedKey === slice.key}
-              aria-label={`${slice.label} ${formatPercent(slice.pct, { digits: 1 })}`}
-              data-clickable=""
-              data-effect="select"
               data-selected={selectedKey === slice.key}
               data-popped={popped}
               data-dim={dim}
@@ -230,17 +226,28 @@ export function SlicedDonut({
                 transition: "transform 150ms ease, opacity 150ms ease",
                 ...(popped && !prefersReducedMotion ? { transform: `translate(${dx}px, ${dy}px)` } : {}),
               }}
-              onMouseEnter={() => onActiveChange(slice.key)}
-              onFocus={() => onActiveChange(slice.key)}
-              onMouseLeave={() => onActiveChange(null)}
-              onBlur={() => onActiveChange(null)}
-              onClick={() => onSelect(slice.key)}
-              onKeyDown={e => {
-                if (e.key === "Enter" || e.key === " ") {
-                  if (e.key === " ") e.preventDefault();
-                  onSelect(slice.key);
-                }
-              }}
+              {...(printing
+                // In the PDF a slice is a picture: no button role, no focus, no handlers (the legend beside it carries the values).
+                ? { role: "img" as const, "aria-label": `${slice.label} ${formatPercent(slice.pct, { digits: 1 })}` }
+                : {
+                    role: "button" as const,
+                    tabIndex: 0,
+                    "aria-pressed": selectedKey === slice.key,
+                    "aria-label": `${slice.label} ${formatPercent(slice.pct, { digits: 1 })}`,
+                    "data-clickable": "",
+                    "data-effect": "select",
+                    onMouseEnter: () => onActiveChange(slice.key),
+                    onFocus: () => onActiveChange(slice.key),
+                    onMouseLeave: () => onActiveChange(null),
+                    onBlur: () => onActiveChange(null),
+                    onClick: () => onSelect(slice.key),
+                    onKeyDown: (e: KeyboardEvent) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        if (e.key === " ") e.preventDefault();
+                        onSelect(slice.key);
+                      }
+                    },
+                  })}
             >
               <circle
                 cx="100"

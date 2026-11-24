@@ -2,6 +2,7 @@ import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatRupees } from "../../../lib/format";
 import type { InvestmentWithdrawalResult } from "../types";
 import { cashFlowTiles, type LedgerFilter } from "./transactionsLogic";
+import { usePrintMode } from "../../../lib/printMode";
 
 export interface CashFlowStripProps {
   data: InvestmentWithdrawalResult;
@@ -15,6 +16,19 @@ const NET_TOOLTIP =
 
 export function CashFlowStrip({ data, filter, onFilter, includeSwitches = false }: CashFlowStripProps) {
   const tiles = cashFlowTiles(data);
+  const printMode = usePrintMode();
+
+  if (printMode) return <div data-testid="cash-flow-strip" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    {([
+      ["invested", "Total invested", tiles.invested],
+      ["withdrawn", "Total withdrawn", tiles.withdrawn],
+      ["switched", "Net switched", tiles.netSwitched],
+      ["net", "Net invested", tiles.netInvested],
+    ] as const).map(([key, label, value]) => <div key={key} data-testid={`tile-${key}`} className="flex flex-col items-start rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-4">
+      <span className="text-xs font-medium text-[var(--ui-text-muted)]">{label}</span>
+      <span data-testid={`tile-${key}-value`} className="mt-1 text-base font-semibold text-[var(--ui-text)]">{formatRupees(value)}</span>
+    </div>)}
+  </div>;
 
   return (
     <div

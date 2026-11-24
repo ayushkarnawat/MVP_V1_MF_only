@@ -7,6 +7,7 @@ import { SectionCard } from "../common/SectionCard";
 import type { ValuationFund, ValuationSummary, ValuationValue } from "../types";
 import { CARD_TITLES, ratioText, sourceSentence, type ValuationKind } from "./otherLogic";
 import { filterFundRows } from "./otherSearch";
+import { usePrintMode } from "../../../lib/printMode";
 
 const LABEL = { pe: "P/E", pb: "P/B" };
 
@@ -30,6 +31,7 @@ function position(value: string, maximum: string): string {
 function RatioCell({ value, kind, fund, benchmark, maximum }: {
   value: ValuationValue; kind: ValuationKind; fund: ValuationFund; benchmark: string | null; maximum: string;
 }) {
+  const printMode = usePrintMode();
   if (!usable(value.value)) return <td className="p-3 align-top text-xs text-[var(--ui-text-muted)]">
     {value.unavailable_reason ? (
       <p className="max-w-56">{value.unavailable_reason}</p>
@@ -46,7 +48,7 @@ function RatioCell({ value, kind, fund, benchmark, maximum }: {
     </div>
     <div aria-label={`${LABEL[kind]} range for ${fund.scheme_name}`} className="relative mt-3 h-2 rounded-full bg-[var(--ui-divider)]">
       {usable(benchmark) && <span aria-label={`${LABEL[kind]} Nifty 500 tick for ${fund.scheme_name}`}
-        title={`Nifty 500 ${ratioText(benchmark)}`} className="absolute -top-1 h-4 w-0.5 bg-[var(--c4)]"
+        title={printMode ? undefined : `Nifty 500 ${ratioText(benchmark)}`} className="absolute -top-1 h-4 w-0.5 bg-[var(--c4)]"
         style={{ left: `${position(benchmark, maximum)}%` }} />}
       <span aria-hidden="true" className="absolute -top-0.5 h-3 w-3 -translate-x-1/2 rounded-full bg-[var(--pos)] ring-2 ring-[var(--ui-card)]"
         style={{ left: `${position(value.value, maximum)}%` }} />
@@ -73,12 +75,13 @@ function stockList(data: ValuationSummary, field: "missing" | "overseas"): Liste
 function StockList({ label, stocks }: { label: string; stocks: ListedStock[] }) {
   const [open, setOpen] = useState(false);
   const id = useId();
+  const printMode = usePrintMode();
   return <div className="rounded-xl border border-[var(--ui-divider)] p-3">
-    <button type="button" aria-expanded={open} aria-controls={id} data-clickable="" data-effect="expand"
+    {printMode ? <h4 className="py-1 text-xs font-semibold text-[var(--ui-text)]">{label} ({stocks.length})</h4> : <button type="button" aria-expanded={open} aria-controls={id} data-clickable="" data-effect="expand"
       onClick={() => setOpen(!open)} className="w-full py-1 text-left text-xs font-semibold text-[var(--ui-text)]">
       {label} ({stocks.length})
-    </button>
-    {open && <ul id={id} aria-label={label} className="mt-3 space-y-3 text-xs text-[var(--ui-text-muted)]">
+    </button>}
+    {(printMode || open) && <ul id={id} aria-label={label} className="mt-3 space-y-3 text-xs text-[var(--ui-text-muted)]">
       {stocks.map((stock, index) => <li key={index}>
         <p className="font-medium text-[var(--ui-text)]">{stock.name}</p>
         {stock.reasons.map(reason => <p key={reason}>{reason}</p>)}
@@ -91,8 +94,9 @@ function StockList({ label, stocks }: { label: string; stocks: ListedStock[] }) 
 export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; query?: string }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const infoId = useId();
+  const printMode = usePrintMode();
   if (data.funds === undefined) return null;
-  const funds = filterFundRows(data.funds, query);
+  const funds = filterFundRows(data.funds, printMode ? "" : query);
   const index = data.indices.find(row => row.index_name === "nifty_500");
   const benchmarks = { pe: index?.pe_ratio ?? null, pb: index?.pb_ratio ?? null };
   const comparable = funds.filter(fund => usable(fund.pe.value));
@@ -106,22 +110,30 @@ export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; 
         {richer === null ? "Nifty 500 earnings comparison is unavailable." : `${richer} of ${comparable.length} funds trade richer than Nifty 500 on earnings`}
       </p>
       <p className="text-xs text-[var(--ui-text-muted)]">Funds without a P/E are left out of this count. The tick is Nifty 500; the dot is the fund.</p>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] table-fixed text-left">
+      {printMode && <p className="text-xs text-[var(--ui-text-muted)]">
+        Nifty 500 P/E {ratioText(benchmarks.pe)} · P/B {ratioText(benchmarks.pb)}
+      </p>}
+      <div className={printMode ? undefined : "overflow-x-auto"}>
+        <table className={printMode ? "w-full table-fixed text-left" : "w-full min-w-[640px] table-fixed text-left"}>
           <thead className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
             <tr><th scope="col" className="w-[30%] p-3">Fund</th><th scope="col" className="w-[35%] p-3">P/E</th><th scope="col" className="w-[35%] p-3">P/B</th></tr>
           </thead>
           <tbody>{funds.map(fund => <tr key={fund.scheme_id} className="border-b border-[var(--ui-divider)]">
             <th scope="row" className="p-3 align-top text-xs font-semibold text-[var(--ui-text)]">
               <span className="flex items-center gap-2">
-                <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                {printMode ? <span aria-hidden="true">{fund.scheme_name.slice(0, 1)}</span> : <SchemeLogo schemeName={fund.scheme_name} size="sm" />}
                 {fund.scheme_name}
-                <InfoPopover label={`P/E and P/B for ${fund.scheme_name}`} title={fund.scheme_name} side="bottom">
+                {!printMode && <InfoPopover label={`P/E and P/B for ${fund.scheme_name}`} title={fund.scheme_name} side="bottom">
                   <p>P/E: {sourceSentence(fund.pe, "pe")}</p>
                   <p className="mt-1.5">P/B: {sourceSentence(fund.pb, "pb")}</p>
                   <p className="mt-1.5 text-[var(--ui-text-muted)]">Indicators, not a recommendation.</p>
-                </InfoPopover>
+                </InfoPopover>}
               </span>
+              {printMode && <div className="mt-2 space-y-1 text-xs font-normal text-[var(--ui-text-muted)]">
+                <p>P/E: {sourceSentence(fund.pe, "pe")}</p>
+                <p>P/B: {sourceSentence(fund.pb, "pb")}</p>
+                <p>Indicators, not a recommendation.</p>
+              </div>}
             </th>
             <RatioCell fund={fund} value={fund.pe} kind="pe" benchmark={benchmarks.pe} maximum={maxima.pe} />
             <RatioCell fund={fund} value={fund.pb} kind="pb" benchmark={benchmarks.pb} maximum={maxima.pb} />
@@ -129,10 +141,10 @@ export function ValuationByFund({ data, query = "" }: { data: ValuationSummary; 
         </table>
       </div>
       {funds.length === 0 && <p className="text-xs text-[var(--ui-text-muted)]">No fund valuation figures are available yet.</p>}
-      <button type="button" aria-label="How the portfolio average works" aria-expanded={infoOpen} aria-controls={infoId}
+      {printMode ? <h4 className="text-xs font-medium text-[var(--ui-text)]">How the portfolio average works</h4> : <button type="button" aria-label="How the portfolio average works" aria-expanded={infoOpen} aria-controls={infoId}
         data-clickable="" data-effect="expand" onClick={() => setInfoOpen(!infoOpen)}
-        className="rounded-lg border border-[var(--ui-divider)] px-3 py-2 text-xs font-medium text-[var(--ui-text)]">i · How the portfolio average works</button>
-      {infoOpen && <p id={infoId} className="text-xs text-[var(--ui-text-muted)]">Each fund counts in proportion to the amount you hold in shares, and we average the earnings or book value behind each rupee before turning that back into a price multiple. That way, a very high ratio does not dominate the result.</p>}
+        className="rounded-lg border border-[var(--ui-divider)] px-3 py-2 text-xs font-medium text-[var(--ui-text)]">i · How the portfolio average works</button>}
+      {(printMode || infoOpen) && <p id={infoId} className="text-xs text-[var(--ui-text-muted)]">Each fund counts in proportion to the amount you hold in shares, and we average the earnings or book value behind each rupee before turning that back into a price multiple. That way, a very high ratio does not dominate the result.</p>}
       <StockList label="Stocks without ratios" stocks={stockList(data, "missing")} />
       <StockList label="Overseas stocks without ratios" stocks={stockList(data, "overseas")} />
     </div>

@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import analytics, auth, cas_imports, dashboard, fund_page, home, home_news, imports, legal, portfolio, portfolio_insights, scenarios, search
 from app.config import settings
+from app.api import export as report_export
 from app.services.analytics.pdf_export import start_browser, stop_browser
+from app.services.export.browser_pool import close_pool
 from app.services.import_.crypto import decode_key
 from app.services.import_.file_storage import LocalFileStorage, default_file_storage
 
@@ -56,6 +58,39 @@ def _assert_pan_keys_configured() -> None:
         ) from exc
 
 
+def _assert_export_pass_secret_configured() -> None:
+    if settings.environment == "development":
+        return
+    secret = settings.export_pass_secret
+    other_values = (
+        getattr(settings, name) for name in type(settings).model_fields
+        if name != "export_pass_secret"
+    )
+    # Strength, not just length: "a" * 32 must not pass. Staging holds real household data too, so every environment except
+    # local development runs this check.
+    if len(secret) < 32 or len(set(secret)) < 8 or any(secret == value for value in other_values if isinstance(value, str)):
+        raise RuntimeError("Refusing to start: EXPORT_PASS_SECRET must have at least 32 random characters and differ from every other secret.")
+
+
+def _assert_export_api_origin_configured() -> None:
+    if settings.environment == "development":
+        return
+    from urllib.parse import urlsplit
+    from app.services.export.render import origin
+
+    try:
+        parts = urlsplit(settings.export_api_origin)
+        valid = parts.scheme == "https" and parts.path in ("", "/") and not parts.query and not parts.fragment
+        # The print browser carries the read proof to every API request it makes, so whoever serves FRONTEND_BASE_URL holds
+        # that capability: outside development it must be an HTTPS address too (never the localhost default).
+        valid = valid and urlsplit(settings.frontend_base_url).scheme == "https"
+        origin(settings.export_api_origin)
+    except ValueError:
+        valid = False
+    if not valid:
+        raise RuntimeError("Refusing to start: EXPORT_API_ORIGIN must be an HTTPS origin.")
+
+
 def _warn_if_local_file_storage_in_non_dev() -> None:
     """Non-blocking warning (not a startup failure): outside development, the
     30-day CAS file retention should be backed by durable storage (S3 +
@@ -77,12 +112,15 @@ def _warn_if_local_file_storage_in_non_dev() -> None:
 async def lifespan(app: FastAPI):
     if settings.environment == "production" and settings.auth_guard_enabled and not settings.auth_guard_secret:
         raise RuntimeError("Refusing to start in production: AUTH_GUARD_SECRET is required when the auth guard is enabled.")
+    _assert_export_pass_secret_configured()
+    _assert_export_api_origin_configured()
     if settings.environment != "development":
         _assert_pan_keys_configured()
         _warn_if_local_file_storage_in_non_dev()
     await start_browser()
     yield
     await stop_browser()
+    await close_pool()
 
 
 app = FastAPI(title="Unifolio API", lifespan=lifespan)
@@ -105,6 +143,7 @@ app.include_router(home_news.router)
 app.include_router(portfolio.router)
 app.include_router(portfolio_insights.router)
 app.include_router(analytics.router)
+app.include_router(report_export.router)
 app.include_router(scenarios.router)
 app.include_router(legal.router)
 app.include_router(fund_page.router)

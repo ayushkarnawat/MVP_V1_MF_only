@@ -17,6 +17,7 @@ import {
   terTotals,
 } from "./otherLogic";
 import { filterFundRows } from "./otherSearch";
+import { usePrintMode } from "../../../lib/printMode";
 
 export interface TerLadderProps {
   ter: WeightedTerSummary;
@@ -31,9 +32,11 @@ function round2(x: number): number {
 
 export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const printMode = usePrintMode();
+  const RowControl = printMode ? "div" : "button";
 
   const allRows = terLadderRows(ter);
-  const rows = query
+  const rows = query && !printMode
     ? (() => {
         const matchedFunds = new Set(filterFundRows(allRows.map(r => r.fund), query));
         return allRows.filter(r => matchedFunds.has(r.fund));
@@ -59,13 +62,13 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
       </p>
 
       {/* Hero and Spectrum */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className={printMode ? "grid grid-cols-1 gap-6" : "grid grid-cols-1 gap-6 lg:grid-cols-2"}>
         {/* Hero gauge */}
         <div
           data-testid="ter-hero"
-          tabIndex={0}
-          title={heroTip}
-          data-tooltip={heroTip}
+          tabIndex={printMode ? undefined : 0}
+          title={printMode ? undefined : heroTip}
+          data-tooltip={printMode ? undefined : heroTip}
           className="flex items-center gap-5 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-5"
         >
           <div className="relative h-24 w-24 shrink-0">
@@ -110,6 +113,7 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
               {ter.cost_1y !== null && `${formatRupees(ter.cost_1y)}/yr at today's value · `}
               covers {formatCompactRupees(ter.covered_value)} of {formatCompactRupees(ter.total_value)} portfolio value
             </p>
+            {printMode && <p className="text-xs text-[var(--ui-text-muted)]">{heroTip}</p>}
           </div>
         </div>
 
@@ -146,9 +150,9 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
                   <div key={plan} data-testid={`plan-${plan}`} data-state={state} className="space-y-1">
                     {state === "bar" ? (
                       <span
-                        tabIndex={0}
-                        title={tip}
-                        data-tooltip={tip}
+                        tabIndex={printMode ? undefined : 0}
+                        title={printMode ? undefined : tip}
+                        data-tooltip={printMode ? undefined : tip}
                         data-testid={`pin-${plan}`}
                         data-x={pinPercent(summary.weighted_ter!, max)}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-text)]"
@@ -195,13 +199,13 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
       {rows.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-[var(--ui-text)]">
-            Cost ladder — relative TER across your holdings · click a fund for its 1Y/3Y/5Y returns
+            {printMode ? "Each fund's 1Y/3Y/5Y returns are shown." : "Cost ladder — relative TER across your holdings · click a fund for its 1Y/3Y/5Y returns"}
           </h4>
 
           <ul aria-label="Cost ladder" className="space-y-2">
             {rows.map(row => {
               const { fund, hasTer, width, tone } = row;
-              const isOpen = openId === fund.scheme_id;
+              const isOpen = Boolean(printMode) || openId === fund.scheme_id;
               const badge = terBadge(fund);
               const periods = periodsFor(ranking, fund.scheme_id);
 
@@ -212,24 +216,24 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
                   data-muted={!hasTer}
                   className="rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 transition-colors hover:bg-[var(--ui-row-hover)]"
                 >
-                  <button
-                    type="button"
-                    aria-expanded={isOpen}
+                  <RowControl
+                    type={printMode ? undefined : "button"}
+                    aria-expanded={printMode ? undefined : isOpen}
                     data-testid={`ladder-toggle-${fund.scheme_id}`}
-                    data-clickable=""
-                    data-effect="expand"
-                    onClick={() => setOpenId(isOpen ? null : fund.scheme_id)}
+                    data-clickable={printMode ? undefined : ""}
+                    data-effect={printMode ? undefined : "expand"}
+                    onClick={printMode ? undefined : () => setOpenId(isOpen ? null : fund.scheme_id)}
                     className="flex w-full flex-col gap-2 text-left"
                   >
                     <div className="flex w-full items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <ChevronRight
+                        {!printMode && <ChevronRight
                           className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                        />
+                        />}
                         <span data-testid="fund-logo" aria-hidden="true">
-                          <SchemeLogo schemeName={fund.scheme_name} size="sm" />
+                          {printMode ? fund.scheme_name.slice(0, 1) : <SchemeLogo schemeName={fund.scheme_name} size="sm" />}
                         </span>
-                        <span title={fund.scheme_name} className="truncate text-xs font-semibold text-[var(--ui-text)]">
+                        <span title={printMode ? undefined : fund.scheme_name} className={printMode ? "text-xs font-semibold text-[var(--ui-text)]" : "truncate text-xs font-semibold text-[var(--ui-text)]"}>
                           {fund.scheme_name}
                         </span>
                       </div>
@@ -268,13 +272,13 @@ export function TerLadder({ ter, comparison, ranking, query = "" }: TerLadderPro
                         ? `Your value ${formatRupees(fund.value)} · projected cost 1yr ${formatRupees(fund.cost_1y)} · 3yr ${formatRupees(fund.cost_3y)} · 5yr ${formatRupees(fund.cost_5y)}`
                         : `Your value ${formatRupees(fund.value)} · no TER on file, excluded from totals below`}
                     </span>
-                  </button>
+                  </RowControl>
 
                   {isOpen && (
                     <div data-testid={`ladder-detail-${fund.scheme_id}`} className="mt-3 border-t border-[var(--ui-divider)] pt-3">
                       {periods ? (
-                        <div className="overflow-x-auto">
-                          <table aria-label={`${fund.scheme_name} returns`} className="w-full text-left text-xs">
+                        <div className={printMode ? undefined : "overflow-x-auto"}>
+                          <table aria-label={`${fund.scheme_name} returns`} className={printMode ? "w-full table-fixed text-left text-xs" : "w-full text-left text-xs"}>
                             <thead>
                               <tr className="border-b border-[var(--ui-divider)] text-[var(--ui-text-muted)]">
                                 <th scope="col" className="sr-only">Fund</th>

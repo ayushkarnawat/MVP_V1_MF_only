@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { maskFolio, useFolioVisibility } from "@/lib/folioVisibility";
+import { usePrintMode } from "@/lib/printMode";
 
 export interface FolioNumberProps {
   /** The full folio number as first printed. */
@@ -13,6 +14,7 @@ const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]";
 
 export function FolioNumber({ value, showCopy = false }: FolioNumberProps) {
+  const printMode = usePrintMode();
   const { hidden, toggle } = useFolioVisibility();
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,6 +52,10 @@ export function FolioNumber({ value, showCopy = false }: FolioNumberProps) {
 
   // A response without folio_number (a newer front end on an older back end) shows nothing instead of crashing the page.
   if (typeof value !== "string") return null;
+  if (printMode) {
+    if (printMode.folios === "none") return null;
+    return <span className="font-mono [overflow-wrap:anywhere]">{printMode.folios === "masked" ? maskFolio(value) : value}</span>;
+  }
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">

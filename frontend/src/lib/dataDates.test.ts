@@ -1,7 +1,18 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDataDate, formatDataDateTail, olderDataMarker, type DataDateKind } from "./dataDates";
+import { formatDataDate, formatDataDateParts, formatDataDateTail, olderDataMarker, type DataDateKind } from "./dataDates";
+
+it("formatDataDateParts splits every kind, matches the joined date and rejects invalid dates", () => {
+  const kinds: DataDateKind[] = ["prices", "holdings", "ratios", "fees", "marketCapList", "factsheet", "managerDetails"];
+  for (const kind of kinds) {
+    const parts = formatDataDateParts(kind, "2026-10-05");
+    expect(parts).not.toBeNull();
+    expect(`${parts!.label} ${parts!.value}`).toBe(formatDataDate(kind, "2026-10-05"));
+    expect(parts!.value).toBe(["prices", "ratios", "marketCapList"].includes(kind) ? "5 Oct 2026" : "October 2026");
+    for (const invalid of [null, undefined, "", "bad", "2026-02-30"]) expect(formatDataDateParts(kind, invalid)).toBeNull();
+  }
+});
 
 function collectSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

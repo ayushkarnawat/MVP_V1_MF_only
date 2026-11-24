@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Modal } from "../../../components/Modal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { sumDecimalStrings } from "../../../lib/decimal";
 import { formatCompactRupees, formatPercent, formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import { useScope } from "../../../shell/scope/ScopeContext";
 import { InfoMark } from "../common/SectionCard";
 import { FundLink } from "../common/FundLink";
@@ -14,9 +15,11 @@ import type { AllocationSummary, FamilyMemberStatus, HoldingRow, Load, Slice } f
 export interface AmcAllocationCardProps {
   allocation: Load<AllocationSummary>;
   holdings: Load<HoldingRow[]>;
+  printChart?: ReactNode;
 }
 
-export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardProps) {
+export function AmcAllocationCard({ allocation, holdings, printChart }: AmcAllocationCardProps) {
+  const printMode = usePrintMode();
   const headingId = useId();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -51,7 +54,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
         <p className="mt-1 text-sm text-[var(--ui-text-muted)]">
           This section failed to load, but the rest of the page is unaffected.
         </p>
-        <button
+        {!printMode && <button
           type="button"
           onClick={allocation.retry}
           data-clickable=""
@@ -59,7 +62,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
           className="mt-3 text-sm font-medium text-[var(--pos-text)] hover:underline"
         >
           Retry
-        </button>
+        </button>}
       </section>
     );
   }
@@ -85,7 +88,7 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
         />
       </div>
 
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start lg:flex-col lg:items-center 2xl:flex-row 2xl:items-start">
+      {printMode ? printChart : <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start lg:flex-col lg:items-center 2xl:flex-row 2xl:items-start">
         <SlicedDonut
           slices={slices}
           selectedKey={sel.selectedKey}
@@ -145,9 +148,9 @@ export function AmcAllocationCard({ allocation, holdings }: AmcAllocationCardPro
             );
           })}
         </ul>
-      </div>
+      </div>}
 
-      {selectedAmc && (
+      {!printMode && selectedAmc && (
         <Modal
           title={selectedAmc.label}
           isOpen={dialogOpen}
@@ -185,6 +188,7 @@ export interface FamilyMembersCardProps {
 }
 
 export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps) {
+  const printMode = usePrintMode();
   const headingId = useId();
   const { viewMode, setMember } = useScope();
 
@@ -219,7 +223,7 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
         <p className="mt-1 text-sm text-[var(--ui-text-muted)]">
           This section failed to load, but the rest of the page is unaffected.
         </p>
-        <button
+        {!printMode && <button
           type="button"
           onClick={retry}
           data-clickable=""
@@ -227,7 +231,7 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
           className="mt-3 text-sm font-medium text-[var(--pos-text)] hover:underline"
         >
           Retry
-        </button>
+        </button>}
       </section>
     );
   }
@@ -285,27 +289,27 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
         </h3>
         <InfoMark text="Current value by household member, across all your mutual fund holdings." />
       </div>
-      <p className="text-xs text-[var(--ui-text-muted)] mb-4">
+      {!printMode && <p className="text-xs text-[var(--ui-text-muted)] mb-4">
         Click a member to switch the whole page's scope to just their holdings.
-      </p>
+      </p>}
 
       <div aria-hidden="true" className="flex h-2 w-full overflow-hidden rounded-full bg-[var(--ui-divider)] mb-4">
         {rows.map((row, index) => (
           <span
             key={row.member.id}
             data-testid={`family-segment-${index}`}
-            role="button"
-            tabIndex={-1}
-            aria-label={`Show ${row.member.name}`}
-            aria-pressed={false}
-            data-clickable=""
-            data-effect="select"
-            onClick={() => setMember(row.member.id)}
+            role={printMode ? undefined : "button"}
+            tabIndex={printMode ? undefined : -1}
+            aria-label={printMode ? undefined : `Show ${row.member.name}`}
+            aria-pressed={printMode ? undefined : false}
+            data-clickable={printMode ? undefined : ""}
+            data-effect={printMode ? undefined : "select"}
+            onClick={printMode ? undefined : () => setMember(row.member.id)}
             style={{
               width: `${row.share ?? "0"}%`,
               backgroundColor: `var(--c${(index % 8) + 1})`,
             }}
-            className="h-full cursor-pointer hover:opacity-85 transition-opacity"
+            className={printMode ? "h-full" : "h-full cursor-pointer hover:opacity-85 transition-opacity"}
           />
         ))}
       </div>
@@ -314,20 +318,20 @@ export function FamilyMembersCard({ holdings, members }: FamilyMembersCardProps)
         {rows.map(row => (
           <div
             key={row.member.id}
-            role="button"
-            tabIndex={0}
-            aria-pressed={false}
+            role={printMode ? undefined : "button"}
+            tabIndex={printMode ? undefined : 0}
+            aria-pressed={printMode ? undefined : false}
             data-testid={`family-row-${row.member.id}`}
-            data-clickable=""
-            data-effect="select"
-            onClick={() => setMember(row.member.id)}
-            onKeyDown={e => {
+            data-clickable={printMode ? undefined : ""}
+            data-effect={printMode ? undefined : "select"}
+            onClick={printMode ? undefined : () => setMember(row.member.id)}
+            onKeyDown={printMode ? undefined : e => {
               if (e.key === "Enter" || e.key === " ") {
                 if (e.key === " ") e.preventDefault();
                 setMember(row.member.id);
               }
             }}
-            className="flex items-center justify-between rounded-xl p-2 cursor-pointer hover:bg-[var(--ui-row-hover)] transition-colors"
+            className={printMode ? "flex items-center justify-between rounded-xl p-2 break-inside-avoid" : "flex items-center justify-between rounded-xl p-2 cursor-pointer hover:bg-[var(--ui-row-hover)] transition-colors"}
           >
             <div className="flex items-center gap-3">
               <span

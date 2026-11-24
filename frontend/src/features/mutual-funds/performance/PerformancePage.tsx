@@ -7,6 +7,8 @@ import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { diffDecimalStrings, formatDecimal, toPercentString } from "../../../lib/decimal";
 import { formatDate, formatPercent, formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
+import { ReturnsXirrPrint } from "../../../print/groups/performance/ReturnsXirrPrint";
 import { useScope } from "../../../shell/scope/ScopeContext";
 import { getMonthDetail } from "../api";
 import { FundLink } from "../common/FundLink";
@@ -248,7 +250,7 @@ function MonthModal({
   );
 }
 
-function ReturnsBlock({
+export function ReturnsBlock({
   holdings,
   money,
   funds,
@@ -259,6 +261,7 @@ function ReturnsBlock({
 }) {
   const [basis, setBasis] = useState<"lifetime" | "current">("lifetime");
   const [disclaimerPanelOpen, setDisclaimerPanelOpen] = useState(false);
+  const printMode = usePrintMode();
 
   const xirrVal =
     holdings.xirr.data !== null
@@ -288,7 +291,7 @@ function ReturnsBlock({
           <InfoMark text="Your annualised and absolute returns, computed from every cash flow across all your mutual fund holdings." />
         </div>
 
-        <div
+        {!printMode && <div
           role="group"
           aria-label="XIRR basis"
           className="inline-flex self-start rounded-xl border border-[var(--ui-divider)] p-1"
@@ -327,11 +330,13 @@ function ReturnsBlock({
           >
             Current Holdings
           </button>
-        </div>
+        </div>}
 
-        {holdings.xirr.status === "loading" && <Skeleton className="h-10 w-36" />}
+        {printMode && <ReturnsXirrPrint load={holdings.xirr} />}
 
-        {holdings.xirr.status === "error" && (
+        {!printMode && holdings.xirr.status === "loading" && <Skeleton className="h-10 w-36" />}
+
+        {!printMode && holdings.xirr.status === "error" && (
           <div role="alert" className="flex flex-col gap-2">
             <p className="text-sm text-[var(--ui-text-muted)]">Couldn't load XIRR</p>
             <button
@@ -346,7 +351,7 @@ function ReturnsBlock({
           </div>
         )}
 
-        {holdings.xirr.status === "data" && (
+        {!printMode && holdings.xirr.status === "data" && (
           <div>
             {xirrVal === null ? (
               <div className="flex flex-col gap-1">
@@ -410,7 +415,7 @@ function ReturnsBlock({
         {(money.status === "failed" || money.status === "error") && (
           <div role="alert" className="flex flex-col gap-2">
             <p className="text-sm text-[var(--ui-text-muted)]">Couldn't load absolute return</p>
-            <button
+            {!printMode && <button
               type="button"
               data-clickable=""
               data-effect="retry"
@@ -418,7 +423,7 @@ function ReturnsBlock({
               className="self-start text-sm font-medium text-[var(--pos-text)] hover:underline"
             >
               Retry
-            </button>
+            </button>}
           </div>
         )}
         {money.status === "ready" && money.data && (
@@ -466,7 +471,7 @@ function ReturnsBlock({
         {(funds.status === "failed" || funds.status === "error") && (
           <div role="alert" className="flex flex-col gap-2">
             <p className="text-sm text-[var(--ui-text-muted)]">Per-fund XIRR isn't available right now.</p>
-            <button
+            {!printMode && <button
               type="button"
               data-clickable=""
               data-effect="retry"
@@ -474,12 +479,12 @@ function ReturnsBlock({
               className="self-start text-sm font-medium text-[var(--pos-text)] hover:underline"
             >
               Retry
-            </button>
+            </button>}
           </div>
         )}
         {funds.status === "ready" && funds.data && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className={printMode ? "" : "overflow-x-auto"}>
+            <table className={`w-full text-left text-sm${printMode ? " table-fixed" : ""}`}>
               <thead>
                 <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
                   <th className="py-2.5 pr-4 font-medium">Fund</th>
@@ -500,8 +505,8 @@ function ReturnsBlock({
                       <tr key={f.scheme_id} data-testid={`fxirr-${f.scheme_id}`}>
                         <td className="py-2.5 pr-4 font-medium text-[var(--ui-text)]">
                           <div className="flex items-center gap-2">
-                            <SchemeLogo schemeName={f.scheme_name} size="sm" />
-                            <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>
+                            {!printMode && <SchemeLogo schemeName={f.scheme_name} size="sm" />}
+                            {printMode ? f.scheme_name : <FundLink schemeId={f.scheme_id}>{f.scheme_name}</FundLink>}
                           </div>
                         </td>
                         <td className="py-2.5 px-4 font-medium text-[var(--ui-text)]">

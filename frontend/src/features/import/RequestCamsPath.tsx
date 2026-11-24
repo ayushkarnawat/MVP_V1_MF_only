@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
@@ -13,6 +13,11 @@ import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 import { TutorialDialog } from "./tutorial/TutorialDialog";
 import { TutorialLink } from "./tutorial/TutorialLink";
 import { useTutorialPlayer } from "./tutorial/useTutorialPlayer";
+import { useCamsChecklist } from "./checklist/useCamsChecklist";
+import { getChecklistStore } from "./checklist/checklistStore";
+import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
+import { checklistCopy } from "./checklist/checklistCopy";
+import "./checklist/checklist-tokens.css";
 
 export interface RequestCamsPathProps {
   memberId: string;
@@ -29,21 +34,44 @@ export function RequestCamsPath({
   const [error, setError] = useState<string | null>(null);
   const tutorialLinkRef = useRef<HTMLButtonElement | null>(null);
   const tutorial = useTutorialPlayer();
+  const checklist = useCamsChecklist(memberId);
+  const checklistStore = getChecklistStore(memberId);
+  const checklistHosted = useContext(CamsChecklistHostedContext);
+  const [withoutChecklist, setWithoutChecklist] = useState(false);
+  const requesting = useRef(false);
 
-  const handleRequest = async () => {
+  const handleRequest = useCallback(async () => {
+    if (requesting.current) return;
+    requesting.current = true;
     setIsLoading(true);
     setError(null);
+    if (!withoutChecklist) {
+      checklist.setCamsLink({ state: "preparing", error: null, url: null });
+      checklist.open();
+    }
     try {
       const result = await requestCamsStatement(memberId);
+      const mode = withoutChecklist ? "closed" : await checklistStore.settleOpening();
       setCasResumeStep2(memberId);
-      window.open(result.cams_url, "_blank");
+      if (!withoutChecklist) checklist.setCamsLink({ state: "ready", error: null, url: result.cams_url });
+      if (mode !== "window") {
+        try { window.open(result.cams_url, "_blank"); } catch { /* The request still proceeds to the waiting screen. */ }
+      }
       onRequestInitiated(result.import_id, result.expires_at);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to initiate CAMS request.");
+      const message = err instanceof Error ? err.message : checklistCopy.requestFailed;
+      setError(message);
+      if (!withoutChecklist) checklist.setCamsLink({ state: "failed", error: message, url: null });
     } finally {
+      requesting.current = false;
       setIsLoading(false);
     }
-  };
+  }, [memberId, withoutChecklist, checklistStore, checklist.open, checklist.setCamsLink, onRequestInitiated]);
+
+  useEffect(() => {
+    checklistStore.setRetry(() => { void handleRequest(); });
+    return () => checklistStore.setRetry(null);
+  }, [checklistStore, handleRequest]);
 
   const handleRequestFromTutorial = async () => {
     await handleRequest();
@@ -62,6 +90,7 @@ export function RequestCamsPath({
         <motion.div variants={staggerItemVariants}>
           <button
             type="button"
+            data-clickable="" data-effect="navigate"
             onClick={onBack}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-ink)] transition-colors cursor-pointer py-1 -ml-1 min-h-[36px]"
           >
@@ -170,8 +199,21 @@ export function RequestCamsPath({
 
       {/* Action Button */}
       <motion.div variants={staggerItemVariants} className="pt-1 space-y-2.5">
+        {!checklistHosted && <CamsChecklistHost memberId={memberId} />}
+        <div className="space-y-1.5">
+        {checklist.supported && !withoutChecklist && (
+          <p className="hidden md:block ccp-s2-note">
+            {checklistCopy.introduction}{" "}
+            <a href="#" data-clickable="" data-effect="close"
+              className="ccp-clink"
+              onClick={(event) => { event.preventDefault(); setWithoutChecklist(true); }}>
+              {checklistCopy.skip}
+            </a>
+          </p>
+        )}
         <Button
           onClick={handleRequest}
+          data-clickable="" data-effect="open"
           disabled={isLoading}
           className="w-full h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[48px]"
           type="button"
@@ -188,6 +230,7 @@ export function RequestCamsPath({
             </>
           )}
         </Button>
+        </div>
 
         <div className="flex justify-center">
           <TutorialLink ref={tutorialLinkRef} onOpen={tutorial.show} />

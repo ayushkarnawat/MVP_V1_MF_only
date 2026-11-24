@@ -16,6 +16,9 @@ export const DEFAULT_CHART_ENTER_TRANSITION: Transition = {
  * Clip-path width reveal must use tween — spring does not reliably animate SVG width.
  */
 export function clipRevealTransition(enterTransition?: Transition): Transition {
+  if (typeof document !== "undefined" && document.documentElement.dataset.print === "true") {
+    return { type: "tween", duration: 0, delay: 0 };
+  }
   if (enterTransition?.type === "tween") {
     return {
       ...enterTransition,

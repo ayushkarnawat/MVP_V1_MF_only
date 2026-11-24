@@ -6,6 +6,7 @@ import { SchemeLogo } from "../../../components/SchemeLogo";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
+import { usePrintMode } from "../../../lib/printMode";
 import {
   resolveXirrDisplay,
   SINCE_PURCHASE_CAPTION,
@@ -58,6 +59,7 @@ function XirrCellContent({
   basis: XirrBasis | null | undefined;
   sincePurchase: string | null | undefined;
 }) {
+  const printMode = usePrintMode();
   const display = resolveXirrDisplay(annualised, basis, sincePurchase);
   if (!display.isSincePurchase) {
     return <>{formatXirr(display.value)}</>;
@@ -67,16 +69,26 @@ function XirrCellContent({
       <span>{formatXirr(display.value)}</span>
       <span
         aria-label={SINCE_PURCHASE_CAPTION}
-        title={SINCE_PURCHASE_CAPTION}
+        title={printMode ? undefined : SINCE_PURCHASE_CAPTION}
         className="text-[11px] font-normal text-[var(--ui-text-muted)]"
       >
-        {SINCE_PURCHASE_SHORT_LABEL}
+        {printMode ? SINCE_PURCHASE_CAPTION : SINCE_PURCHASE_SHORT_LABEL}
       </span>
     </div>
   );
 }
 
-export function HoldingsTable({
+export function HoldingsTable(props: HoldingsTableProps) {
+  const printMode = usePrintMode();
+  return printMode ? <HoldingsTableContent {...props} sort={null} query="" chips={[]} openFund={() => {}} /> : <NavigableHoldingsTable {...props} />;
+}
+
+function NavigableHoldingsTable(props: HoldingsTableProps) {
+  const navigate = useAppNavigate();
+  return <HoldingsTableContent {...props} openFund={schemeId => { if (schemeId) navigate(paths.mutualFunds.fund(schemeId)); }} />;
+}
+
+function HoldingsTableContent({
   holdings,
   consolidated,
   xirrByScheme,
@@ -87,12 +99,10 @@ export function HoldingsTable({
   chips = [],
   onAnalyse,
   onCompareDistributors,
-}: HoldingsTableProps) {
-  const navigate = useAppNavigate();
+  openFund,
+}: HoldingsTableProps & { openFund: (schemeId: string) => void }) {
+  const printMode = usePrintMode();
   // The row is a convenience target; the name is the real link. A click that landed on a link is that link's to handle, so the row never navigates a second time.
-  const openFund = (schemeId: string) => {
-    if (schemeId) navigate(paths.mutualFunds.fund(schemeId));
-  };
   const fromLink = (e: MouseEvent) => (e.target as HTMLElement).closest("a, [role=link]") !== null;
   if (holdings.status === "loading") {
     return (
@@ -120,7 +130,7 @@ export function HoldingsTable({
         <p className="mt-1 text-sm text-[var(--ui-text-muted)]">
           This section failed to load, but the rest of the page is unaffected.
         </p>
-        <button
+        {!printMode && <button
           type="button"
           onClick={holdings.retry}
           data-clickable=""
@@ -128,7 +138,7 @@ export function HoldingsTable({
           className="mt-3 text-sm font-medium text-[var(--pos-text)] hover:underline"
         >
           Retry
-        </button>
+        </button>}
       </section>
     );
   }
@@ -165,7 +175,7 @@ export function HoldingsTable({
         <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">
           Mutual Funds ({filteredRows.length})
         </h3>
-        <div className="flex flex-wrap items-center gap-2">
+        {!printMode && <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             data-clickable=""
@@ -184,7 +194,7 @@ export function HoldingsTable({
           >
             Analyse with Mira
           </button>
-        </div>
+        </div>}
       </div>
 
       {filteredRows.length === 0 ? (
@@ -192,8 +202,8 @@ export function HoldingsTable({
           No funds match "{query.trim()}"
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className={printMode ? "" : "overflow-x-auto"}>
+          <table className={`w-full text-left text-sm${printMode ? " table-fixed" : ""}`}>
             <thead>
               <tr className="border-b border-[var(--ui-divider)] text-xs font-medium text-[var(--ui-text-muted)]">
                 <th className="py-3 pr-4 font-medium">Fund</th>
@@ -207,7 +217,7 @@ export function HoldingsTable({
                     : "none";
                   return (
                     <th key={col.key} aria-sort={ariaSort} className="py-3 px-4 font-medium">
-                      <button
+                      {printMode ? col.label : <button
                         type="button"
                         data-clickable=""
                         data-effect="sort"
@@ -220,7 +230,7 @@ export function HoldingsTable({
                             {sort.dir === "desc" ? "↓" : "↑"}
                           </span>
                         )}
-                      </button>
+                      </button>}
                     </th>
                   );
                 })}
@@ -233,36 +243,36 @@ export function HoldingsTable({
                   <tr
                     key={`${row.scheme_id}:${row.household_member_id}`}
                     data-testid={`row-${row.scheme_id}:${row.household_member_id}`}
-                    tabIndex={0}
-                    data-clickable=""
-                    data-effect="navigate"
-                    onClick={e => {
+                    tabIndex={printMode ? undefined : 0}
+                    data-clickable={printMode ? undefined : ""}
+                    data-effect={printMode ? undefined : "navigate"}
+                    onClick={printMode ? undefined : e => {
                       if (!fromLink(e)) openFund(row.scheme_id);
                     }}
-                    onKeyDown={e => {
+                    onKeyDown={printMode ? undefined : e => {
                       // Enter on the name link is the link's own; only Enter on the row itself opens the fund here.
                       if (e.key === "Enter" && e.target === e.currentTarget) openFund(row.scheme_id);
                     }}
-                    className="cursor-pointer hover:bg-[var(--ui-row-hover)]"
+                    className={printMode ? "" : "cursor-pointer hover:bg-[var(--ui-row-hover)]"}
                   >
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-3">
-                        <span data-testid="fund-logo" className="shrink-0">
+                        {!printMode && <span data-testid="fund-logo" className="shrink-0">
                           <SchemeLogo
                             amcName={row.amc_name}
                             schemeName={row.scheme_name}
                             size="sm"
                           />
-                        </span>
+                        </span>}
                         <div className="flex flex-col min-w-0">
                           <span
-                            title={row.scheme_name}
-                            className="font-medium text-[var(--ui-text)] truncate max-w-xs"
+                            title={printMode ? undefined : row.scheme_name}
+                            className={printMode ? "font-medium text-[var(--ui-text)] break-words" : "font-medium text-[var(--ui-text)] truncate max-w-xs"}
                           >
-                            <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>
+                            {printMode ? row.scheme_name : <FundLink schemeId={row.scheme_id}>{row.scheme_name}</FundLink>}
                           </span>
                           {row.amc_name && (
-                            <span className="text-xs text-[var(--ui-text-muted)] truncate">
+                            <span className={`text-xs text-[var(--ui-text-muted)]${printMode ? " break-words" : " truncate"}`}>
                               {row.amc_name}
                             </span>
                           )}
@@ -376,6 +386,7 @@ const FAMILY_COLUMNS: Array<{ label: string; key?: SortKey }> = [
 ];
 
 function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | ConsolidatedHoldingChild; child?: boolean }) {
+  const printMode = usePrintMode();
   const average = "average_price" in row ? row.average_price : row.average_nav;
   const figures = [row.units_held, average == null ? "—" : formatDecimal(average), formatRupees(row.amount_invested),
     row.nav_unavailable || row.current_value == null ? "—" : formatRupees(row.current_value),
@@ -383,13 +394,13 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
     formatSignedRupees(row.realized_gain)];
   return <>
     {figures.map((figure, index) => <td key={FAMILY_COLUMNS[index + 1].label}
-      className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
-      <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>
+      className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+      {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[index + 1].label}</span>}
       {figure}
     </td>)}
     <td data-testid={child ? "child-xirr" : undefined}
-      className="px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap">
-      <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>
+      className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+      {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>}
       <XirrCellContent annualised={row.xirr} basis={row.xirr_basis} sincePurchase={row.since_purchase_return} />
     </td>
   </>;
@@ -409,6 +420,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
   query: string; chips?: SearchChip[]; onAnalyse: () => void; onCompareDistributors: () => void;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const printMode = usePrintMode();
   const filtered = filterHoldingRows(rows, query, chips);
   const valueFor = (r: ConsolidatedHolding): string | null => {
     if (sort?.key === "invested") return r.amount_invested;
@@ -433,35 +445,35 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
   return <section id="overview-mutual-funds" className="scroll-mt-6 rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-5">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
       <h3 id="holdings-title" className="text-base font-semibold text-[var(--ui-text)]">Mutual Funds ({shown.length})</h3>
-      <div className="flex gap-2">
+      {!printMode && <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" data-clickable="" data-effect="open" onClick={onCompareDistributors}>Compare Distributors</Button>
         <Button type="button" variant="outline" size="sm" data-clickable="" data-effect="open" onClick={onAnalyse}>Analyse with Mira</Button>
-      </div>
+      </div>}
     </div>
     {shown.length === 0 ? <p className="py-8 text-center text-sm text-[var(--ui-text-muted)]">No funds match "{query.trim()}"</p> :
-    <div data-testid="family-phone-cards" className="overflow-x-auto">
-      <table aria-labelledby="holdings-title" className="block w-full text-left text-sm sm:table sm:min-w-[960px]">
-        <thead className="hidden sm:table-header-group"><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} className="px-4 py-4 font-medium"
+    <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
+      <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
+        <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
+          {FAMILY_COLUMNS.map(col => <th key={col.label} className="px-4 py-4 font-medium" style={printMode && col.label === "Fund" ? { width: "28%" } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
-            {col.key ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
+            {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
         </tr></thead>
         {shown.map(parent => {
           const key = `${parent.scheme_id}:${parent.plan_type}`;
-          const open = expanded.has(key), multiple = parent.children.length > 1;
+          const open = Boolean(printMode) || expanded.has(key), multiple = parent.children.length > 1;
           const shares = splitShares(parent.children.map(c => c.units_held));
           const toggle = () => setExpanded(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; });
-          return <tbody key={key} className="mb-4 block overflow-hidden rounded-xl border border-[var(--ui-divider)] sm:mb-0 sm:table-row-group sm:rounded-none sm:border-0">
-            <tr data-testid={`parent-${key}`} className="grid grid-cols-2 border-b border-[var(--ui-divider)] sm:table-row">
-              <td className="col-span-2 px-4 py-5 sm:min-w-64">
+          return <tbody key={key} className={printMode ? "table-row-group" : "mb-4 block overflow-hidden rounded-xl border border-[var(--ui-divider)] sm:mb-0 sm:table-row-group sm:rounded-none sm:border-0"}>
+            <tr data-testid={`parent-${key}`} className={printMode ? "table-row border-b border-[var(--ui-divider)]" : "grid grid-cols-2 border-b border-[var(--ui-divider)] sm:table-row"}>
+              <td className={printMode ? "px-1 py-3 break-words" : "col-span-2 px-4 py-5 sm:min-w-64"}>
                 <div className="flex items-start gap-3">
-                  <SchemeLogo amcName={parent.amc_name} schemeName={parent.scheme_name} size="sm" />
+                  {!printMode && <SchemeLogo amcName={parent.amc_name} schemeName={parent.scheme_name} size="sm" />}
                   <div className="min-w-0 flex-1">
-                    <FundLink schemeId={parent.scheme_id}>{parent.scheme_name}</FundLink>
+                    {printMode ? parent.scheme_name : <FundLink schemeId={parent.scheme_id}>{parent.scheme_name}</FundLink>}
                     <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">{parent.plan_type === "direct" ? "Direct" : parent.plan_type === "regular" ? "Regular" : ""}</span>
                     <FamilyHoldingStatus row={parent} />
-                    {!multiple && parent.children[0] && (
+                    {!multiple && !printMode && parent.children[0] && (
                       <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
                         {parent.children[0].household_member_name}
                         {parent.children[0].folios?.map(f => (
@@ -473,7 +485,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
                       </span>
                     )}
                   </div>
-                  {multiple && <Button type="button" variant="outline" size="sm" aria-label={`${open ? "Collapse" : "Expand"} ${parent.scheme_name}`}
+                  {multiple && !printMode && <Button type="button" variant="outline" size="sm" aria-label={`${open ? "Collapse" : "Expand"} ${parent.scheme_name}`}
                     aria-expanded={open} data-clickable="" data-effect="expand" onClick={toggle}>{open ? "−" : "+"}</Button>}
                 </div>
                 {multiple && <div className="mt-3 space-y-2">
@@ -491,8 +503,8 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
               </td>
               <FamilyFigures row={parent} />
             </tr>
-            {multiple && open && parent.children.map(c => <tr key={c.household_member_id} data-testid={`member-${key}:${c.household_member_id}`}
-              className="grid grid-cols-2 border-b border-[var(--ui-divider)] bg-[var(--ui-hover)] sm:table-row">
+            {(multiple || printMode) && open && parent.children.map(c => <tr key={c.household_member_id} data-testid={`member-${key}:${c.household_member_id}`}
+              className={printMode ? "table-row border-b border-[var(--ui-divider)] bg-[var(--ui-hover)]" : "grid grid-cols-2 border-b border-[var(--ui-divider)] bg-[var(--ui-hover)] sm:table-row"}>
               <td className="col-span-2 px-6 py-4 sm:pl-12">
                 <span className="block font-medium">{c.household_member_name}</span>
                 {c.folios?.map(f => <span key={f.folio_id} className="mt-1 block text-xs text-[var(--ui-text-muted)]"><FolioNumber value={f.folio_number} /></span>)}
@@ -502,14 +514,14 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
             </tr>)}
           </tbody>;
         })}
-        <tfoot className="block sm:table-footer-group">
-          <tr className="grid grid-cols-2 border-t-2 border-[var(--ui-divider)] font-semibold sm:table-row">
+        <tfoot className={printMode ? "table-footer-group" : "block sm:table-footer-group"}>
+          <tr className={printMode ? "table-row border-t-2 border-[var(--ui-divider)] font-semibold" : "grid grid-cols-2 border-t-2 border-[var(--ui-divider)] font-semibold sm:table-row"}>
             <td className="col-span-2 px-4 py-5">Total</td>
             <td className="px-4 py-5">—</td><td className="px-4 py-5">—</td>
-            <td data-testid="foot-invested" className="px-4 py-5"><span className="block text-xs sm:hidden">Invested</span>{formatRupees(totalFor("amount_invested"))}</td>
-            <td data-testid="foot-value" className="px-4 py-5"><span className="block text-xs sm:hidden">Current value</span>{formatRupees(totalFor("current_value"))}</td>
-            <td data-testid="foot-gain" className="px-4 py-5"><span className="block text-xs sm:hidden">Unrealised</span>{formatSignedRupees(totalFor("unrealized_gain"))}</td>
-            <td data-testid="foot-realized" className="px-4 py-5"><span className="block text-xs sm:hidden">Realised</span>{formatSignedRupees(totalFor("realized_gain"))}</td>
+            <td data-testid="foot-invested" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Invested</span>}{formatRupees(totalFor("amount_invested"))}</td>
+            <td data-testid="foot-value" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Current value</span>}{formatRupees(totalFor("current_value"))}</td>
+            <td data-testid="foot-gain" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Unrealised</span>}{formatSignedRupees(totalFor("unrealized_gain"))}</td>
+            <td data-testid="foot-realized" className="px-4 py-5">{!printMode && <span className="block text-xs sm:hidden">Realised</span>}{formatSignedRupees(totalFor("realized_gain"))}</td>
             <td className="px-4 py-5">—</td>
           </tr>
         </tfoot>
