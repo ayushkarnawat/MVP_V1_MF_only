@@ -1,7 +1,7 @@
 """Price dates and stored XIRR after an intraday NAV retry."""
 
 import asyncio
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
@@ -116,3 +116,45 @@ def test_old_stored_row_without_the_new_field_still_loads():
     assert row.xirr_as_of is None
     assert row.xirr_basis is None
     assert row.since_purchase_return is None
+
+
+def test_an_old_stored_row_without_the_caution_key_still_loads():
+    row = FundBenchmarkRow.model_validate({
+        "scheme_id": "5293b6a4-8f12-4eb6-a4d9-ac12ddb5806c",
+        "scheme_name": "Synthetic Fund", "fund_xirr": "0.100000", "benchmark_xirr": None,
+        "xirr_as_of": "2026-11-24", "xirr_basis": "annualised", "since_purchase_return": "0.2",
+    })
+    assert row.xirr_caution is None
+    assert row.fund_xirr == "0.100000"
+    assert row.xirr_as_of == "2026-11-24"
+    assert row.xirr_basis == "annualised"
+    assert row.since_purchase_return == "0.2"
+
+
+@pytest.mark.parametrize("stored,expected", [(None, None), ("young", "young"),
+                                              ("single_transaction", "single_transaction"),
+                                              ("unknown", None), (["young"], None)])
+def test_stored_caution_is_whitelisted_on_aggregate_read(db_session, stored, expected):
+    from app.models.analytics import AnalyticsSection
+
+    today = date.today()
+    folio = _household(db_session, today - timedelta(days=730))
+    _store_nav(db_session, folio, today, Decimal("12"))
+    user_id = _user_id(db_session, folio)
+    fund = {"scheme_id": str(folio.scheme_id), "fund_xirr": "0.1", "xirr_basis": "annualised",
+            "xirr_as_of": today.isoformat(), "since_purchase_return": "0.2"}
+    if stored is not None:
+        fund["xirr_caution"] = stored
+    for scope in ("combined", str(folio.household_member_id)):
+        db_session.add(AnalyticsSection(
+            user_id=user_id, section="benchmark_funds", scope_key=scope,
+            household_member_id=None if scope == "combined" else folio.household_member_id,
+            computed_at=datetime.now(timezone.utc),
+            payload={"comparison": {"funds": [fund]}} if scope == "combined" else {"funds": [fund]},
+        ))
+    db_session.commit()
+    response = asyncio.run(get_aggregate_holdings(db_session, user_id))
+    parent = response.consolidated[0]
+    assert parent.xirr_caution == parent.children[0].xirr_caution == expected
+    assert parent.xirr == parent.children[0].xirr == "0.1"
+    assert parent.since_purchase_return == parent.children[0].since_purchase_return == "0.2"

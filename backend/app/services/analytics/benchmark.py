@@ -419,6 +419,7 @@ async def compute_fund_vs_benchmark(
                 xirr_as_of=end_date.isoformat() if end_date and (price_date or fund_rate is not None) else None,
                 xirr_basis=display.basis,
                 since_purchase_return=_xirr_str(display.since_purchase_return),
+                xirr_caution=display.caution,
             )
         )
         window_jobs.append((fund_rows[-1], scheme_id, scheme_txns, index, fund_rate, benchmark_rate))
