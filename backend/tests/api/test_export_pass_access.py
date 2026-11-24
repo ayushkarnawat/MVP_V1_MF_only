@@ -212,11 +212,12 @@ def test_start_up_refuses_empty_or_short_secret_in_production(monkeypatch, secre
 
 
 def test_every_allow_listed_route_exists_and_is_get_only():
+    # Read from the OpenAPI document: FastAPI 0.141 does not list included routers' routes in app.routes.
     from app.main import app
+    paths = app.openapi()["paths"]
     for template, entry in PASS_READ_ROUTES.items():
-        matches = [route for route in app.routes if getattr(route, "path", None) == template]
-        assert matches and entry.pass_safe
-        assert all(route.methods <= {"GET", "HEAD"} for route in matches)
+        assert template in paths and entry.pass_safe, template
+        assert set(paths[template]) <= {"get", "head"}, template
 
 
 def test_request_state_flag_set_only_for_pass_requests(access):

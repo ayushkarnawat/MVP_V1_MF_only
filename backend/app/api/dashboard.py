@@ -3,13 +3,15 @@ import re
 from datetime import date, datetime
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.home import get_now_ist
 from app.db.session import get_db
 from app.models.reference import Scheme
-from app.models.user import User #user db model
+from app.models.user import User, HouseholdMember #user db model
+from app.models.snapshot import PortfolioSnapshot
+from app.services.export.pass_token import is_export_pass
 from app.services.auth.session import get_data_user
 from app.services.dashboard.aggregate import (
     get_aggregate_allocation,
@@ -275,11 +277,28 @@ def get_member_cash_flow(
 @router.get("/household-members/{member_id}/snapshots", response_model=list[SnapshotRow])
 async def get_member_snapshots(
     member_id: uuid.UUID,
+    request: Request = None,
     user: User = Depends(get_data_user),
     db: DbSession = Depends(get_db),
 ):
     require_member(db, user.id, member_id)
+    if request is not None and is_export_pass(request):
+        return _stored_snapshots(db, [member_id])
     return await get_snapshots(db, [member_id])
+
+
+def _stored_snapshots(db: DbSession, member_ids: list[uuid.UUID]) -> list[SnapshotRow]:
+    members = {row.id: row for row in db.query(HouseholdMember).filter(HouseholdMember.id.in_(member_ids)).all()}
+    rows = db.query(PortfolioSnapshot).filter(PortfolioSnapshot.household_member_id.in_(member_ids)).order_by(
+        PortfolioSnapshot.household_member_id, PortfolioSnapshot.snapshot_month,
+    ).all()
+    missing_ids = {uuid.UUID(value) for row in rows for value in (row.missing_scheme_ids or [])}
+    names = {str(row.id): row.name for row in db.query(Scheme).filter(Scheme.id.in_(missing_ids)).all()} if missing_ids else {}
+    return [SnapshotRow(household_member_id=str(row.household_member_id), household_member_name=members[row.household_member_id].name,
+                        snapshot_month=row.snapshot_month, total_value=f"{row.total_value:.2f}",
+                        invested_value=f"{row.invested_value:.2f}" if row.invested_value is not None else None,
+                        is_partial=row.is_partial, missing_scheme_names=[names[value] for value in (row.missing_scheme_ids or []) if value in names])
+            for row in rows]
 
 #aggregate dashboard
 def _parse_snapshot_month(month: str) -> date:
@@ -368,6 +387,11 @@ def get_household_aggregate_cash_flow(
 
 @router.get("/household/aggregate/snapshots", response_model=AggregateSnapshotsResponse)
 async def get_household_aggregate_snapshots(
+    request: Request = None,
     user: User = Depends(get_data_user), db: DbSession = Depends(get_db)
 ):
+    if request is not None and is_export_pass(request):
+        from app.services.dashboard.aggregate import get_member_statuses
+        members = list_household_members(db, user.id)
+        return AggregateSnapshotsResponse(members=get_member_statuses(db, user.id), snapshots=_stored_snapshots(db, [member.id for member in members]))
     return await get_aggregate_snapshots(db, user.id)
