@@ -19,6 +19,9 @@ def test_auth_guard_secret_startup_requirement(monkeypatch, environment, enabled
     monkeypatch.setattr(main.settings, "environment", environment)
     monkeypatch.setitem(main.settings.__dict__, "auth_guard_enabled", enabled)
     monkeypatch.setitem(main.settings.__dict__, "auth_guard_secret", secret)
+    # The export pass guard (Batch I) also runs in production; give it a valid secret so this test stays about the auth guard.
+    monkeypatch.setitem(main.settings.__dict__, "export_pass_secret", "e" * 40)
+    monkeypatch.setitem(main.settings.__dict__, "export_api_origin", "https://api.example.test")
     start = AsyncMock()
     stop = AsyncMock()
     monkeypatch.setattr(main, "start_browser", start)
