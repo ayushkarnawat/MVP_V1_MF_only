@@ -1,4 +1,5 @@
 import type { HistoryPoint } from "../../../features/mutual-funds/types";
+import { diffDecimalStrings } from "../../../lib/decimal";
 import { formatPercent, formatRupees } from "../../../lib/format";
 
 const SHORT_MONTHS = [
@@ -30,13 +31,16 @@ function parseAsOf(asOf: string | null): { year: string; day: number; monthName:
   };
 }
 
+// A point's month may be "YYYY-MM" or a full ISO date: the month is always its first seven characters.
+const isDecember = (point: HistoryPoint) => point.month.slice(0, 7).endsWith("-12");
+
 function selectYearEndPoints(points: HistoryPoint[]): Array<{ year: string; point: HistoryPoint }> {
   const byYear = new Map<string, HistoryPoint>();
 
   for (const p of points) {
     const year = p.month.slice(0, 4);
     const existing = byYear.get(year);
-    if (!existing || !existing.month.endsWith("-12") || p.month.endsWith("-12")) {
+    if (!existing || !isDecember(existing) || isDecember(p)) {
       byYear.set(year, p);
     }
   }
@@ -44,17 +48,19 @@ function selectYearEndPoints(points: HistoryPoint[]): Array<{ year: string; poin
   return Array.from(byYear.entries()).map(([year, point]) => ({ year, point }));
 }
 
-function formatSignedGainRupees(gain: number): string {
-  const formatted = formatRupees(String(gain));
+function formatSignedGainRupees(gain: string): string {
+  const formatted = formatRupees(gain);
   if (formatted === "—" || formatted === "₹0" || formatted.startsWith("-")) {
     return formatted;
   }
   return `+${formatted}`;
 }
 
-function formatGainPercent(gain: number, invested: number): string {
-  if (invested === 0) return "-";
-  const pct = (gain / invested) * 100;
+// The gain is exact decimal arithmetic on the text figures; only the final percentage takes a Number for display.
+function formatGainPercent(gain: string, invested: string): string {
+  const base = Number(invested);
+  if (!Number.isFinite(base) || base === 0) return "-";
+  const pct = (Number(gain) / base) * 100;
   const str = Math.abs(pct) < 1e-6 ? "0" : String(pct);
   return formatPercent(str, { digits: 1, signed: true });
 }
@@ -91,14 +97,16 @@ export function YearByYearTable({ points, asOf }: { points: HistoryPoint[]; asOf
             const isPartialYear =
               parsedAsOf !== null &&
               parsedAsOf.year === year &&
-              !point.month.endsWith("-12");
+              !isDecember(point);
             const yearLabel = isPartialYear
               ? `${year} (to ${parsedAsOf.day} ${parsedAsOf.monthName})`
               : year;
 
-            const valueDisplay = formatRupees(String(point.value));
-            const hasInvested = point.invested !== null;
-            const gain = hasInvested ? point.value - point.invested! : 0;
+            const valueText = point.valueText || String(point.value);
+            const investedText = point.investedText ?? (point.invested === null ? null : String(point.invested));
+            const valueDisplay = formatRupees(valueText);
+            const hasInvested = investedText !== null;
+            const gain = hasInvested ? diffDecimalStrings(valueText, investedText) : "0";
 
             return (
               <tr
@@ -107,14 +115,14 @@ export function YearByYearTable({ points, asOf }: { points: HistoryPoint[]; asOf
               >
                 <td className="px-3 py-2 text-left">{yearLabel}</td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {hasInvested ? formatRupees(String(point.invested)) : "-"}
+                  {hasInvested ? formatRupees(investedText) : "-"}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{valueDisplay}</td>
                 <td className="px-3 py-2 text-right tabular-nums">
                   {hasInvested ? formatSignedGainRupees(gain) : "-"}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {hasInvested ? formatGainPercent(gain, point.invested!) : "-"}
+                  {hasInvested ? formatGainPercent(gain, investedText) : "-"}
                 </td>
               </tr>
             );
