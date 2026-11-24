@@ -325,4 +325,6 @@ The packet states exactly:
 - **Visual fixes (24 Nov):** found in a throwaway browser harness (1440x900, light and dark): tile height jumps on a flip (fixed: chip row `min-h-6`, caption `min-h-[4.25rem]` with a disclaimer) and a cramped PDF-page table (fixed: print widths, `px-1`, two-line chip, Fund 20% and Category 10%). Details and numbers: `Docs/orchestration/2026-11-24-xr-visual-fixes.md` and `delegation-log.md`.
 - **Merged-tree verification (24 Nov, 23:59):** backend 4294 passed, 0 failed; front end 7178 passed, 1 failed (`route.test.tsx`, also fails on the untouched `m4-candidate`: pre-existing, not from this release).
 
+- **Frozen (25 Nov):** G2 and G3 done (see `delegation-log.md`); Task 7 cleanup done except unifying the table's local chip with the shared one (accepted, follow-up). `batch/xr-returns` merged into `leapswitch-redesign` (`942356f4`), tag `xr-rc` pushed. Task 9 done (decisions entry, stakeholder bullet, QA rows XR-01 to XR-12, the deploy guide). Task 10 is the manager's Claude's run of the guide.
+
 *(Claude appends below: deviations, gate results, deploy record link.)*
