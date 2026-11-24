@@ -1,3 +1,4 @@
+import { CAUTION_CHIP, RETURNS_CAPTION, XIRR_CAPTION } from "../../../lib/xirrDisplay";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import * as fx from "../fixtures";
@@ -17,29 +18,7 @@ function strip(over: Partial<Parameters<typeof SummaryStrip>[0]> = {}) {
 const metric = (id: string) => screen.getByTestId(`metric-${id}`);
 
 describe("SummaryStrip: XIRR return basis and price date", () => {
-  const sincePurchaseCaption = "Return since purchase, not annualised";
   const xirr: XirrBundle = { ...XIRR, disclaimers: { lifetime: null, current: null } };
-
-  // getHoldingsBundle carries the five API metadata keys through to XirrBundle as named.
-  it("shows the Lifetime return since purchase with its caption", () => {
-    strip({ xirr: loaded<XirrBundle>({
-      ...xirr,
-      lifetime: "0.8",
-      lifetime_xirr_basis: "since_purchase",
-      lifetime_since_purchase: "0.2",
-    }) });
-    expect.soft(screen.getByTestId("value-xirr").textContent).toBe(formatXirr("0.2"));
-    expect(screen.getByTestId("xirr-caption").textContent).toBe(sincePurchaseCaption);
-  });
-
-  it.each([
-    ["annualised", { lifetime_xirr_basis: "annualised", lifetime_since_purchase: "0.2" }],
-    ["absent", {}],
-  ] as const)("keeps the Lifetime value and caption when the return basis is %s", (_, fields) => {
-    strip({ xirr: loaded({ ...xirr, ...fields }) });
-    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
-    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
-  });
 
   it("shows the XIRR price date on its own line in the tile", () => {
     const date = "2026-11-18";
@@ -53,26 +32,6 @@ describe("SummaryStrip: XIRR return basis and price date", () => {
   ] as const)("omits the XIRR price date line when the date is %s", (_, fields) => {
     strip({ xirr: loaded({ ...xirr, ...fields }) });
     expect(screen.queryByTestId("xirr-as-of")).not.toBeInTheDocument();
-  });
-
-  it("switches to the Current return basis and restores the Lifetime basis", () => {
-    strip({ xirr: loaded<XirrBundle>({
-      ...xirr,
-      lifetime_xirr_basis: "annualised",
-      current: "0.8",
-      current_holdings_xirr_basis: "since_purchase",
-      current_holdings_since_purchase: "0.2",
-    }) });
-    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
-    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
-
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
-    expect.soft(screen.getByTestId("value-xirr").textContent).toBe(formatXirr("0.2"));
-    expect.soft(screen.getByTestId("xirr-caption").textContent).toBe(sincePurchaseCaption);
-
-    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
-    expect(screen.getByTestId("value-xirr").textContent).toBe("16.1%");
-    expect(screen.getByTestId("xirr-caption").textContent).toBe("Since inception");
   });
 });
 
@@ -109,7 +68,7 @@ describe("SummaryStrip", () => {
     fireEvent.click(screen.getByRole("button", { name: "Current" }));
     expect(screen.getByRole("button", { name: "Current" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("value-xirr")).toHaveTextContent("14.8%");
-    expect(screen.getByTestId("xirr-caption")).toHaveTextContent("Current holdings");
+    expect(screen.getByTestId("xirr-caption")).toHaveTextContent(XIRR_CAPTION);
     expect(screen.queryByRole("button", { name: /opening-balance disclaimer/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
     expect(screen.getByTestId("value-xirr")).toHaveTextContent("16.1%");
@@ -208,5 +167,115 @@ describe("SummaryStrip", () => {
   it("marks every control with its effect (interactivity rule)", () => {
     const { container } = strip();
     expectInteractivity(container, 3);
+  });
+});
+
+describe("XIRR and Returns faces", () => {
+  function figures(fields: Partial<XirrBundle> = {}) {
+    return strip({ xirr: loaded<XirrBundle>({ ...XIRR, disclaimers: { lifetime: null, current: null },
+      lifetime: "0.418", lifetime_since_purchase: "0.065", lifetime_xirr_basis: "since_purchase",
+      current: "-0.001", current_holdings_since_purchase: "0", lifetime_xirr_caution: "young",
+      current_holdings_xirr_caution: "single_transaction", ...fields }) });
+  }
+
+  const figure = () => screen.getByTestId("value-xirr");
+  const flip = () => fireEvent.click(screen.getByTestId("measure-flip"));
+  function chip(kind: "young" | "single_transaction") {
+    const node = screen.getByTestId("xirr-caution");
+    expect(node.textContent).toBe(CAUTION_CHIP[kind].text);
+    expect(node).toHaveAttribute("title", CAUTION_CHIP[kind].tip);
+    expect(node).toHaveAttribute("aria-label", CAUTION_CHIP[kind].tip);
+  }
+  it("opens_on_xirr_with_the_annualised_caption", () => {
+    figures();
+    expect(screen.getByTestId("measure-title")).toHaveTextContent(/^XIRR$/);
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(XIRR_CAPTION);
+  });
+  it("young_portfolio_shows_the_annualised_figure_and_the_held_under_1_yr_chip", () => {
+    figures(); expect(figure().textContent).toBe(formatXirr("0.418")); chip("young");
+  });
+  it.each(["0.065", "-0.001", "0"])("flip_shows_returns_with_the_since_purchase_caption_and_no_chip", returns => {
+    figures({ lifetime_since_purchase: returns }); flip();
+    expect(screen.getByTestId("measure-title").textContent).toBe("Returns");
+    expect(figure().textContent).toBe(formatXirr(returns));
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(RETURNS_CAPTION);
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+    expect(screen.getByTestId("info-xirr")).toHaveAttribute("aria-label", "Total gain as a share of money paid in, not annualised.");
+  });
+  it("flip_back_returns_to_xirr", () => {
+    const { unmount } = figures(); flip(); flip();
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.getByTestId("measure-title").textContent).toBe("XIRR"); chip("young");
+    flip(); unmount(); figures();
+    expect(screen.getByTestId("measure-title").textContent).toBe("XIRR");
+  });
+  it("face_survives_the_lifetime_current_toggle", () => {
+    figures(); flip(); fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(screen.getByTestId("measure-title").textContent).toBe("Returns");
+    expect(figure().textContent).toBe(formatXirr("0"));
+    fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
+    expect(figure().textContent).toBe(formatXirr("0.065"));
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("current_view_uses_its_own_figures_and_chip", () => {
+    figures(); fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(figure().textContent).toBe(formatXirr("-0.001")); chip("single_transaction");
+    flip(); expect(figure().textContent).toBe(formatXirr("0"));
+  });
+  it("single_transaction_shows_the_one_transaction_chip", () => {
+    figures({ lifetime_xirr_caution: "single_transaction" }); chip("single_transaction");
+  });
+  it("both_conditions_show_only_held_under_1_yr", () => {
+    figures(); chip("young"); expect(screen.getAllByTestId("xirr-caution")).toHaveLength(1);
+    expect(screen.queryByText("one transaction")).toBeNull();
+  });
+  it("mature_multiple_buys_have_no_chip", () => {
+    figures({ lifetime_xirr_caution: null }); expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("opening_balance_disclaimer_link_works_on_either_face", () => {
+    figures({ disclaimers: XIRR.disclaimers });
+    fireEvent.click(screen.getByRole("button", { name: /opening-balance disclaimer/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    flip();
+    fireEvent.click(screen.getByRole("button", { name: /opening-balance disclaimer/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+  it("not_computable_shows_a_dash_and_hides_the_flip_button", () => {
+    figures({ lifetime: null, lifetime_since_purchase: null, lifetime_xirr_caution: null });
+    expect(figure().textContent).toBe(formatXirr(null));
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("missing_since_purchase_hides_the_flip_button_and_xirr_still_shows", () => {
+    figures({ lifetime_since_purchase: undefined });
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+  });
+  it("loading_and_error_states_are_unchanged", () => {
+    const { unmount } = strip({ xirr: loadingLoad() });
+    expect(screen.queryByTestId("value-xirr")).toBeNull();
+    expect(screen.queryByTestId("measure-flip")).toBeNull(); unmount();
+    strip({ xirr: failedLoad() });
+    expect(figure().textContent).toBe(formatXirr(null));
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+  });
+  it("the_old_return_since_purchase_not_annualised_caption_is_gone_from_the_xirr_face", () => {
+    figures(); expect(screen.queryByText("Return since purchase, not annualised")).toBeNull();
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(XIRR_CAPTION);
+  });
+  it("unrealised_percent_reads_return_on_invested_with_the_tooltip", () => {
+    figures();
+    expect(screen.getByTestId("delta-unrealised").textContent).toBe("+29.9% return on invested");
+    const tip = "Unrealised gain as a share of what you currently have invested. Not annualised.";
+    expect(screen.getByTestId("info-unrealised")).toHaveAttribute("aria-label", tip);
+    expect(screen.getByTestId("info-unrealised")).toHaveAttribute("title", tip);
+  });
+  it("old_payload_without_the_new_keys_renders_as_a_mature_portfolio_without_a_chip", () => {
+    strip({ xirr: loaded({ ...XIRR, disclaimers: { lifetime: null, current: null } }) });
+    expect(figure().textContent).toBe(formatXirr(XIRR.lifetime));
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
   });
 });

@@ -31,6 +31,18 @@ describe("mfPath", () => {
 });
 
 describe("holdings bundle", () => {
+  it("getHoldingsBundle_copies_the_two_caution_keys_when_present_and_omits_them_when_absent", async () => {
+    for (const scope of [AGG, MEM]) {
+      for (const caution of ["young", "single_transaction", null] as const) {
+        mocks.cachedFetch.mockResolvedValue(ok({ holdings: [], lifetime_xirr_caution: caution, current_holdings_xirr_caution: caution }));
+        expect((await getHoldingsBundle(scope)).xirr).toMatchObject({ lifetime_xirr_caution: caution, current_holdings_xirr_caution: caution });
+      }
+      mocks.cachedFetch.mockResolvedValue(ok({ holdings: [] }));
+      const { xirr } = await getHoldingsBundle(scope);
+      expect(xirr).not.toHaveProperty("lifetime_xirr_caution");
+      expect(xirr).not.toHaveProperty("current_holdings_xirr_caution");
+    }
+  });
   it("reads the aggregate response into holdings, members, XIRR with disclaimers, and realised gains", async () => {
     mocks.cachedFetch.mockResolvedValue(ok(fx.aggregateHoldings()));
     const bundle = await getHoldingsBundle(AGG);

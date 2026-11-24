@@ -1,3 +1,4 @@
+import { CAUTION_CHIP, RETURNS_CAPTION, XIRR_CAPTION } from "../../../lib/xirrDisplay";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fixture } from "../fixtures";
@@ -58,7 +59,7 @@ describe("SummaryStrip: the five metrics", () => {
     expect(text("value-total")).toBe("₹5,212");
     expect(text("value-invested")).toBe("₹5,000");
     expect(text("value-unrealised")).toBe("+₹212");
-    expect(text("delta-unrealised")).toBe("+4.2%");
+    expect(text("delta-unrealised")).toBe("+4.2% return on invested");
     expect(text("value-realised")).toBe("₹0");
     expect(text("value-xirr")).toBe("34.9%");
     expect(text("today-gain")).toBe("Today's Gain: +₹12 (0.23%)");
@@ -68,7 +69,7 @@ describe("SummaryStrip: the five metrics", () => {
   it("shows a member's figures", () => {
     setup({ data: fixture<PortfolioSummaryResponse>("summary_member") });
     expect(text("value-total")).toBe("₹3,012");
-    expect(text("delta-unrealised")).toBe("+0.4%");
+    expect(text("delta-unrealised")).toBe("+0.4% return on invested");
     expect(text("value-xirr")).toBe("2.5%");
   });
 
@@ -83,7 +84,7 @@ describe("SummaryStrip: the five metrics", () => {
     expect(text("today-gain")).toBe("Today's Gain: -₹41,230 (-0.29%)");
     expect(screen.getByTestId("today-gain")).toHaveAttribute("data-direction", "down");
     expect(text("value-unrealised")).toBe("-₹1,501");
-    expect(text("delta-unrealised")).toBe("-2.5%");
+    expect(text("delta-unrealised")).toBe("-2.5% return on invested");
     expect(screen.getByTestId("value-unrealised")).toHaveAttribute("data-direction", "down");
     expect(text("value-realised")).toBe("-₹300");
   });
@@ -100,7 +101,7 @@ describe("SummaryStrip: the five metrics", () => {
     expect(screen.getByTestId("today-gain")).toHaveAttribute("data-direction", "flat");
     expect(text("value-unrealised")).toBe("₹0");
     expect(screen.getByTestId("value-unrealised")).toHaveAttribute("data-direction", "flat");
-    expect(text("delta-unrealised")).toBe("0.0%");
+    expect(text("delta-unrealised")).toBe("0.0% return on invested");
     expect(text("value-realised")).toBe("₹0");
   });
 
@@ -226,13 +227,13 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
     expect(screen.getByRole("button", { name: "Since inception — opening-balance disclaimer may apply ›" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Current" }));
     expect(screen.queryByRole("button", { name: /opening-balance/ })).toBeNull();
-    expect(screen.getByTestId("xirr-caption")).toHaveTextContent("Current holdings");
+    expect(screen.getByTestId("xirr-caption")).toHaveTextContent(XIRR_CAPTION);
   });
 
   it("says plainly what the basis is when there is no disclaimer", () => {
     setup();
     expect(screen.queryByRole("button", { name: /opening-balance/ })).toBeNull();
-    expect(screen.getByTestId("xirr-caption")).toHaveTextContent("Since inception");
+    expect(screen.getByTestId("xirr-caption")).toHaveTextContent(XIRR_CAPTION);
   });
 
   it("opens the explanation with the shown and the adjusted rate, and closes it again", () => {
@@ -270,28 +271,7 @@ describe("SummaryStrip: the XIRR basis and its disclaimer", () => {
 });
 
 describe("SummaryStrip: XIRR return basis and price date", () => {
-  const sincePurchaseCaption = "Return since purchase, not annualised";
 
-  it("shows the Lifetime return since purchase with its caption", () => {
-    const data: PortfolioSummaryResponse = {
-      ...fixture<PortfolioSummaryResponse>("summary_family"),
-      lifetime_xirr: "0.8",
-      lifetime_xirr_basis: "since_purchase",
-      lifetime_since_purchase: "0.2",
-    };
-    setup({ data });
-    expect.soft(text("value-xirr")).toBe(formatXirr("0.2"));
-    expect(text("xirr-caption")).toBe(sincePurchaseCaption);
-  });
-
-  it.each([
-    ["annualised", { lifetime_xirr_basis: "annualised", lifetime_since_purchase: "0.2" }],
-    ["absent", {}],
-  ] as const)("keeps the Lifetime value and caption when the return basis is %s", (_, fields) => {
-    setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), ...fields } });
-    expect(text("value-xirr")).toBe("34.9%");
-    expect(text("xirr-caption")).toBe("Since inception");
-  });
 
   it("shows the XIRR price date on its own line in the tile", () => {
     const date = "2026-11-18";
@@ -308,26 +288,114 @@ describe("SummaryStrip: XIRR return basis and price date", () => {
     setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), ...fields } });
     expect(screen.queryByTestId("xirr-as-of")).not.toBeInTheDocument();
   });
+});
 
-  it("switches to the Current return basis and restores the Lifetime basis", () => {
-    const data: PortfolioSummaryResponse = {
-      ...fixture<PortfolioSummaryResponse>("summary_family"),
-      lifetime_xirr: "0.148",
-      lifetime_xirr_basis: "annualised",
-      current_holdings_xirr: "0.8",
-      current_holdings_xirr_basis: "since_purchase",
-      current_holdings_since_purchase: "0.2",
-    };
-    setup({ data });
-    expect(text("value-xirr")).toBe("14.8%");
-    expect(text("xirr-caption")).toBe("Since inception");
+describe("XIRR and Returns faces", () => {
+  function figures(fields: Partial<PortfolioSummaryResponse> = {}) {
+    return setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"),
+      lifetime_xirr: "0.418", lifetime_since_purchase: "0.065", lifetime_xirr_basis: "since_purchase",
+      current_holdings_xirr: "-0.001", current_holdings_since_purchase: "0", lifetime_xirr_caution: "young",
+      current_holdings_xirr_caution: "single_transaction", ...fields } });
+  }
 
-    fireEvent.click(screen.getByRole("button", { name: "Current" }));
-    expect.soft(text("value-xirr")).toBe(formatXirr("0.2"));
-    expect.soft(text("xirr-caption")).toBe(sincePurchaseCaption);
-
+  const figure = () => screen.getByTestId("value-xirr");
+  const flip = () => fireEvent.click(screen.getByTestId("measure-flip"));
+  function chip(kind: "young" | "single_transaction") {
+    const node = screen.getByTestId("xirr-caution");
+    expect(node.textContent).toBe(CAUTION_CHIP[kind].text);
+    expect(node).toHaveAttribute("title", CAUTION_CHIP[kind].tip);
+    expect(node).toHaveAttribute("aria-label", CAUTION_CHIP[kind].tip);
+  }
+  it("opens_on_xirr_with_the_annualised_caption", () => {
+    figures();
+    expect(screen.getByTestId("measure-title")).toHaveTextContent(/^XIRR$/);
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(XIRR_CAPTION);
+  });
+  it("young_portfolio_shows_the_annualised_figure_and_the_held_under_1_yr_chip", () => {
+    figures(); expect(figure().textContent).toBe(formatXirr("0.418")); chip("young");
+  });
+  it.each(["0.065", "-0.001", "0"])("flip_shows_returns_with_the_since_purchase_caption_and_no_chip", returns => {
+    figures({ lifetime_since_purchase: returns }); flip();
+    expect(screen.getByTestId("measure-title").textContent).toBe("Returns");
+    expect(figure().textContent).toBe(formatXirr(returns));
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(RETURNS_CAPTION);
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+    expect(screen.getByTestId("info-xirr")).toHaveAttribute("aria-label", "Total gain as a share of money paid in, not annualised.");
+  });
+  it("flip_back_returns_to_xirr", () => {
+    const { unmount } = figures(); flip(); flip();
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.getByTestId("measure-title").textContent).toBe("XIRR"); chip("young");
+    flip(); unmount(); figures();
+    expect(screen.getByTestId("measure-title").textContent).toBe("XIRR");
+  });
+  it("face_survives_the_lifetime_current_toggle", () => {
+    figures(); flip(); fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(screen.getByTestId("measure-title").textContent).toBe("Returns");
+    expect(figure().textContent).toBe(formatXirr("0"));
     fireEvent.click(screen.getByRole("button", { name: "Lifetime" }));
-    expect(text("value-xirr")).toBe("14.8%");
-    expect(text("xirr-caption")).toBe("Since inception");
+    expect(figure().textContent).toBe(formatXirr("0.065"));
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("current_view_uses_its_own_figures_and_chip", () => {
+    figures(); fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(figure().textContent).toBe(formatXirr("-0.001")); chip("single_transaction");
+    flip(); expect(figure().textContent).toBe(formatXirr("0"));
+  });
+  it("single_transaction_shows_the_one_transaction_chip", () => {
+    figures({ lifetime_xirr_caution: "single_transaction" }); chip("single_transaction");
+  });
+  it("both_conditions_show_only_held_under_1_yr", () => {
+    figures(); chip("young"); expect(screen.getAllByTestId("xirr-caution")).toHaveLength(1);
+    expect(screen.queryByText("one transaction")).toBeNull();
+  });
+  it("mature_multiple_buys_have_no_chip", () => {
+    figures({ lifetime_xirr_caution: null }); expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("opening_balance_disclaimer_link_works_on_either_face", () => {
+    figures({ lifetime_xirr_disclaimer: { alt_xirr: "0.12", opening_cost_share: "0.4" } });
+    fireEvent.click(screen.getByRole("button", { name: /opening-balance disclaimer/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    flip();
+    fireEvent.click(screen.getByRole("button", { name: /opening-balance disclaimer/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+  it("not_computable_shows_a_dash_and_hides_the_flip_button", () => {
+    figures({ lifetime_xirr: null, lifetime_since_purchase: null, lifetime_xirr_caution: null });
+    expect(figure().textContent).toBe(formatXirr(null));
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+  });
+  it("missing_since_purchase_hides_the_flip_button_and_xirr_still_shows", () => {
+    figures({ lifetime_since_purchase: undefined });
+    expect(figure().textContent).toBe(formatXirr("0.418"));
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+  });
+  it("loading_and_error_states_are_unchanged", () => {
+    const { unmount } = setup({ status: "loading", data: null });
+    expect(screen.getByRole("status", { name: "Loading summary" })).toBeInTheDocument();
+    expect(screen.queryByTestId("measure-flip")).toBeNull(); unmount();
+    setup({ status: "error", data: null });
+    expect(screen.getByText("Couldn't load your portfolio summary")).toBeInTheDocument();
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+  });
+  it("the_old_return_since_purchase_not_annualised_caption_is_gone_from_the_xirr_face", () => {
+    figures(); expect(screen.queryByText("Return since purchase, not annualised")).toBeNull();
+    expect(screen.getByTestId("xirr-caption").textContent).toBe(XIRR_CAPTION);
+  });
+  it("unrealised_percent_reads_return_on_invested_with_the_tooltip", () => {
+    figures();
+    expect(screen.getByTestId("delta-unrealised").textContent).toBe("+4.2% return on invested");
+    const tip = "Unrealised gain as a share of what you currently have invested. Not annualised.";
+    expect(screen.getByTestId("info-unrealised")).toHaveAttribute("aria-label", tip);
+    expect(screen.getByTestId("info-unrealised")).toHaveAttribute("title", tip);
+  });
+  it("old_payload_without_the_new_keys_renders_as_a_mature_portfolio_without_a_chip", () => {
+    setup();
+    expect(figure().textContent).toBe(formatXirr(fixture<PortfolioSummaryResponse>("summary_family").lifetime_xirr));
+    expect(screen.queryByTestId("xirr-caution")).toBeNull();
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
   });
 });
