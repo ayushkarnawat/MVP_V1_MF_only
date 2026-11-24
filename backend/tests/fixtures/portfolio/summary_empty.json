@@ -33,5 +33,7 @@
   "lifetime_xirr_basis": null,
   "current_holdings_xirr_basis": null,
   "lifetime_since_purchase": null,
-  "current_holdings_since_purchase": null
+  "current_holdings_since_purchase": null,
+  "lifetime_xirr_caution": null,
+  "current_holdings_xirr_caution": null
 }

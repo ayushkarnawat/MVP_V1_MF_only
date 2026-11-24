@@ -44,6 +44,8 @@ def test_holdings_route_returns_empty_list_for_member_with_no_folios(client):
         "current_holdings_xirr_basis": None,
         "lifetime_since_purchase": None,
         "current_holdings_since_purchase": None,
+        "lifetime_xirr_caution": None,
+        "current_holdings_xirr_caution": None,
     }
 
 

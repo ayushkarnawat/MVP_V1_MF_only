@@ -73,6 +73,7 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
             as_of = fund.get("xirr_as_of")
             basis = fund.get("xirr_basis")
             absolute = fund.get("since_purchase_return")
+            caution = fund.get("xirr_caution")
             # A newly computed zero with no basis is an indeterminate same-day result.
             # Keep the raw rate in the analytics payload for the benchmark and fund page.
             if rate == "0" and isinstance(as_of, str) and "xirr_basis" in fund and basis is None:
@@ -82,6 +83,7 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
                 "xirr_as_of": as_of if isinstance(as_of, str) else None,
                 "xirr_basis": basis if basis in ("annualised", "since_purchase") else None,
                 "since_purchase_return": absolute if isinstance(absolute, str) else None,
+                "xirr_caution": caution if caution in ("young", "single_transaction") else None,
             }
     return AggregateHoldingsResponse(
         consolidated=consolidate_holdings(holdings, rates),
@@ -95,6 +97,8 @@ async def get_aggregate_holdings(db: Session, user_id: uuid.UUID) -> AggregateHo
         current_holdings_xirr_basis=xirr_summary.current_holdings_xirr_basis,
         lifetime_since_purchase=xirr_summary.lifetime_since_purchase,
         current_holdings_since_purchase=xirr_summary.current_holdings_since_purchase,
+        lifetime_xirr_caution=xirr_summary.lifetime_xirr_caution,
+        current_holdings_xirr_caution=xirr_summary.current_holdings_xirr_caution,
         lifetime_xirr_disclaimer=xirr_summary.lifetime_xirr_disclaimer and xirr_summary.lifetime_xirr_disclaimer.to_schema(),
         current_holdings_xirr_disclaimer=xirr_summary.current_holdings_xirr_disclaimer and xirr_summary.current_holdings_xirr_disclaimer.to_schema(),
     )

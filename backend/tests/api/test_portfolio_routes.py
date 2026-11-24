@@ -80,6 +80,7 @@ def test_portfolio_summary_response_has_exact_contract_and_plain_decimal_json():
         # Additive XIRR metadata (FX-8d, FX-8e).
         "xirr_as_of", "lifetime_xirr_basis", "current_holdings_xirr_basis",
         "lifetime_since_purchase", "current_holdings_since_purchase",
+        "lifetime_xirr_caution", "current_holdings_xirr_caution",
     ]
     dumped = response.model_dump(mode="json")
     assert dumped["members"] is None
@@ -114,8 +115,17 @@ PORTFOLIO_SUFFIXES = ("portfolio-allocation", "portfolio-summary", "portfolio-va
 
 @pytest.fixture()
 def portfolio_client(client):
+    from app.api.home import get_now_ist
+    from app.services.auth.session import get_active_user
+    from app.services.dashboard.holdings import _holdings_cache
+
     household = seed_home_household(client)
     yield client, household
+    # seed_home_household overrides the sign-in and the clock on the shared app and fills the holdings cache; without
+    # this undo every test in a later file (scenarios, search index, SIP dates) saw the fake user and failed.
+    client.app.dependency_overrides.pop(get_active_user, None)
+    client.app.dependency_overrides.pop(get_now_ist, None)
+    _holdings_cache.clear()
 
 
 @pytest.mark.parametrize("suffix", PORTFOLIO_SUFFIXES)
@@ -425,3 +435,91 @@ def test_portfolio_empty_household_gives_zero_values_and_eight_buckets():
         assert all(member["has_data"] is False for member in summary["members"])
     finally:
         runtime.close()
+
+
+def test_portfolio_summary_route_sends_both_numbers_and_the_two_tile_cautions(portfolio_client):
+    client, household = portfolio_client
+    for root, absolute in (("/household/aggregate", "0.0424"),
+                           (f"/household-members/{household.dev_id}", "0.004")):
+        response = client.get(f"{root}/portfolio-summary")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["lifetime_xirr"] is not None
+        assert body["current_holdings_xirr"] is not None
+        assert body["lifetime_since_purchase"] == body["current_holdings_since_purchase"] == absolute
+        assert body["lifetime_xirr_caution"] == body["current_holdings_xirr_caution"] == "young"
+
+
+# The two holdings-route tests below live here, not in test_dashboard_aggregate_routes.py or test_dashboard_holdings_route.py:
+# they need a seeded household, and this file's portfolio_client fixture is the one that undoes the sign-in and clock overrides
+# and the shared async client. Run in the other files they broke the next test with "Event loop is closed".
+def _offline_prices(monkeypatch):
+    # No network and no shared async client: a second async route in one process would otherwise reuse a client bound to a closed loop.
+    from unittest.mock import AsyncMock
+
+    from app.services.dashboard import nav
+
+    monkeypatch.setattr(nav, "_fetch_nav_history", AsyncMock(return_value=[]))
+
+
+def test_aggregate_route_sends_both_numbers_and_the_two_tile_cautions(portfolio_client, monkeypatch):
+    _offline_prices(monkeypatch)
+    client, _household = portfolio_client
+    response = client.get("/household/aggregate/holdings")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["lifetime_xirr"] is not None
+    assert body["current_holdings_xirr"] is not None
+    assert body["lifetime_since_purchase"] == body["current_holdings_since_purchase"] == "0.0424"
+    assert body["lifetime_xirr_caution"] == body["current_holdings_xirr_caution"] == "young"
+
+
+def test_member_holdings_route_sends_both_numbers_and_the_two_tile_cautions(portfolio_client, monkeypatch):
+    _offline_prices(monkeypatch)
+    client, household = portfolio_client
+    response = client.get(f"/household-members/{household.dev_id}/holdings")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["lifetime_xirr"] is not None
+    assert body["current_holdings_xirr"] is not None
+    assert body["lifetime_since_purchase"] == body["current_holdings_since_purchase"] == "0.004"
+    assert body["lifetime_xirr_caution"] == body["current_holdings_xirr_caution"] == "young"
+
+
+def test_old_fields_are_still_present_unchanged():
+    from app.services.analytics.schemas import FundBenchmarkRow
+    from app.services.dashboard.schemas import AggregateHoldingsResponse, ConsolidatedHoldingChild, MemberHoldingsResponse
+
+    for model in (AggregateHoldingsResponse, MemberHoldingsResponse, PortfolioSummaryResponse):
+        for name in ("lifetime_xirr", "current_holdings_xirr", "xirr_as_of", "lifetime_xirr_basis",
+                     "current_holdings_xirr_basis", "lifetime_since_purchase", "current_holdings_since_purchase"):
+            assert name in model.model_fields
+        assert "lifetime_xirr_caution" in model.model_fields
+        assert "current_holdings_xirr_caution" in model.model_fields
+    assert "xirr" in ConsolidatedHoldingChild.model_fields
+    for name, value in (("fund_xirr", "0.12"), ("xirr_basis", "annualised"),
+                        ("since_purchase_return", "0.25"), ("xirr_as_of", "2026-11-24")):
+        row = FundBenchmarkRow(scheme_id="synthetic", scheme_name="Synthetic Fund", benchmark_xirr=None,
+                               fund_xirr="0.12", xirr_basis="annualised", since_purchase_return="0.25",
+                               xirr_as_of="2026-11-24")
+        assert row.model_dump()[name] == value
+
+
+def test_no_new_field_is_required_in_the_response():
+    from app.services.analytics.schemas import FundBenchmarkRow
+    from app.services.dashboard.schemas import (
+        AggregateHoldingsResponse, ConsolidatedHolding, ConsolidatedHoldingChild, MemberHoldingsResponse,
+    )
+
+    for model in (AggregateHoldingsResponse, MemberHoldingsResponse, PortfolioSummaryResponse,
+                  ConsolidatedHolding, ConsolidatedHoldingChild, FundBenchmarkRow):
+        keys = ("lifetime_xirr_caution", "current_holdings_xirr_caution") if model in (
+            AggregateHoldingsResponse, MemberHoldingsResponse, PortfolioSummaryResponse,
+        ) else ("xirr_caution",)
+        for key in keys:
+            assert not model.model_fields[key].is_required()
+            assert model.model_fields[key].default is None
+    realized = {"total": "0", "funds": []}
+    assert MemberHoldingsResponse(holdings=[], realized_summary=realized, lifetime_xirr=None,
+                                  current_holdings_xirr=None).model_dump()["lifetime_xirr_caution"] is None
+    assert AggregateHoldingsResponse(members=[], holdings=[], realized_summary=realized).model_dump()["current_holdings_xirr_caution"] is None

@@ -1,13 +1,16 @@
 """FX-8e display metadata on the tile figures and the stored fund column."""
 
 import asyncio
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
 
 from app.models.enums import TransactionType
+from app.models.transaction import Transaction
+from app.models.user import HouseholdMember
+from app.models.enums import Relationship, TransactionOrigin
 from app.services.analytics import benchmark
 from app.services.analytics.xirr import xirr
 from app.services.dashboard import nav
@@ -159,3 +162,70 @@ def test_stored_column_uses_display_metadata_without_changing_its_window(
     assert row.xirr == row.children[0].xirr == (None if days == 0 else fund.fund_xirr)
     assert row.xirr_basis == row.children[0].xirr_basis == basis
     assert row.since_purchase_return == row.children[0].since_purchase_return == absolute
+
+
+@pytest.mark.parametrize("days,caution", [(90, "young"), (730, "single_transaction")])
+def test_stored_column_carries_since_purchase_and_caution_for_every_fund(db_session, monkeypatch, offline_fund_prices, days, caution):
+    today = date.today()
+    folio = _household(db_session, today - timedelta(days=days))
+    _store_nav(db_session, folio, today, Decimal("12"))
+    user_id = _user_id(db_session, folio)
+    asyncio.run(_recompute_fund_column(db_session, user_id, monkeypatch))
+    from app.models.analytics import AnalyticsSection
+
+    section = db_session.query(AnalyticsSection).filter_by(
+        user_id=user_id, section="benchmark_funds", scope_key="combined",
+    ).one()
+    fund = section.payload["comparison"]["funds"][0]
+    assert fund["since_purchase_return"] == "0.2"
+    assert fund["xirr_caution"] == caution
+    response = asyncio.run(get_aggregate_holdings(db_session, user_id))
+    assert response.consolidated[0].xirr_caution == caution
+    assert response.consolidated[0].children[0].xirr_caution == caution
+
+
+def test_a_fund_bought_once_inside_a_mature_household_has_its_own_single_transaction_caution(db_session, monkeypatch, offline_fund_prices):
+    today = date.today()
+    first = _household(db_session, today - timedelta(days=730))
+    second = _add_fund(db_session, first, today - timedelta(days=730))
+    original = db_session.query(Transaction).filter_by(folio_id=second.id).one()
+    db_session.add(Transaction(
+        folio_id=second.id, import_id=original.import_id, type=TransactionType.PURCHASE,
+        origin=TransactionOrigin.CAS_ROW, date=today - timedelta(days=400),
+        units=Decimal("100"), nav=Decimal("10"), amount=Decimal("1000"),
+    ))
+    _store_nav(db_session, first, today, Decimal("12"))
+    _store_nav(db_session, second, today, Decimal("12"))
+    user_id = _user_id(db_session, first)
+    asyncio.run(_recompute_fund_column(db_session, user_id, monkeypatch))
+    response = asyncio.run(get_aggregate_holdings(db_session, user_id))
+    rows = {row.scheme_id: row for row in response.consolidated}
+    assert rows[str(first.scheme_id)].xirr_caution == "single_transaction"
+    assert rows[str(second.scheme_id)].xirr_caution is None
+    assert response.lifetime_xirr_caution is response.current_holdings_xirr_caution is None
+    stored = asyncio.run(benchmark.compute_fund_vs_benchmark(db_session, [first.household_member_id]))
+    assert {row.scheme_id: row.xirr_caution for row in stored.funds} == {
+        str(first.scheme_id): "single_transaction", str(second.scheme_id): None,
+    }
+
+
+def test_consolidated_parent_and_children_each_carry_their_own_caution(db_session, monkeypatch, offline_fund_prices):
+    today = date.today()
+    first = _household(db_session, today - timedelta(days=730))
+    second = _add_fund(db_session, first, today - timedelta(days=90))
+    user_id = _user_id(db_session, first)
+    member = HouseholdMember(user_id=user_id, name="Synthetic Spouse", relationship=Relationship.SPOUSE,
+                             created_at=datetime.now(timezone.utc))
+    db_session.add(member)
+    db_session.flush()
+    second.household_member_id = member.id
+    second.scheme_id = first.scheme_id
+    _store_nav(db_session, first, today, Decimal("12"))
+    asyncio.run(_recompute_fund_column(db_session, user_id, monkeypatch))
+    response = asyncio.run(get_aggregate_holdings(db_session, user_id))
+    parent = response.consolidated[0]
+    assert len(response.consolidated) == 1
+    assert parent.xirr_caution is None
+    assert {child.household_member_id: child.xirr_caution for child in parent.children} == {
+        str(first.household_member_id): "single_transaction", str(member.id): "young",
+    }

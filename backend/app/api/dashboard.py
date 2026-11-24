@@ -210,6 +210,8 @@ async def get_member_holdings(
         current_holdings_xirr_basis=xirr_summary.current_holdings_xirr_basis,
         lifetime_since_purchase=xirr_summary.lifetime_since_purchase,
         current_holdings_since_purchase=xirr_summary.current_holdings_since_purchase,
+        lifetime_xirr_caution=xirr_summary.lifetime_xirr_caution,
+        current_holdings_xirr_caution=xirr_summary.current_holdings_xirr_caution,
         lifetime_xirr_disclaimer=xirr_summary.lifetime_xirr_disclaimer and xirr_summary.lifetime_xirr_disclaimer.to_schema(),
         current_holdings_xirr_disclaimer=xirr_summary.current_holdings_xirr_disclaimer and xirr_summary.current_holdings_xirr_disclaimer.to_schema(),
     )
