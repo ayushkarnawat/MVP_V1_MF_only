@@ -50,3 +50,26 @@ def section_pages(texts: list[str]) -> dict[str, int]:
         for marker in _MARKER.finditer(text):
             pages.setdefault(marker.group(1), number)
     return pages
+
+
+def splice_first_pages(first_pdf: bytes, replacement_pdf: bytes, count: int) -> bytes:
+    with _quiet_parser():
+        try:
+            from pypdf import PdfReader, PdfWriter
+
+            if count < 1:
+                raise ValueError()
+            first = PdfReader(BytesIO(first_pdf), strict=True)
+            replacement = PdfReader(BytesIO(replacement_pdf), strict=True)
+            if len(first.pages) < count or len(replacement.pages) < count:
+                raise ValueError()
+            writer = PdfWriter()
+            for index in range(count):
+                writer.add_page(replacement.pages[index])
+            for index in range(count, len(first.pages)):
+                writer.add_page(first.pages[index])
+            output = BytesIO()
+            writer.write(output)
+            return output.getvalue()
+        except Exception:
+            raise PdfPagesError("Could not splice PDF pages.") from None
