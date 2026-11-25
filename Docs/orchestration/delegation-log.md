@@ -885,3 +885,4 @@ fix" rule.
 - 2026-11-25 hofa-be-4 done (all swap locks NOWAIT; 204 tests pass; Postgres mixed-family race test unrun); merged into batch/hofa. es-1b: tests pass but breaks test_timeout_wait_limit_uses_a_fake_clock (extra _clock reads); es-1c fix pending
 - 2026-11-25 sb-rt-1: Codex blocked on inventory vs split rupee sign; Claude approved value-* figure rule, handoff amended
 - 2026-11-25 es-1 done: timing log committed on batch/es-be (112 pass; same 10 pre-existing failures; Claude added the _timing_clock patch line to the new timing test)
+- 2026-11-25 owner decision: ONE combined deploy of all three patches at the end, one deploy guide (master plan execution log)
