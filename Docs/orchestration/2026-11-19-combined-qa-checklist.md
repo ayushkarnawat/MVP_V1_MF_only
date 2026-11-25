@@ -191,7 +191,7 @@ All visual checks are the owner's, in this round (decision 25 Nov 2026): look at
 | HA-04 | Press Try again after the countdown | The change completes (or shows the notice again with a fresh 1:00 if a save is still running) | |
 | HA-05 | Dark mode for HA-03 and HA-02 | Notice colours flip; text keeps contrast; the tile stays a soft grey | |
 | HA-06 | Staging check by Claude (not the owner): the Postgres race tests (`test_head_change_races.py`) run on the staging database | All pass; the swap never waits and the confirm is never the one aborted | |
-| HA-07 | The wording (owner to confirm before the deploy) | "Nothing is lost, and your codes are still valid." and "A statement you had uploaded but not yet confirmed was removed. Upload the file again when you are ready." | |
+| HA-07 | The wording (**confirmed by the owner, 26 Nov 2026**, so this row only checks it reads as written) | "Nothing is lost, and your codes are still valid." and "A statement you had uploaded but not yet confirmed was removed. Upload the file again when you are ready." | |
 
 ### PDF export timing log (patch 1) and speed (patch 3)
 | ID | Where and how | What you should see | Result |
@@ -211,7 +211,7 @@ All visual checks are the owner's, in this round (decision 25 Nov 2026): look at
 | HB-08 | **D-2, in Chrome and in Edge:** press **Request Statement on CAMS** once | CAMS opens in a new tab **by itself** and the floating checklist opens from the same click; there is **no** "Open the CAMS form" button anywhere; if you block the floating window in site settings, CAMS still opens and the checklist shows in the page | |
 | HB-09 | Head of Family change dialog while a member has a waiting request | One quiet line "A CAMS request for <name> is still waiting. It does not stop this change." with an info icon and **no button**; the member is still selectable and the change works | |
 | HB-10 | (Claude, deploy guide step 9b) the one-off clean-up of stuck requests | The dry run prints four counts and writes nothing; after the owner's yes, `--apply` closes only requests past 48 hours or superseded by a later import | |
-| HB-11 | The wording the owner confirms before this ships | "for <name>", "We will use the file as soon as you upload it.", "Expires in N h", "Show checklist", "Upload the file", "Checklist off for this request.", "CAMS will open on its own.", "Turn it back on" | |
+| HB-11 | The wording (**confirmed by the owner, 26 Nov 2026**, so this row only checks it reads as written) | "for <name>", "We will use the file as soon as you upload it.", "Expires in N h", "Show checklist", "Upload the file", "Checklist off for this request.", "CAMS will open on its own.", "Turn it back on" | |
 
 ### Patch 3, the safe part (PDF export)
 | ID | Where and how | What you should see | Result |
