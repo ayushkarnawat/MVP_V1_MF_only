@@ -120,3 +120,99 @@ def test_aborts_on_any_write_attempt_in_dry_run(db_session, monkeypatch, attempt
     with pytest.raises(script.WriteAttempted):
         script.main([])
     db_session.rollback()
+
+
+def test_dry_run_guard_blocks_a_write_hidden_behind_a_comment(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    _seed(db_session)
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text("-- maintenance\nUPDATE imports SET source_tab = 'probe'"))
+
+
+def test_dry_run_guard_blocks_a_write_after_a_cte(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    _seed(db_session)
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text("WITH marker AS (SELECT 1) UPDATE imports SET source_tab = 'probe'"))
+
+
+def test_dry_run_guard_blocks_a_block_comment_prefix(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    _seed(db_session)
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text("/* x */ DELETE FROM imports"))
+
+
+def test_dry_run_guard_allows_a_plain_select_and_a_select_for_update(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    with script.guard(db_session):
+        assert db_session.scalar(text("SELECT 1")) == 1
+        # SQLite cannot execute lock clauses; exercise the SQL listener directly.
+        for clause in ("FOR UPDATE", "FOR NO KEY UPDATE", "FOR SHARE", "FOR KEY SHARE"):
+            for listener in db_session.get_bind().dispatch.before_cursor_execute:
+                listener(None, None, f"SELECT 1 {clause}", (), None, False)
+
+
+def test_dry_run_guard_does_not_trip_on_column_names_like_updated_at_or_on_string_literals(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    with script.guard(db_session):
+        result = db_session.execute(text("SELECT 'update' AS updated_at, 'can''t delete -- /* x */' AS note")).one()
+        assert result.updated_at == "update"
+        assert result.note == "can't delete -- /* x */"
+
+
+def test_dry_run_runs_in_a_read_only_session_on_sqlite(db_session, monkeypatch, capsys):
+    import sqlite3
+    from scripts import close_stuck_cams_requests as script
+
+    _seed(db_session)
+    original = script.find_stuck_requests
+    def check_read_only(db, now):
+        assert db.scalar(text("PRAGMA query_only")) == 1
+        # Bypass SQLAlchemy's listener to verify the database's own protection.
+        raw = db.connection().connection.driver_connection
+        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+            raw.execute("UPDATE imports SET source_tab = 'probe'")
+        return original(db, now)
+    monkeypatch.setattr(script, "find_stuck_requests", check_read_only)
+    _run(db_session, monkeypatch, [])
+    assert db_session.scalar(text("PRAGMA query_only")) == 0
+
+
+def test_apply_does_not_close_a_request_renewed_after_selection(db_session, monkeypatch, capsys):
+    from scripts import close_stuck_cams_requests as script
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    user, head, _, expired, superseded, live = _seed(db_session)
+    superseded.status = ImportStatus.EXPIRED
+    db_session.commit()
+    original = script.find_stuck_requests
+    def select_then_renew(db, now):
+        selected = original(db, now)
+        assert [row.id for row in selected] == [expired.id]
+        initiate_cams_request(db, user.id, head.id)
+        return selected
+    monkeypatch.setattr(script, "find_stuck_requests", select_then_renew)
+    _run(db_session, monkeypatch, ["--apply"])
+    db_session.refresh(expired)
+    assert expired.status == ImportStatus.WAITING_FOR_USER
+    assert capsys.readouterr().out.splitlines() == [
+        "past_expiry=0", "later_import=0", "closed=0", "left_open=2",
+    ]
+
+
+def test_apply_still_closes_a_row_that_is_still_expired_at_apply_time(db_session, monkeypatch, capsys):
+    _, _, _, expired, _, live = _seed(db_session)
+    _run(db_session, monkeypatch, ["--apply"])
+    db_session.refresh(expired)
+    db_session.refresh(live)
+    assert expired.status == ImportStatus.EXPIRED
+    assert live.status == ImportStatus.WAITING_FOR_USER
+    assert capsys.readouterr().out.splitlines() == [
+        "past_expiry=1", "later_import=1", "closed=2", "left_open=1",
+    ]

@@ -2,12 +2,13 @@
 import argparse
 from contextlib import contextmanager, nullcontext
 from datetime import datetime, timezone
+import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import event, exists, or_
+from sqlalchemy import event, exists, or_, text
 from sqlalchemy.orm import Session, aliased, with_loader_criteria
 
 from app.db.session import SessionLocal
@@ -26,10 +27,21 @@ def guard(db: Session):
         raise WriteAttempted("Dry run refused an ORM flush. Nothing was committed.")
 
     def no_write(conn, cursor, statement, parameters, context, executemany):
-        if statement.lstrip().upper().startswith(("INSERT", "UPDATE", "DELETE")):
+        tokens = re.sub(r"'(?:''|[^'])*'|--[^\r\n]*|/\*[\s\S]*?\*/", " ", statement)
+        tokens = re.sub(r"\bFOR\s+(?:NO\s+KEY\s+UPDATE|KEY\s+SHARE|UPDATE|SHARE)\b",
+                        " ", tokens, flags=re.IGNORECASE)
+        if re.search(r"\b(?:INSERT|UPDATE|DELETE|MERGE|REPLACE|TRUNCATE|DROP|ALTER|CREATE)\b",
+                     tokens, flags=re.IGNORECASE):
             raise WriteAttempted("Dry run refused a write statement. Nothing was committed.")
 
     bind = db.get_bind()
+    sqlite_connection = None
+    if bind.dialect.name == "postgresql":
+        db.execute(text("SET TRANSACTION READ ONLY"))
+    elif bind.dialect.name == "sqlite":
+        sqlite_connection = db.connection()
+        query_only = sqlite_connection.exec_driver_sql("PRAGMA query_only").scalar_one()
+        sqlite_connection.exec_driver_sql("PRAGMA query_only = ON")
     event.listen(db, "before_flush", no_flush)
     event.listen(bind, "before_cursor_execute", no_write)
     try:
@@ -37,6 +49,8 @@ def guard(db: Session):
     finally:
         event.remove(db, "before_flush", no_flush)
         event.remove(bind, "before_cursor_execute", no_write)
+        if sqlite_connection is not None and not sqlite_connection.closed:
+            sqlite_connection.exec_driver_sql(f"PRAGMA query_only = {query_only}")
 
 
 def _later_import():
@@ -73,12 +87,18 @@ def main(argv: list[str] | None = None) -> int:
             if args.apply:
                 for offset in range(0, len(ids), 200):
                     batch = ids[offset:offset + 200]
-                    members = [row[0] for row in db.query(Import.household_member_id).filter(Import.id.in_(batch)).distinct()]
+                    current = db.query(Import).filter(
+                        Import.id.in_(batch),
+                        Import.status == ImportStatus.WAITING_FOR_USER,
+                        or_(Import.expires_at < now, _later_import()),
+                    ).populate_existing().with_for_update().all()
+                    eligible_ids = [row.id for row in current]
+                    members = list({row.household_member_id for row in current})
 
                     # The member-level helper must not close a newer, live sibling request.
                     def only_batch(state):
                         state.statement = state.statement.options(
-                            with_loader_criteria(Import, Import.id.in_(batch)),
+                            with_loader_criteria(Import, Import.id.in_(eligible_ids)),
                         )
 
                     event.listen(db, "do_orm_execute", only_batch)
