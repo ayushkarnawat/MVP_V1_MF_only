@@ -1,17 +1,7 @@
 import { useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
-import {
-  BarChart3,
-  Briefcase,
-  FileText,
-  GraduationCap,
-  Home,
-  Sprout,
-  Sun,
-  Umbrella,
-  Users,
-} from "lucide-react";
+import type { KeyboardEvent } from "react";
 import { GOAL_OPTIONS } from "@/features/profile-v2/lib/onboardingOptions";
+import { GOAL_TILE_ICONS, INVESTOR_TYPE_ICONS } from "../onboardingIcons";
 import type { InvestorType, PrimaryGoal } from "../types";
 import { AuthAlert } from "./AuthAlert";
 import { AuthButton } from "./AuthButton";
@@ -40,22 +30,6 @@ export interface InvestorProfileProps {
   /** Back to screen 3, where the name and the email can be changed. */
   onBack: () => void;
 }
-
-const INVESTOR_ICONS: Record<InvestorType, ReactNode> = {
-  beginner: <Sprout aria-hidden="true" />,
-  self_directed: <BarChart3 aria-hidden="true" />,
-  advisor_assisted: <Users aria-hidden="true" />,
-  mixed: <Briefcase aria-hidden="true" />,
-};
-
-const GOAL_ICONS: Record<PrimaryGoal, ReactNode> = {
-  wealth_creation: <BarChart3 size={20} aria-hidden="true" />,
-  retirement: <Umbrella size={20} aria-hidden="true" />,
-  childrens_education: <GraduationCap size={20} aria-hidden="true" />,
-  buy_home: <Home size={20} aria-hidden="true" />,
-  financial_freedom: <Sun size={20} aria-hidden="true" />,
-  tax_planning: <FileText size={20} aria-hidden="true" />,
-};
 
 /** Sign-up screen 4. Both answers are required; nothing is pre-selected and there is no Skip (design Q12, Q67, Q68). */
 export function InvestorProfile({ initialInvestorType = null, initialGoals = [], onSubmit, onBack }: InvestorProfileProps) {
@@ -136,25 +110,28 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
                 data-invalid={typeError ? "true" : undefined}
                 className="auth-option-group flex flex-col overflow-hidden"
               >
-                {INVESTOR_PROFILE_OPTIONS.map((option, index) => (
-                  <OptionRow
-                    key={option.value}
-                    ref={(node) => {
-                      optionRefs.current[index] = node;
-                      if (index === 0) firstOption.current = node;
-                    }}
-                    tabStop={index === stopIndex}
-                    onKeyDown={(event) => moveOption(event, index)}
-                    title={option.title}
-                    selected={investorType === option.value}
-                    icon={INVESTOR_ICONS[option.value]}
-                    divider={index < INVESTOR_PROFILE_OPTIONS.length - 1}
-                    onSelect={() => {
-                      setInvestorType(option.value);
-                      setTypeError(false);
-                    }}
-                  />
-                ))}
+                {INVESTOR_PROFILE_OPTIONS.map((option, index) => {
+                  const Icon = INVESTOR_TYPE_ICONS[option.value];
+                  return (
+                    <OptionRow
+                      key={option.value}
+                      ref={(node) => {
+                        optionRefs.current[index] = node;
+                        if (index === 0) firstOption.current = node;
+                      }}
+                      tabStop={index === stopIndex}
+                      onKeyDown={(event) => moveOption(event, index)}
+                      title={option.title}
+                      selected={investorType === option.value}
+                      icon={<Icon aria-hidden="true" />}
+                      divider={index < INVESTOR_PROFILE_OPTIONS.length - 1}
+                      onSelect={() => {
+                        setInvestorType(option.value);
+                        setTypeError(false);
+                      }}
+                    />
+                  );
+                })}
               </div>
               {typeError ? <AuthInlineError>Choose how you usually invest.</AuthInlineError> : null}
             </section>
@@ -174,17 +151,20 @@ export function InvestorProfile({ initialInvestorType = null, initialGoals = [],
               </div>
               <p className="text-[12.5px] leading-[1.2] text-[var(--auth-muted)]">(Select all that apply)</p>
               <div role="group" aria-label="What are you working towards?" className="grid grid-cols-2 gap-[calc(var(--auth-gap-sm)+3px)]">
-                {GOAL_OPTIONS.map((option, index) => (
-                  <ChipCheckbox
-                    key={option.value}
-                    ref={index === 0 ? firstChip : undefined}
-                    label={INVESTOR_GOAL_TITLE_OVERRIDES[option.value] ?? option.title}
-                    checked={goals.includes(option.value)}
-                    icon={GOAL_ICONS[option.value]}
-                    invalid={goalsError}
-                    onToggle={() => toggleGoal(option.value)}
-                  />
-                ))}
+                {GOAL_OPTIONS.map((option, index) => {
+                  const Icon = GOAL_TILE_ICONS[option.value];
+                  return (
+                    <ChipCheckbox
+                      key={option.value}
+                      ref={index === 0 ? firstChip : undefined}
+                      label={INVESTOR_GOAL_TITLE_OVERRIDES[option.value] ?? option.title}
+                      checked={goals.includes(option.value)}
+                      icon={<Icon aria-hidden="true" />}
+                      invalid={goalsError}
+                      onToggle={() => toggleGoal(option.value)}
+                    />
+                  );
+                })}
               </div>
               {goalsError ? <AuthInlineError>Choose at least one goal.</AuthInlineError> : null}
             </section>

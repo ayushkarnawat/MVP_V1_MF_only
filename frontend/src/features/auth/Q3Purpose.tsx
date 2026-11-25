@@ -83,21 +83,14 @@ export function Q3Purpose({
             className={cn(
               "w-full py-3 sm:py-3.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[50px]",
               isSelected
-                ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
+                ? "bg-[color-mix(in_srgb,var(--pos)_8%,transparent)] dark:bg-[color-mix(in_srgb,var(--pos)_12%,transparent)]"
                 : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
             )}
             onClick={() => toggle(option.value)}
           >
             {/* Left Icon */}
-            <div
-              className={cn(
-                "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
-                isSelected
-                  ? "bg-[#22C55E]/20 text-[#22C55E]"
-                  : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
-              )}
-            >
-              <option.Icon className="h-5 w-5" aria-hidden="true" />
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[var(--ui-card)] text-[var(--pos)] [&>svg]:h-1/2 [&>svg]:w-1/2">
+              <option.Icon aria-hidden="true" />
             </div>
 
             {/* Title & Subtitle */}
@@ -106,8 +99,8 @@ export function Q3Purpose({
                 className={cn(
                   "block font-display font-bold text-xs sm:text-[13.5px] transition-colors",
                   isSelected
-                    ? "text-[#22C55E]"
-                    : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
+                    ? "text-[var(--pos)]"
+                    : "text-[var(--color-ink)] group-hover:text-[var(--pos)]"
                 )}
               >
                 {option.title}
@@ -119,8 +112,8 @@ export function Q3Purpose({
               className={cn(
                 "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
                 isSelected
-                  ? "bg-[#22C55E]/15 text-[#22C55E]"
-                  : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50 group-hover:text-[#22C55E] group-hover:translate-x-0.5"
+                  ? "bg-[color-mix(in_srgb,var(--pos)_15%,transparent)] text-[var(--pos)]"
+                  : "text-[var(--ui-text-muted)]/50 group-hover:text-[var(--pos)] group-hover:translate-x-0.5"
               )}
             >
               {isSelected ? <Check className="h-4 w-4" /> : null}
@@ -139,38 +132,31 @@ export function Q3Purpose({
         className={cn(
           "w-full py-3 sm:py-3.5 px-2.5 sm:px-3 rounded-xl flex items-center gap-3.5 text-left transition-all duration-150 cursor-pointer group select-none min-h-[50px] border-t border-[var(--color-border)]/60 mt-1 pt-1",
           allPicked
-            ? "bg-[#22C55E]/[0.08] dark:bg-[#22C55E]/[0.12]"
+            ? "bg-[color-mix(in_srgb,var(--pos)_8%,transparent)] dark:bg-[color-mix(in_srgb,var(--pos)_12%,transparent)]"
             : "hover:bg-black/[0.025] dark:hover:bg-white/[0.035]"
         )}
         onClick={toggleAll}
       >
-        <div
-          className={cn(
-            "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150",
-            allPicked
-              ? "bg-[#22C55E]/20 text-[#22C55E]"
-              : "bg-[#22C55E]/10 text-[var(--color-ink)] group-hover:bg-[#22C55E]/15 group-hover:text-[#22C55E]"
-          )}
-        >
-          <Check className="h-5 w-5" />
+        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[var(--ui-card)] text-[var(--pos)] [&>svg]:h-1/2 [&>svg]:w-1/2">
+          <Check aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0 space-y-0.5">
           <strong
             className={cn(
               "block font-display font-bold text-xs sm:text-[13.5px] transition-colors",
-              allPicked ? "text-[#22C55E]" : "text-[var(--color-ink)] group-hover:text-[#22C55E]"
+              allPicked ? "text-[var(--pos)]" : "text-[var(--color-ink)] group-hover:text-[var(--pos)]"
             )}
           >
             Why choose? All of it.
           </strong>
-          <span className="block text-[11px] sm:text-xs text-[#5C5C5C] dark:text-[#A3A3A3] leading-snug font-normal">
+          <span className="block text-[11px] sm:text-xs text-[var(--ui-text-muted)] leading-snug font-normal">
             The full picture, the true returns, the whole family, the fine print.
           </span>
         </div>
         <div
           className={cn(
             "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150",
-            allPicked ? "bg-[#22C55E]/15 text-[#22C55E]" : "text-[#5C5C5C]/50 dark:text-[#A3A3A3]/50"
+            allPicked ? "bg-[color-mix(in_srgb,var(--pos)_15%,transparent)] text-[var(--pos)]" : "text-[var(--ui-text-muted)]/50"
           )}
         >
           {allPicked ? <Check className="h-4 w-4" /> : null}

@@ -7,14 +7,14 @@ export interface IconBadgeProps {
   className?: string;
 }
 
-/** The round mint circle with a green line icon that sits beside a feature row or an option. Decorative. */
-export function IconBadge({ icon, tone = "soft", className = "" }: IconBadgeProps) {
+/** The soft grey tile with a green line icon beside an option (the news-list style). Decorative. */
+export function IconBadge({ icon, className = "" }: IconBadgeProps) {
   return (
     <span
       aria-hidden="true"
       data-testid="icon-badge"
-      className={`flex shrink-0 items-center justify-center rounded-full text-[var(--auth-green-ink)] [&>svg]:h-[46%] [&>svg]:w-[46%] [&>svg]:stroke-[1.7] ${className}`}
-      style={{ width: "var(--auth-badge-size)", height: "var(--auth-badge-size)", background: tone === "strong" ? "var(--auth-badge-strong)" : "var(--auth-badge)" }}
+      className={`flex shrink-0 items-center justify-center rounded-[10px] bg-[var(--ui-card)] text-[var(--pos)] [&>svg]:h-1/2 [&>svg]:w-1/2 ${className}`}
+      style={{ width: "var(--auth-badge-size)", height: "var(--auth-badge-size)" }}
     >
       {icon}
     </span>
