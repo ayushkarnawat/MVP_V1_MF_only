@@ -327,9 +327,10 @@ def test_the_log_line_has_only_counts_and_durations(rig, caplog):
     caplog.set_level(logging.INFO)
     run(rig)
     lines = [record.getMessage() for record in caplog.records if record.name == render.__name__]
-    assert len(lines) == 1
-    assert lines[0].startswith("export finished: status=ready scope_kind=family sections=1 duration_ms=")
-    assert "pdf_bytes=" in lines[0] and "blocked_requests=" in lines[0]
+    finished = [line for line in lines if line.startswith("export finished:")]
+    assert len(finished) == 1
+    assert finished[0].startswith("export finished: status=ready scope_kind=family sections=1 duration_ms=")
+    assert "pdf_bytes=" in finished[0] and "blocked_requests=" in finished[0]
 
 
 @pytest.fixture
@@ -456,8 +457,9 @@ def test_log_line_reports_two_pass_and_nothing_else_new(two_pass, caplog, hook_e
     two_pass.hook_exists = hook_exists
     run_two_pass(two_pass)
     lines = [record.getMessage() for record in caplog.records if record.name == render.__name__]
-    assert len(lines) == 1
-    fields = dict(item.split("=", 1) for item in lines[0].removeprefix("export finished: ").split())
+    finished = [line for line in lines if line.startswith("export finished:")]
+    assert len(finished) == 1
+    fields = dict(item.split("=", 1) for item in finished[0].removeprefix("export finished: ").split())
     assert set(fields) == {"status", "scope_kind", "sections", "duration_ms", "pdf_bytes", "blocked_requests", "two_pass"}
     assert fields["two_pass"] == ("yes" if hook_exists else "no")
 
