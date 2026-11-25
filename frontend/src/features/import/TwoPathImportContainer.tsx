@@ -75,7 +75,7 @@ function MemberImportContainer({
   }, [requestCasVersion]);
 
   const showView = (next: ImportView) => {
-    setView(next);
+    setView(effectiveView === "history" && next === "choice" ? null : next);
   };
 
   const handleRequestInitiated = (importId: string, expiresAt: string) => {
