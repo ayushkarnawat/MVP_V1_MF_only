@@ -873,3 +873,5 @@ fix" rule.
 - 2026-11-25 hofa-fe-1 packet written (Antigravity, Head of Family Part A Task 4; clone ag-hofa, branch ag/hofa-ui); relay after batch/hofa merge
 - 2026-11-25 ag-hofa clone created (ag/hofa-ui from batch/hofa 69da43d2)
 - 2026-11-25 vis V4 (icons) built by Antigravity, checked by Claude (tests 692/694, only V1-owned reds; types, lint clean), merged into batch/vis
+- 2026-11-25 vis V1 (greens, info glyph) merged into batch/vis after Claude checks (reds left only V2/V3/V4 tests)
+- 2026-11-25 d12-be-1b done: 4 analytics files 115 passed; committed 837575e2 on batch/d12-be
