@@ -887,3 +887,4 @@ fix" rule.
 - 2026-11-25 es-1 done: timing log committed on batch/es-be (112 pass; same 10 pre-existing failures; Claude added the _timing_clock patch line to the new timing test)
 - 2026-11-25 owner decision: ONE combined deploy of all three patches at the end, one deploy guide (master plan execution log)
 - 2026-11-25 G1 reviews: hofa-be a5cffae7 PASS (one low: comment overstated NOWAIT guarantee, fixed); es-1 4ef005d5 PASS no findings. Head of Family backend and export timing log cleared for patch 1
+- 2026-11-25 QA checklist: added section 'QA-round patches' (VP-01..08, D12-01..04, HA-01..07, ES-01); all visual checks are the owner's QA; dev server stopped

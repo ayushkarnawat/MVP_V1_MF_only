@@ -159,5 +159,44 @@ Run after step 8 of the guide (the stored results must be rebuilt first). Use in
 | XR-11 | Performance page, fund page, Allocation fund-manager card, the phone layout | Unchanged; their XIRR agrees with the tile and the list | |
 | XR-12 | Immediately after the deploy, a mature fund in the list | Returns shows a number, not a dash (the stored results were rebuilt) | |
 
+## QA-round patches (built 25 Nov 2026; ONE combined deploy of patches 1 to 3 after everything is built; rows are added as each part lands)
+All visual checks are the owner's, in this round (decision 25 Nov 2026): look at light and dark mode and at widths 1,440, 1,280, 1,100 and 1,024. Copy never changed except the named new strings.
+
+### Visual pass (Plan 3: greens, the "i", search and benchmark hints, icon tiles)
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| VP-01 | Every green button on the sign-up and log-in screens, export dialog, the CAMS checklist, the XIRR disclaimer dialog, onboarding Continue and Got it | Text is **white** on the green in every state except disabled (hover, pressed, focus ring still work); no dark text left on any green button | |
+| VP-02 | The "i" next to labels (Overview cards, ValuationByFund, date strip, SIP timeline, Performance page, benchmark note, summary strips) | The "i" is clearly bigger and easier to see; hover inverts it; a keyboard focus ring shows; **no row grows taller and no label wraps** because of it | |
+| VP-03 | Search box, empty, with no recent searches | One quiet hint line (the built wording) shows under the box; it disappears when you type; it is not selectable as a result | |
+| VP-04 | Search results: hover or arrow onto a member row and a fund row that already says "Switches to ..." | The hover hint is **not** repeated (the tag is enough); other rows still show their hint | |
+| VP-05 | Wealth graph benchmark checklist: open it, then tick a 4th benchmark | "Choose up to 3" shows as soon as the panel opens; a 4th tick turns it into the warning; the panel does not jump in height | |
+| VP-06 | Home, Movers header | Underlined link look with the correct offset and a visible focus ring | |
+| VP-07 | Onboarding questions 2 and 3 (investor type, goals) and the "All of it" row | Each option has a soft grey tile with a green line icon (same look in both questions); chips and rows are not taller than before at the five onboarding viewport sizes; selected rows still show the green wash | |
+| VP-08 | Dark mode for VP-01 to VP-07 | Everything above reads well; no light patches | |
+
+### D-12: the category average uses the rank's funds
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| D12-01 | Performance page at 1 year, a fund with a rank | "Rank N of M" and "Category average covers M funds" show the **same M** | |
+| D12-02 | The same at 3 years and 5 years | Same M for rank and average in every period; 3Y and 5Y numbers did not change from before the deploy | |
+| D12-03 | The 1-year category average value, before and after (the number gate sheet) | The 1-year average moved only as the approved before and after sheet says; a fund under 3 years still reads "Not enough history" for its own rank | |
+| D12-04 | A small category (few funds at 3 years) | The "thin category" note still follows the 3-year count | |
+
+### Head of Family, part A: a statement no longer blocks the change
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| HA-01 | Start a Head of Family change while a family member has a statement open (uploaded, not confirmed) | The change is **not** blocked; the old line "Finish or cancel the statement you are importing first." is gone | |
+| HA-02 | Complete the change (all four codes) in that situation | You are signed out; on the sign-in screen the "Head of Family changed" notice has **one extra quiet line** (file icon) saying the unconfirmed statement was removed; with no open statement there is no extra line | |
+| HA-03 | Confirm a statement and, at the same moment, press Confirm the change (two windows) | If the statement is being saved, a calm indigo notice (clock icon) says "A statement is being saved. Try again in a minute." with a **disabled grey button counting down from 1:00**, then a green **Try again**; no red error; nothing lost and the codes still valid | |
+| HA-04 | Press Try again after the countdown | The change completes (or shows the notice again with a fresh 1:00 if a save is still running) | |
+| HA-05 | Dark mode for HA-03 and HA-02 | Notice colours flip; text keeps contrast; the tile stays a soft grey | |
+| HA-06 | Staging check by Claude (not the owner): the Postgres race tests (`test_head_change_races.py`) run on the staging database | All pass; the swap never waits and the confirm is never the one aborted | |
+| HA-07 | The wording (owner to confirm before the deploy) | "Nothing is lost, and your codes are still valid." and "A statement you had uploaded but not yet confirmed was removed. Upload the file again when you are ready." | |
+
+### PDF export timing log (patch 1) and speed (patch 3)
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| ES-01 | Run one full export on staging, then read the backend log | One extra `export timing:` line beside `export finished:` with stage durations and the contents outcome; no names, ids or amounts; the PDF is as before | |
+
 ## Cross-batch regression list (kept from the program plan, section 10)
 Sign-up, sign-in and OTP with a real inbox and a real phone; import and the new member (the drop-down, the landing, the wrong-person case, the tutorial link); the numbers (XIRR tile and column, a rank and its total, the category average, the same household before and after); folios (eye and Copy); charts; search; navigation and dates; PDF; browser and size (Chrome and Edge at three laptop sizes, light and dark).
