@@ -3,6 +3,7 @@ import { Button } from "../../../components/ui/button";
 import { FolioNumber } from "../../../components/mf/FolioNumber";
 import { compareDecimalStrings, formatDecimal, sumDecimalStrings } from "../../../lib/decimal";
 import { SchemeLogo } from "../../../components/SchemeLogo";
+import { XirrCautionChip } from "../../../components/XirrCautionChip";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { categoryLabel } from "@/lib/categoryLabel";
 import { formatRupees } from "../../../lib/format";
@@ -50,7 +51,7 @@ export interface HoldingsTableProps {
   onCompareDistributors: () => void;
 }
 
-function CautionChip({ caution }: { caution: XirrCaution }) {
+function PrintCautionChip({ caution }: { caution: XirrCaution }) {
   const printMode = usePrintMode();
   const { text, tip } = CAUTION_CHIP[caution];
   const tone =
@@ -74,10 +75,11 @@ function CautionChip({ caution }: { caution: XirrCaution }) {
 }
 
 function XirrFigure({ value, caution }: { value: string | null | undefined; caution: XirrCaution | null | undefined }) {
+  const printMode = usePrintMode();
   return (
-    <div className="flex flex-col items-start gap-0.5">
+    <div className={printMode ? "flex flex-col items-start gap-0.5" : "flex flex-col items-end gap-0.5"}>
       <span>{formatXirr(value)}</span>
-      {caution ? <CautionChip caution={caution} /> : null}
+      {caution ? (printMode ? <PrintCautionChip caution={caution} /> : <XirrCautionChip caution={caution} variant="note" />) : null}
     </div>
   );
 }
@@ -211,19 +213,20 @@ function HoldingsTableContent({
                 <th className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"} style={printMode ? { width: "10%" } : undefined}>Category</th>
                 {sortColumns.map(col => {
                   const isSorted = sort?.key === col.key;
+                  const isRightAligned = !printMode && (col.key === "returns" || col.key === "xirr");
                   const ariaSort = isSorted
                     ? sort.dir === "desc"
                       ? "descending"
                       : "ascending"
                     : "none";
                   return (
-                    <th key={col.key} aria-sort={ariaSort} title={col.title} className={printMode ? "py-3 px-1 font-medium" : "py-3 px-4 font-medium"}>
+                    <th key={col.key} aria-sort={ariaSort} title={col.title} className={printMode ? "py-3 px-1 font-medium" : `py-3 px-4 font-medium${isRightAligned ? " text-right" : ""}`}>
                       {printMode ? col.label : <button
                         type="button"
                         data-clickable=""
                         data-effect="sort"
                         onClick={() => onSort(nextSort(sort, col.key))}
-                        className="inline-flex items-center gap-1 hover:text-[var(--ui-text)]"
+                        className={`inline-flex items-center gap-1 hover:text-[var(--ui-text)]${isRightAligned ? " justify-end" : ""}`}
                       >
                         <span>{col.label}</span>
                         {isSorted && (
@@ -312,10 +315,10 @@ function HoldingsTableContent({
                         ? "—"
                         : formatSignedRupees(row.unrealized_gain)}
                     </td>
-                    <td data-testid="returns" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
+                    <td data-testid="returns" className={`py-3 ${printMode ? "px-1" : "px-4 text-right"} font-medium text-[var(--ui-text)]`}>
                       {formatXirr(xirrMetaByScheme?.[row.scheme_id]?.since_purchase_return)}
                     </td>
-                    <td data-testid="xirr" className={`py-3 ${printMode ? "px-1" : "px-4"} font-medium text-[var(--ui-text)]`}>
+                    <td data-testid="xirr" className={`py-3 ${printMode ? "px-1" : "px-4 text-right"} font-medium text-[var(--ui-text)]`}>
                       <XirrFigure
                         value={xirrByScheme[row.scheme_id]}
                         caution={xirrMetaByScheme?.[row.scheme_id]?.xirr_caution}
@@ -412,11 +415,11 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
       {figure}
     </td>)}
     {/* The test ids sit on the figure itself, not the cell, so the phone-only column label in the cell is not part of the figure's text. */}
-    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap text-right"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>}
       <span data-testid={child ? "child-returns" : "returns"}>{formatXirr(row.since_purchase_return)}</span>
     </td>
-    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap"}>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap text-right"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[8].label}</span>}
       <div data-testid={child ? "child-xirr" : "xirr"}><XirrFigure value={row.xirr} caution={row.xirr_caution} /></div>
     </td>
@@ -470,7 +473,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
       <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
         <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : "px-4 py-4 font-medium"} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
+          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : `px-4 py-4 font-medium${col.key === "returns" || col.key === "xirr" ? " text-right" : ""}`} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
             {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
