@@ -41,7 +41,7 @@ Report, for each test, whether it ran or was BLOCKED.
 cd backend
 "C:\Users\Dell\Desktop\MVP v1\MVP_V1_MF_only\backend\.venv\Scripts\python.exe" -m pytest tests/services/auth/test_head_change_swap.py tests/services/auth/test_head_eligibility.py tests/services/auth/test_head_change_flow.py tests/services/auth/test_head_change_undo.py tests/api/test_head_change_routes.py -q -p no:cacheprovider
 ```
-Baseline before any change: the five files passed (167) before hofa-be-1; Claude records the figure after hofa-be-1 in the Execution log. The Postgres file needs `TEST_DATABASE_URL`: only Claude runs it.
+Baseline before any change (Claude, 25 Nov, on this branch after hofa-be-1, commit `5f4aac8f`): these five files = **186 passed**. The Postgres file needs `TEST_DATABASE_URL`: only Claude runs it.
 
 ## Files you may touch
 `backend/app/services/auth/head_change.py` (only `_settle_member_imports`, the constants, the `HeadChangeResult` field, and the one call and result construction in `complete_head_change`); `backend/app/services/auth/schemas.py` (only the new field); `backend/app/api/auth.py` (only the route's return); the three test files named above.
