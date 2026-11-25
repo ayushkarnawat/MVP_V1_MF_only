@@ -46,6 +46,28 @@ def _compute(db, monkeypatch, schemes, held=None):
     return asyncio.run(ranking.compute_performance_ranking(db, [uuid.uuid4()]))
 
 
+def test_ranking_pools_are_unchanged_by_the_shared_loader(db_session, monkeypatch):
+    from app.services.analytics import performance_ranking as ranking
+
+    old = _seed(db_session, 0, end="200")
+    young = _seed(db_session, 1, age=1, end="130")
+    index = _seed(db_session, 2, name="Paper Moon Index Fund")
+    regular = _seed(db_session, 3, plan=SchemePlanType.REGULAR)
+    inactive = _seed(db_session, 4, active=False)
+    invalid = _seed(db_session, 5, end="0")
+    schemes = [old, young, index, regular, inactive, invalid]
+    peers = CategoryPeers(schemes, len(schemes), {s.id: s.id for s in schemes})
+    monkeypatch.setattr(category, "get_category_peers", AsyncMock(return_value=peers))
+    monkeypatch.setattr(ranking, "get_category_peers", AsyncMock(return_value=peers))
+    monkeypatch.setattr(category, "warm_nav_history", AsyncMock())
+    pools = asyncio.run(ranking.load_ranking_pools(db_session, old, date.today())).pools
+    assert pools == {
+        "1Y": {old.id: Decimal("1"), young.id: Decimal("0.3")},
+        "3Y": {old.id: Decimal("0.259921049894873164767210607")},
+        "5Y": {old.id: Decimal("0.148698354997035006798626947")},
+    }
+
+
 def test_rank_and_total_per_period_on_a_five_fund_category(db_session, monkeypatch):
     schemes = [_seed(db_session, i, age=age) for i, age in enumerate((5, 5, 3, 1, 1))]
     result = _compute(db_session, monkeypatch, schemes)

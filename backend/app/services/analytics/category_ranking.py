@@ -4,10 +4,10 @@ by fund size (average assets under management), the same as the fund page.
 A fund with no size on record is left out of the weighted figure and counted;
 if no fund in the pool has a size, the plain mean is shown and flagged.
 
-The 3-year eligibility floor applies to every displayed period. Internal
+Each displayed period includes funds with a return for that period. Internal
 return helpers also serve the Fund Quality Score: its blend remains 40% 3Y
-and 60% 5Y when both exist, otherwise 100% 3Y. Performance Ranking opts into
-short histories without changing this default or adding a second NAV pass.
+and 60% 5Y when both exist, otherwise 100% 3Y. The average and rank loaders
+share short histories without changing this default or adding a second NAV pass.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import time
 import uuid
 from datetime import date
 from decimal import Decimal
-from typing import NamedTuple
+from typing import Literal, Mapping, NamedTuple
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -230,20 +230,31 @@ def _simple_average(values) -> Decimal | None:
     return sum(values, Decimal("0")) / Decimal(len(values)) if values else None
 
 
+PeriodReturns = tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]
+
+
+def period_members(
+    detailed: Mapping[uuid.UUID, PeriodReturns], period: Literal["1Y", "3Y", "5Y"],
+) -> dict[uuid.UUID, Decimal]:
+    """Funds with a return for the requested period, including zero returns."""
+    index = {"1Y": 0, "3Y": 1, "5Y": 2}[period]
+    return {sid: values[index] for sid, values in detailed.items() if values[index] is not None}
+
+
 def category_period_averages(
     detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
 ) -> dict[str, tuple[Decimal | None, int]]:
-    """Simple per-period means, always subject to the 3Y eligibility floor.
+    """Simple means over each period's members.
 
     Not used by the comparison itself any more (it is fund-size weighted, see
     `category_period_weighted_averages`); kept for the diff report script, which
     compares the two methods.
     """
-    eligible = [values for values in detailed.values() if values[1] is not None]
+    # Pools are per period so the average and the rank always count the same funds (owner, 25 Nov 2026, QA-12 A); the 3-year rule survives only in the blended figure.
     averages = {}
-    for period, index in (("1y", 0), ("3y", 1), ("5y", 2)):
-        pool = [values[index] for values in eligible if values[index] is not None]
-        averages[period] = (_simple_average(pool), len(pool))
+    for period in ("1Y", "3Y", "5Y"):
+        pool = period_members(detailed, period)
+        averages[period.lower()] = (_simple_average(pool.values()), len(pool))
     return averages
 
 
@@ -280,14 +291,10 @@ def category_period_weighted_averages(
     detailed: dict[uuid.UUID, tuple[Decimal | None, Decimal | None, Decimal | None, Decimal | None]],
     aaum_by_scheme: dict[uuid.UUID, Decimal],
 ) -> dict[str, CategoryAverage]:
-    """Fund-size-weighted per-period averages, with the same 3Y eligibility floor
-    and the same pools as `category_period_averages`."""
-    eligible = {sid: values for sid, values in detailed.items() if values[1] is not None}
+    """Fund-size-weighted averages over the same per-period members as the plain means."""
     return {
-        period: _fund_size_average(
-            {sid: values[index] for sid, values in eligible.items() if values[index] is not None}, aaum_by_scheme,
-        )
-        for period, index in (("1y", 0), ("3y", 1), ("5y", 2))
+        period.lower(): _fund_size_average(period_members(detailed, period), aaum_by_scheme)
+        for period in ("1Y", "3Y", "5Y")
     }
 
 
@@ -309,6 +316,32 @@ def _legacy_average_from_periods(averages: dict[str, CategoryAverage]) -> Catego
     return three_year._replace(value=Decimal(format(blended.normalize(), "f")))
 
 
+class PeerReturns(NamedTuple):
+    """The shared category-and-plan members and their available period returns."""
+
+    peers: CategoryPeers
+    detailed: dict[uuid.UUID, PeriodReturns]
+
+
+async def load_peer_returns(
+    db: Session, scheme: Scheme, today: date, *, peers: CategoryPeers | None = None,
+) -> PeerReturns:
+    """Load all available periods for active peers in the same category and plan."""
+    key = (canonical_category(scheme.sebi_category), scheme.plan_type)
+    if peers is None:
+        peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
+    detailed = await _category_returns_detailed(
+        db, peers.schemes, today, cache_key=("peers", *key), include_short_history=True,
+    )
+    eligible = {
+        peer.id for peer in peers.schemes
+        if peer.is_active
+        and canonical_category(peer.sebi_category) == key[0]
+        and plan_matches(peer.plan_type, key[1])
+    }
+    return PeerReturns(peers, {sid: values for sid, values in detailed.items() if sid in eligible})
+
+
 class CategoryPool(NamedTuple):
     """Everything the comparison needs for one category and plan: the peer funds, each one's returns, and the
     averages over them. Built once per category and plan, then read once per held fund."""
@@ -322,19 +355,14 @@ class CategoryPool(NamedTuple):
 async def load_category_pool(db: Session, scheme: Scheme, today: date) -> CategoryPool:
     """The category-and-plan pool for `scheme` (which must have a `sebi_category`). Shared by the household
     comparison below and the CA export script, so both read the same peers, returns and size weights."""
-    key = (canonical_category(scheme.sebi_category), scheme.plan_type)
     peers = await get_category_peers(db, scheme.sebi_category, scheme.plan_type)
-    detailed = await _category_returns_detailed(db, peers.schemes, today, cache_key=("peers", *key))
-    # Ranking shares the cached returns for the full peer set.
+    shared = await load_peer_returns(db, scheme, today, peers=peers)
     held_is_index = is_index_fund(scheme.name, scheme.sebi_category)
     eligible = {
         peer.id for peer in peers.schemes
-        if peer.is_active
-        and canonical_category(peer.sebi_category) == key[0]
-        and plan_matches(peer.plan_type, key[1])
-        and is_index_fund(peer.name, peer.sebi_category) == held_is_index
+        if is_index_fund(peer.name, peer.sebi_category) == held_is_index
     }
-    detailed = {sid: values for sid, values in detailed.items() if sid in eligible}
+    detailed = {sid: values for sid, values in shared.detailed.items() if sid in eligible}
     # One size lookup per category and plan, for the funds that have a return.
     aaum = _latest_aaum_by_scheme(db, list(detailed))
     averages = category_period_weighted_averages(detailed, aaum)

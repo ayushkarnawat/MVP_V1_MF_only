@@ -9,10 +9,10 @@ from typing import NamedTuple
 from sqlalchemy.orm import Session
 
 from app.models.reference import Scheme
-from app.services.analytics.category_ranking import _category_returns_detailed
+from app.services.analytics.category_ranking import load_peer_returns
 from app.services.analytics.schemas import PeriodRank, PerformanceRankingFund, PerformanceRankingResult
 from app.services.analytics.scheme_universe import (
-    CategoryPeers, canonical_category, get_category_peers, is_index_fund, plan_matches,
+    CategoryPeers, canonical_category, get_category_peers, is_index_fund,
 )
 from app.services.dashboard.holdings import compute_holdings
 
@@ -59,14 +59,9 @@ async def load_ranking_pools(db: Session, scheme: Scheme, today: date) -> Rankin
     export script."""
     key = (canonical_category(scheme.sebi_category), scheme.plan_type)
     peers = await get_category_peers(db, scheme.sebi_category, key[1])
-    # Same shared key/universe as Category Ranking; the extra history view
-    # reuses its bounded NAV lookup and 15-minute cache in either call order.
-    detailed = await _category_returns_detailed(
-        db, peers.schemes, today, cache_key=("peers", *key), include_short_history=True,
-    )
-    eligible = {s.id for s in peers.schemes if s.is_active and not _is_index(s)
-                and canonical_category(s.sebi_category) == key[0] and plan_matches(s.plan_type, key[1])}
-    pools = {period: {sid: values[position] for sid, values in detailed.items()
+    shared = await load_peer_returns(db, scheme, today, peers=peers)
+    eligible = {s.id for s in peers.schemes if not _is_index(s)}
+    pools = {period: {sid: values[position] for sid, values in shared.detailed.items()
                       if sid in eligible and values[position] is not None}
              for period, position in _PERIODS}
     return RankingPools(peers, pools, {s.id: s.name for s in peers.schemes})

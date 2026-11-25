@@ -750,7 +750,7 @@ def test_fund_with_no_size_figure_is_no_longer_dropped():
     }
 
 
-def test_fund_under_3_years_is_left_out_of_every_period():
+def test_fund_under_3_years_is_in_the_1y_period_only():
     from app.services.analytics.category_ranking import category_period_averages
     db = _session()
     old, young = _scheme(db, "Old"), _scheme(db, "Young")
@@ -758,12 +758,30 @@ def test_fund_under_3_years_is_left_out_of_every_period():
             young.id: {_TODAY: Decimal("100"), years_ago(_TODAY, 1): Decimal("10")}}
     with patch.object(category_ranking_module, "warm_nav_history", new=AsyncMock()), \
          patch.object(category_ranking_module, "_bulk_nav_on_or_before", return_value=navs):
-        detailed = asyncio.run(category_ranking_module._category_returns_detailed(db, [old, young], _TODAY))
-    assert set(detailed) == {old.id}
-    assert category_period_averages(detailed)["1y"] == (Decimal("1"), 1)
-    # Even an opt-in short-history result cannot leak into category averages.
-    detailed[young.id] = (Decimal("9"), None, None, None)
-    assert category_period_averages(detailed)["1y"] == (Decimal("1"), 1)
+        detailed = asyncio.run(category_ranking_module._category_returns_detailed(
+            db, [old, young], _TODAY, include_short_history=True))
+    assert set(detailed) == {old.id, young.id}
+    averages = category_period_averages(detailed)
+    assert averages["1y"] == (Decimal("5"), 2)
+    assert averages["3y"][1] == 1
+    assert averages["5y"] == (None, 0)
+    db.close()
+
+
+def test_held_fund_under_three_years_still_reads_not_enough_history():
+    from app.services.analytics.category_ranking import CategoryPool, category_rank_row, category_period_weighted_averages, category_blended_weighted_average
+    from app.services.analytics.scheme_universe import CategoryPeers
+
+    db = _session()
+    young = _scheme(db, "Paper Moon Sprout Fund")
+    detailed = {young.id: (Decimal("0.3"), None, None, None)}
+    pool = CategoryPool(CategoryPeers([young], 1, {young.id: young.id}), detailed,
+                        category_period_weighted_averages(detailed, {}),
+                        category_blended_weighted_average(detailed, {}))
+    row = category_rank_row(young, pool)
+    assert row.insufficient_history is True
+    assert row.periods == {}
+    assert row.category_avg_return is None
     db.close()
 
 
@@ -856,13 +874,15 @@ def test_a_single_fund_category_is_its_own_average():
     assert category_blended_weighted_average(detailed, {only: Decimal("7")}) == (Decimal("0.12"), 1, "fund_size", 0)
 
 
-def test_weighted_average_keeps_the_three_year_floor():
+def test_weighted_average_uses_each_periods_own_members():
     from app.services.analytics.category_ranking import category_period_weighted_averages
     old, young = uuid.uuid4(), uuid.uuid4()
     detailed = {old: (Decimal("0.10"), Decimal("0.12"), None, Decimal("0.12")),
                 young: (Decimal("9"), None, None, None)}
     result = category_period_weighted_averages(detailed, {old: Decimal("1"), young: Decimal("1000")})
-    assert result["1y"] == (Decimal("0.10"), 1, "fund_size", 0)
+    # 1Y = (0.10 * 1 + 9 * 1000) / (1 + 1000) = 9000.10 / 1001.
+    assert result["1y"] == (Decimal("9000.10") / Decimal("1001"), 2, "fund_size", 0)
+    assert result["3y"] == (Decimal("0.12"), 1, "fund_size", 0)
 
 
 def test_all_without_size_falls_back_end_to_end_and_flags_each_period():
