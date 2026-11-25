@@ -469,44 +469,46 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 </section>
 
 <section id="d2">
-<h2>2 · D-2 · The floating checklist: go straight to CAMS, no "Open the CAMS form" button</h2>
-<span class="pill w">Browser limit</span> <span class="pill b">Needs your decision</span>
-<div class="kv"><b>What the user sees</b><div>Press Request from CAMS and a small floating checklist opens, with its own "Open the CAMS form" button. You want the click to take the user straight to the CAMS site, with the checklist already floating above that tab.</div></div>
-<div class="kv"><b>Why it happens</b><div>
-<p><b>Confirmed (spike doc, 23 Nov, Chrome 157, your own test).</b> Opening the floating window worked at 0.3 s. Opening a new tab <i>after</i> it in the same click was blocked. Opening the floating window <i>after</i> a new tab was refused. Opening the tab from a button <i>inside</i> the floating window worked, because that is a fresh click. <b>Web knowledge, not re-tested:</b> both actions need a fresh user click ("user activation") and each one uses it up, so one click buys only one of them. I re-read the spike and the current code: the code does exactly what the spike recommended (<code>RequestCamsPath.tsx:48-58</code>, <code>CamsChecklist.tsx:26-31</code>).</p>
-<p><b>What was never tested</b> (the spike's own list): other delays, Edge and Firefox, whether the CAMS tab comes to the front when opened from the floating window, small laptop sizes, calling the window's own open from the main click, a pop-up window with a size string, same-tab navigation, and an extension.</p>
-<p><b>A risk I found, inferred and untested:</b> on browsers with no floating window (or when it is refused) the page waits for the server's answer and <i>then</i> opens CAMS. If the server is slow, the browser may block that new tab, because the click's permission only lasts a few seconds. This is today's behaviour. A synthetic slow-server test would show it.</p></div></div>
-<div class="kv"><b>Mockup (desktop): today, and the three real options</b><div>
+<h2>2 · D-2 · Request from CAMS goes straight to CAMS, with the checklist floating over it</h2>
+<span class="pill w">Browser limit</span> <span class="pill g">Updated after your answer</span> <span class="pill b">Needs a short test, then your decision</span>
+<div class="callout ok"><p><b>What you asked for (exact requirement, now the pass mark):</b> the user clicks the existing <b>Request from CAMS</b> button. They land on the CAMS website, and the floating checklist is there above that page. <b>No separate button inside the checklist to open CAMS, and no screen or step in between.</b> The order does not matter (checklist first then CAMS, or CAMS first then checklist), as long as it is one click and nothing in between. This replaces my earlier "make the CAMS link step 1 of the list" idea: that is still an extra click, so it is dropped.</p></div>
+<div class="kv"><b>What the user sees today</b><div>Press Request from CAMS and a floating checklist opens, <i>but the CAMS site does not open</i>. The user must press "Open the CAMS form" inside the checklist. That is the extra step you want gone.</div></div>
+<div class="kv"><b>Why it is the way it is</b><div>
+<p><b>Confirmed (spike doc, 23 Nov, Chrome 157, your own test).</b> When a script tries both in one click, only the first works: a new tab opened after the floating window is blocked, and the floating window opened after a new tab is refused. Opening the tab from a button inside the floating window works because that is a new click. <b>Web knowledge, not re-tested:</b> both script actions need a fresh click and each one uses it up.</p>
+<p><b>What the spike did not try, and it changes the answer (inferred, needs the test below).</b> The spike opened the CAMS tab with a script call (<code>window.open</code>). Browsers treat a script-opened tab differently from a tab opened by clicking a normal <b>link</b> (<code>&lt;a href target="_blank"&gt;</code>): a link click is the user's own navigation, and Chrome does not apply the pop-up blocker to it. So there may be a way to get both from one click: <b>make the Request button a real link to CAMS</b>, and let the button's click handler open the floating window first. The click handler uses the click's permission for the floating window, and the browser then follows the link in a new tab as the link's normal action. This was never tried.</p>
+<p><b>Why this is now easy to try (new finding, confirmed in code):</b> the CAMS address is a fixed constant (<code>cams_portal.py:17</code>, <code>CAMS_MAILBACK_BASE_URL</code>), not something that comes back from our server per request. So the link can be on the button before it is clicked; nothing has to wait for the server. That also removes the slow-server risk I flagged earlier for the fallback.</p></div></div>
+<div class="kv"><b>Mockup: the flow you want (desktop)</b><div>
 <div class="grid2">
-<div class="ui"><div class="uitag bad">Today: floating window first, then a button inside it</div>
-<div class="win"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
-<div class="wbody" style="height:190px"><div class="mut">Unifolio, Add data. Click "Request from CAMS".</div>
-<div class="fl"><b>Fill the CAMS form</b><div class="mut">0 of 5 done</div><div class="btnrow"><span class="bg bright-dark">Open the CAMS form</span></div><div class="mut">then 5 ticks</div></div></div></div></div>
-<div class="ui"><div class="uitag good">Option A: the CAMS link is step 1 of the list</div>
-<div class="win"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
-<div class="wbody" style="height:190px"><div class="mut">Same click. The window opens first.</div>
-<div class="fl"><b>Fill the CAMS form</b><div class="mut">Step 1 of 3 · 0 of 5 ticked</div><div class="row link">1. Open CAMS in a new tab ↗</div><div class="row">▢ Statement type: Detailed</div><div class="row">▢ Period: Specific Period</div></div></div></div></div>
-<div class="ui"><div class="uitag good">Option B: CAMS opens as before; float it from Unifolio</div>
-<div class="win"><div class="wbar"><span class="wtab off">Unifolio</span><span class="wtab">CAMS</span></div>
-<div class="wbody" style="height:190px"><div class="mut">CAMS site opens at once. No window yet.</div></div></div>
-<div class="win" style="margin-top:8px"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
-<div class="wbody" style="height:70px"><div class="statuscard2"><b>CAMS request waiting</b> <span class="bg deep-white sm">Float the checklist</span></div></div></div></div>
-<div class="ui"><div class="uitag bad">Not recommended: a browser extension</div><div class="card"><div class="mut">A small add-on that draws the checklist on the CAMS page itself. The only true one-click flow, but the user must install it, it needs store review and permission to read the CAMS site, which is heavy for a household-finance product.</div></div>
-<div class="uitag bad" style="margin-top:10px">Not viable: CAMS inside the floating window; same tab</div><div class="card"><div class="mut">The floating window has no address bar and CAMS probably refuses to be framed (inferred). Going to CAMS in the same tab closes the floating window with the page and loses the Unifolio tab the upload step needs.</div></div></div>
-</div></div></div>
-<div class="kv"><b>Options</b><div><ol>
-<li><b>A (recommended): keep the current design, but make the CAMS link the first step of the checklist instead of a separate button</b>, and run a short spike (about half a day) on the untested ideas before giving up on one click. It looks like the CAMS step is part of the list, not an extra button. It is still one extra click, which I will say plainly. If the spike finds an order that works in Chrome and Edge, we switch.</li>
-<li><b>B: CAMS opens straight away as before; the checklist appears as the in-page panel, with a "Float the checklist" button the user presses when back on Unifolio.</b> The click does what you want, but the floating window then starts later and needs a second click.</li>
-<li><b>C: a browser extension.</b> The only way to get exactly what you describe. Heavy; I do not recommend it for this MVP.</li></ol>
-<p class="small">The honest answer to "can one click open both?": not with what Chrome allows today, as tested. Option A makes the extra step feel like part of the checklist rather than a separate button.</p></div></div>
-<div class="kv"><b>Tests first</b><div><ul>
-<li><code>request_still_opens_the_floating_window_first_in_the_click</code> (keeps the spike's rule)</li>
-<li><code>cams_link_is_the_first_checklist_step_and_opens_in_a_new_tab</code>; <code>the_separate_open_the_cams_form_button_is_gone</code> (option A)</li>
-<li><code>fallback_opens_cams_even_when_the_request_is_slow</code> (the risk above; prefetch or open a blank tab in the click, then set its address)</li>
-<li>Option B instead: <code>cams_opens_in_the_click</code>; <code>float_button_opens_the_window_from_its_own_click</code></li></ul></div></div>
-<div class="kv"><b>Files</b><div><code>features/import/checklist/CamsChecklist.tsx</code>, <code>checklistCopy.ts</code>, <code>checklist-tokens.css</code>, <code>RequestCamsPath.tsx</code>; the spike branch <code>batch/h-spike</code> for the extra test page. Part D of the Head of Family plan (above) touches the same files, so the two are done together, one after the other.</div></div>
-<div class="kv"><b>Re-check</b><div>M4-12 (the click flow) and M4-13 (Chrome, Edge, Firefox, Safari).</div></div>
-<div class="kv"><b>Your decision</b><div>QA-2 below. Your earlier "yes" to the current design is still marked open in the spike doc, so I am asking, not assuming.</div></div>
+<div class="ui"><div class="uitag">Before the click · Unifolio tab</div>
+<div class="win"><div class="wbar"><span class="wtab">Unifolio</span></div>
+<div class="wbody" style="height:215px"><div class="h">Add data</div><div class="mut" style="margin-bottom:8px">Get your statement from CAMS in a few steps.</div><span class="bg deep-white">Request from CAMS</span></div></div></div>
+<div class="ui"><div class="uitag good">After the one click · CAMS tab in front, checklist floating over it</div>
+<div class="win"><div class="wbar"><span class="wtab off">Unifolio</span><span class="wtab">CAMS · Consolidated Account Statement</span></div>
+<div class="wbody" style="height:215px"><div class="mut">CAMS website: Statement type, Period, Folio listing, e-mail…</div>
+<div class="fl"><b>Fill the CAMS form</b><div class="pbar"><i style="width:0%"></i></div><div class="mut">0 of 5 ticked</div><div class="row">▢ Statement type: Detailed</div><div class="row">▢ Period: Specific Period</div><div class="row">▢ …</div></div></div></div></div>
+</div>
+<div class="ui"><div class="uitag bad">What goes away</div><div class="card"><div class="row dim">The "Open the CAMS form" button inside the checklist, the "Getting your link ready" wait, and the second click.</div></div></div>
+</div></div>
+<div class="kv"><b>Options, in the order I would try them</b><div><ol>
+<li><b>A (recommended, to test first): the Request button is a real link to CAMS; its click handler opens the floating window first.</b> One click, no in-between step, no extra button, works in either window order from the user's view. The server request is sent right after, in the background (it needs no click). Where the browser has no floating window (Firefox, Safari, phones) or refuses it, the same click still opens CAMS and the checklist appears as the in-page panel (as built today). <i>Risk: the browser may still decide the link click has no permission left after the floating window took it.</i> That is exactly what the test below settles.</li>
+<li><b>B: one-time "allow pop-ups" for the site.</b> If the user (or we, with a short one-time hint) switches pop-ups to Allow for Unifolio in Chrome's site settings, the page may open the tab by script after the floating window with no click needed. No in-between screen on later requests, but a one-time setup for the user, and it depends on a browser setting. Tested nowhere.</li>
+<li><b>C: a browser extension</b> that draws the checklist on the CAMS page itself. Gives exactly your picture without relying on the browser's click rule. Heavy: install, store review, permission to read the CAMS site. Not for this MVP unless A and B fail.</li>
+<li><b>D: the fallback if A and B fail.</b> One click goes to CAMS and the checklist is shown as the in-page panel back on the Unifolio tab (no floating window over CAMS). No in-between step, but the checklist is not above the CAMS site. I would only offer this with your explicit OK, because it is not what you asked for.</li></ol>
+<p class="small">Honest limits: nothing here is proven. A and B are web-platform behaviours I know from documentation, not from a test of our page. Chrome is the only browser with the floating window; Firefox and Safari will always get the in-page panel.</p></div></div>
+<div class="kv"><b>The short test (before any build)</b><div>Extend the existing spike page (branch <code>batch/h-spike</code>, <code>Docs/orchestration/spike/checklist-spike/</code>) and run it in Chrome and Edge. About half a day including your run. <b>Pass mark: one click on a link-button gives the CAMS tab in front <i>and</i> the floating checklist, with nothing else clicked.</b> Cases:
+<ol><li><b>S1:</b> link click with <code>requestWindow</code> called first in the click handler (option A).</li><li><b>S2:</b> the same with the order reversed (script opens the floating window after the link navigation starts).</li><li><b>S3:</b> pop-ups set to Allow, then floating window then script tab (option B).</li><li><b>S4:</b> whether the CAMS tab comes to the front and the floating window stays above it; ticks still update; the request still reaches our server.</li><li><b>S5:</b> keyboard (Enter or Space on the button), a slow network, and a small laptop window size.</li><li><b>S6:</b> a refused floating window: the link must still open CAMS.</li></ol>
+If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B (with a clear one-time hint). If none pass, you choose between C and D.</div></div>
+<div class="kv"><b>Tests first (after the spike, when the build starts)</b><div><ul>
+<li><code>request_from_cams_is_a_link_to_the_cams_address_with_a_new_tab_target</code></li>
+<li><code>clicking_request_opens_the_floating_window_before_anything_else_in_the_handler</code> (the spike's rule, kept)</li>
+<li><code>the_checklist_has_no_open_the_cams_form_button</code>; <code>no_getting_your_link_ready_state_remains</code></li>
+<li><code>a_refused_or_missing_floating_window_still_opens_cams_and_shows_the_panel</code></li>
+<li><code>the_request_is_sent_after_the_click_and_a_failure_shows_in_the_checklist_with_try_again</code></li>
+<li><code>handler_never_calls_preventDefault_on_the_request_link</code></li>
+<li>Phone: <code>mobile_request_still_opens_cams_as_today</code></li></ul></div></div>
+<div class="kv"><b>Files</b><div><code>features/import/RequestCamsPath.tsx</code> (the button becomes a link; the handler changes), <code>features/import/checklist/CamsChecklist.tsx</code> (remove the button and its "ready" state), <code>checklistCopy.ts</code> (remove the two lines), <code>checklistStore.ts</code> (open first, no wait for the link), the spike page. The Head of Family plan's part D touches the same files: <b>done together, one after the other</b>.</div></div>
+<div class="kv"><b>Re-check</b><div>M4-12 (Request goes straight to CAMS with the floating checklist, no extra button) and M4-13 (Chrome and Edge floating; Firefox and Safari panel).</div></div>
+<div class="kv"><b>Your decision</b><div>QA-2 below: agree to the half-day test first, and what we do if A does not pass.</div></div>
 </section>
 
 <section id="d1">
@@ -671,15 +673,15 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 <ol>
 <li><b>Now, no code:</b> you decide the six items marked "Needs your decision" (QA-12, QA-2, QA-1, QA-7, QA-9, QA-10) and the Head of Family ones (Q1 to Q7, D1 to D4). Run the read-only D-12 before and after, and the free export timing.</li>
 <li><b>First build, in parallel (different files):</b> Head of Family part A (unblocks the four emails) and D-12 (the only wrong-number item). D-12 goes through its number review before it is merged.</li>
-<li><b>Second build, one front-end worker, one pass:</b> V1 (D-1 greens, D-7 info icon), then V2 (D-3, D-4), V3 (D-5, D-6), V4 (D-8), V5 (D-9 wording). D-2 joins here only if you pick a simple option (A or B); it touches the same checklist files as Head of Family part D, so those two are done together.</li>
+<li><b>Second build, one front-end worker, one pass:</b> V1 (D-1 greens, D-7 info icon), then V2 (D-3, D-4), V3 (D-5, D-6), V4 (D-8), V5 (D-9 wording). D-2 follows its half-day test; if the link-button route passes it joins here, and it touches the same checklist files as Head of Family part D, so those two are done together.</li>
 <li><b>Measuring patch:</b> the D-10 timing log rides with the second build, so the next export gives real numbers. <b>Speed changes only after those numbers.</b></li>
 <li><b>Later:</b> Head of Family parts B, C and D, the D-8 designer's icons, any D-10 speed work.</li></ol>
 <h3>What needs your decision before anything is built</h3>
-<ul><li><b>D-12</b>: which rule is right at 1 year (our own documents disagree).</li><li><b>D-2</b>: A, B or C, or the half-day spike first.</li><li><b>D-1</b>: white on a deeper green (moves the palette), white on the bright green, or dark on bright.</li><li><b>D-9</b>: the button wording.</li><li><b>D-10</b>: OK to measure first, and the real minutes.</li><li>Also: D-7 (which icon), the D-3 and D-5 hint words, D-8 (quick pass or wait).</li></ul>
+<ul><li><b>D-12</b>: which rule is right at 1 year (our own documents disagree).</li><li><b>D-2</b>: agree to the half-day test of the link-button route first (your one-click requirement is the pass mark), and what happens if it fails.</li><li><b>D-1</b>: white on a deeper green (moves the palette), white on the bright green, or dark on bright.</li><li><b>D-9</b>: the button wording.</li><li><b>D-10</b>: OK to measure first, and the real minutes.</li><li>Also: D-7 (which icon), the D-3 and D-5 hint words, D-8 (quick pass or wait).</li></ul>
 <h3>One patch deploy (the manager's Claude runs it, after the XIRR deploy)</h3>
 <div class="tablewrap"><table>
 <tr><th>Goes in the patch</th><th>Stays out</th></tr>
-<tr><td>Head of Family part A; D-12 (and a rebuild of the stored results, as in the XIRR guide's step 8); D-1, D-3, D-4, D-5, D-6, D-7, D-9; the D-10 timing log (no behaviour change); D-8 quick pass if chosen; D-2 only if option A or B</td><td>Head of Family parts B, C, D; the D-10 speed changes; the designer's D-8 icons; D-2 option C (extension)</td></tr>
+<tr><td>Head of Family part A; D-12 (and a rebuild of the stored results, as in the XIRR guide's step 8); D-1, D-3, D-4, D-5, D-6, D-7, D-9; the D-10 timing log (no behaviour change); D-8 quick pass if chosen; D-2 only if its test passed (link-button or pop-up route)</td><td>Head of Family parts B, C, D; the D-10 speed changes; the designer's D-8 icons; D-2 extension route</td></tr>
 </table></div>
 <p class="small">Expected: no migration (Alembic stays 0054) and no new settings; one new tag (for example <code>qa-patch-rc</code>) cut after a full gate; a stakeholder note only if you want one. The QA rows to re-run are listed per item above, with M1-17 to M1-19 and M2-04 re-run last.</p>
 </section>
@@ -742,10 +744,11 @@ var Q=[
  {k:"a",rec:1,l:"The average follows the rank pool, built as one shared pool function",d:"1Y average then covers 42, 30, 32, 30, 42 funds (same as the rank). 3Y and 5Y unchanged. The 1Y average percentage moves; you see the before and after first."},
  {k:"b",l:"The rank follows the average",d:"Rank becomes 'of 37' etc. Funds under 3 years lose a 1-year rank; contradicts a test that gives a 1-year-only fund a rank."},
  {k:"c",l:"Change nothing in the numbers; explain it in words",d:"Cheapest; the two counts still disagree on screen and the M2 promise stays broken."}]},
-{id:"QA-2",t:"D-2: what do we do about 'one click to CAMS with the checklist floating'?",why:"The spike found one click opens the floating window or the CAMS tab, not both. I re-read it and the code; the untested ideas are listed in item 2.",o:[
- {k:"a",rec:1,l:"Keep the design; the CAMS link becomes step 1 of the list (no separate button); run a half-day spike on the untested ideas",d:"Still one extra click, said plainly. If the spike finds a working order in Chrome and Edge we switch."},
- {k:"b",l:"CAMS opens at once; the checklist is the in-page panel with a 'Float the checklist' button",d:"The click does what you want; the floating window needs a second click later."},
- {k:"c",l:"A browser extension",d:"The only true one-click flow; heavy (install, store review, permission on the CAMS site)."}]},
+{id:"QA-2",t:"D-2: how do we get 'one click to CAMS with the checklist floating', with no in-between step?",why:"Your requirement is now the pass mark: one click on Request from CAMS, CAMS in front, checklist floating over it, no extra button or screen. The spike only tried a script-opened tab; a real link click may behave differently, and the CAMS address is a fixed constant so the link can sit on the button. A half-day test settles it before any build.",o:[
+ {k:"a",rec:1,l:"Run the half-day test first (Request button as a real link plus the floating window in the same click, Chrome and Edge); if it passes, build that",d:"Gives exactly your picture if the browser allows it. If it fails, the next options are offered, with your OK."},
+ {k:"b",l:"Also test the one-time 'allow pop-ups' route and use it if only that works",d:"No extra click on later requests, but the user must allow pop-ups for the site once."},
+ {k:"c",l:"Skip the test and go to a browser extension",d:"The only guaranteed way to float over the CAMS page; heavy (install, store review, permission on the CAMS site)."},
+ {k:"d",l:"If the test fails: CAMS opens at once and the checklist shows as the in-page panel on the Unifolio tab",d:"No in-between step, but the checklist is not above the CAMS site. Only with your explicit OK."}]},
 {id:"QA-1",t:"D-1: how do green buttons get white text?",why:"White on the bright green #22C55E is 2.3 to 1 (fails). The palette PDF says dark text on it. White works on the deep green #15803D (5.0 to 1).",o:[
  {k:"a",rec:1,l:"White text on a deeper button green (#15803D, hover darker); bright green stays for charts, dots, focus rings",d:"Does what you asked and passes. Moves the palette's 'primary button' off the bright green: a recorded decision."},
  {k:"b",l:"White text on the bright green as it is",d:"Literal, but 2.3 to 1 is hard to read."},
