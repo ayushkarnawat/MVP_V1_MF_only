@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { InfoPopover } from "./InfoPopover";
+import { INFO_GLYPH_CLASS } from "./infoGlyph";
+import { InfoMark } from "../../features/mutual-funds/common/SectionCard";
 
 afterEach(() => {
   cleanup();
@@ -88,4 +90,11 @@ describe("InfoPopover", () => {
     await screen.findByRole("dialog");
     expect(document.body.innerHTML).not.toMatch(/#[\da-f]{3,8}\b/i);
   });
+});
+
+it("default_trigger_and_infomark_share_the_info_glyph_class", () => {
+  render(<><InfoPopover label="About returns">Return details</InfoPopover><InfoMark text="About valuation" /></>);
+  for (const trigger of [screen.getByRole("button", { name: "About returns" }), screen.getByRole("img", { name: "About valuation" })]) {
+    expect(trigger.className).toContain(INFO_GLYPH_CLASS);
+  }
 });

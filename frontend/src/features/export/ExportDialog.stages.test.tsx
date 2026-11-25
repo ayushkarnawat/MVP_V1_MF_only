@@ -67,12 +67,12 @@ describe("ExportDialog — stages 2 to 4", () => {
     ).toBeInTheDocument();
   });
 
-  it("Keep working and Cancel call their callbacks", () => {
+  it("Run in background and Cancel call their callbacks", () => {
     const onCancel = vi.fn();
     const onKeepWorking = vi.fn();
     render(<ExportDialog {...makeProps({ onCancel, onKeepWorking })} />);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    fireEvent.click(screen.getByRole("button", { name: "Keep working" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run in background" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onKeepWorking).toHaveBeenCalledTimes(1);
   });
@@ -135,4 +135,10 @@ describe("ExportDialog — stages 2 to 4", () => {
     rerender(<ExportDialog {...makeProps({ stage: "ready" })} />);
     expect(screen.getByTestId("export-live-region")).toHaveTextContent(/Your report is ready/);
   });
+});
+
+it("shows_run_in_background_and_not_keep_working", () => {
+  render(<ExportDialog {...makeProps()} />);
+  expect(screen.getByRole("button", { name: "Run in background" })).toBeInTheDocument();
+  expect(screen.queryByText("Keep working")).not.toBeInTheDocument();
 });

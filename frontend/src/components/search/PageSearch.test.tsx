@@ -64,7 +64,7 @@ const sold: SearchFund = {
   holders: [{ member_id: "asha", member_name: "Asha", state: "sold", sip: null }],
 };
 const fundRow: ResultRow = {
-  id: "fund:example", kind: "fund", title: fund.name,
+  id: "fund:example", kind: "fund", title: fund.name, tag: "Switches to Bela",
   action: { type: "jump-fund", schemeId: fund.scheme_id, switchTo: { memberIds: ["bela"], label: "Bela" } },
 };
 const filterRow: ResultRow = {
@@ -76,7 +76,7 @@ const goRow: ResultRow = {
   action: { type: "go", path: "/portfolio/mutual-funds/allocation", sectionId: "asset-allocation" },
 };
 const memberRow: ResultRow = {
-  id: "member:bela", kind: "member", title: "Bela",
+  id: "member:bela", kind: "member", title: "Bela", tag: "Switches to Bela",
   action: { type: "switch-member", memberId: "bela", label: "Bela" },
 };
 const disabledRow: ResultRow = {
@@ -357,7 +357,10 @@ describe("7. No match, error and hand-off rows", () => {
     render(<PageSearch {...props} />);
     type();
     fireEvent.mouseEnter(screen.getByRole("option", { name: new RegExp(row.title) }));
-    expect(screen.getByTestId(`row-hint-${row.id}`)).toHaveTextContent(hint);
+    if (row.tag === hint) {
+      expect(within(screen.getByRole("option", { name: new RegExp(row.title) })).getByText(hint)).toBeInTheDocument();
+      expect(screen.queryByTestId(`row-hint-${row.id}`)).not.toBeInTheDocument();
+    } else expect(screen.getByTestId(`row-hint-${row.id}`)).toHaveTextContent(hint);
   });
 });
 
@@ -377,7 +380,8 @@ describe("8. Keyboard and ARIA", () => {
     fireEvent.keyDown(input, { key: "ArrowUp" }); check(options[2]);
     fireEvent.keyDown(input, { key: "ArrowDown" }); check(options[0]);
     fireEvent.keyDown(input, { key: "ArrowDown" }); check(options[1]);
-    expect(screen.getByTestId(`row-hint-${fundRow.id}`)).toHaveTextContent("Switches to Bela");
+    expect(within(options[1]).getByText("Switches to Bela")).toBeInTheDocument();
+    expect(screen.queryByTestId(`row-hint-${fundRow.id}`)).not.toBeInTheDocument();
     fireEvent.keyDown(input, { key: "ArrowDown" }); check(options[2]);
     fireEvent.keyDown(input, { key: "ArrowDown" }); check(options[0]);
   });
@@ -434,3 +438,68 @@ function chooseActiveFirst(input: HTMLElement, first: HTMLElement) {
     fireEvent.keyDown(input, { key: "ArrowDown" });
   }
 }
+
+describe("visual pass search hints", () => {
+  it("shows_a_hint_when_the_box_is_empty_and_there_are_no_recents", () => {
+    render(<PageSearch {...props} />);
+    expect(screen.queryByTestId("search-empty-hint")).not.toBeInTheDocument();
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByTestId("search-empty-hint")).toHaveTextContent("Try a fund, a member or a page");
+  });
+  it("hides_the_hint_once_recents_exist", () => {
+    mocks.readSearches.mockReturnValue(["flexi cap"]);
+    const view = render(<PageSearch {...props} />);
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByRole("option", { name: "flexi cap" })).toBeInTheDocument();
+    expect(screen.queryByTestId("search-empty-hint")).not.toBeInTheDocument();
+    view.unmount();
+    mocks.readSearches.mockReturnValue([]);
+    mocks.readFunds.mockReturnValue(["example"]);
+    mocks.build.mockReturnValue(groups(fundRow));
+    render(<PageSearch {...props} />);
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByRole("option", { name: /Example Growth Fund/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("search-empty-hint")).not.toBeInTheDocument();
+  });
+  it("hides_the_hint_when_typing", () => {
+    render(<PageSearch {...props} />);
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByTestId("search-empty-hint")).toBeInTheDocument();
+    type("e");
+    expect(screen.queryByTestId("search-empty-hint")).not.toBeInTheDocument();
+  });
+  it("hint_is_not_an_option", () => {
+    render(<PageSearch {...props} />);
+    fireEvent.focus(screen.getByRole("combobox"));
+    expect(screen.getByTestId("search-empty-hint")).not.toHaveAttribute("role", "option");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByTestId("search-live")).toHaveTextContent(/^0 results$/);
+  });
+  it("does_not_repeat_the_tag_as_the_hover_hint_on_a_member_row", () => {
+    mocks.build.mockReturnValue(groups(memberRow));
+    render(<PageSearch {...props} />);
+    type();
+    const row = screen.getByRole("option", { name: /Bela/ });
+    fireEvent.mouseEnter(row);
+    expect(within(row).getAllByText("Switches to Bela")).toHaveLength(1);
+    expect(screen.queryByTestId(`row-hint-${memberRow.id}`)).not.toBeInTheDocument();
+  });
+  it("does_not_repeat_the_tag_on_a_fund_row_with_switchTo", () => {
+    mocks.build.mockReturnValue(groups(fundRow));
+    render(<PageSearch {...props} />);
+    type();
+    const row = screen.getByRole("option", { name: /Example Growth Fund/ });
+    fireEvent.mouseEnter(row);
+    expect(within(row).getAllByText("Switches to Bela")).toHaveLength(1);
+    expect(screen.queryByTestId(`row-hint-${fundRow.id}`)).not.toBeInTheDocument();
+  });
+  it("still_shows_filter_go_and_coming_soon_hints", () => {
+    mocks.build.mockReturnValue(groups(filterRow, goRow, disabledRow));
+    render(<PageSearch {...props} />);
+    type();
+    for (const [row, hint] of [[filterRow, "Filter"], [goRow, "Go"], [disabledRow, "Coming soon"]] as const) {
+      fireEvent.mouseEnter(screen.getByRole("option", { name: new RegExp(row.title) }));
+      expect(screen.getByTestId(`row-hint-${row.id}`)).toHaveTextContent(hint);
+    }
+  });
+});

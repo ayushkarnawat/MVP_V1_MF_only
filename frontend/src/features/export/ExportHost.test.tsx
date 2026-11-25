@@ -22,7 +22,7 @@ it("opens choose with This tab on a Mutual Funds tab and Full report elsewhere",
   mount("/home"); expect(within(open()).getByRole("radio", { name: "Full report" })).toBeChecked();
 });
 it("starts the job, keeps working, reopens preparing, reaches ready and exports another", async () => {
-  mount(); open(); await start(); expect(screen.getByRole("heading", { name: "Preparing your report" })).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "Keep working" })); expect(screen.queryByRole("dialog")).toBeNull();
+  mount(); open(); await start(); expect(screen.getByRole("heading", { name: "Preparing your report" })).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "Run in background" })); expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Preparing…" })).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: "Preparing…" })); expect(screen.getByRole("heading", { name: "Preparing your report" })).toBeInTheDocument();
   await act(async () => { await vi.advanceTimersByTimeAsync(2000); }); expect(screen.getByRole("heading", { name: "Your report is ready" })).toBeInTheDocument(); fireEvent.click(screen.getByRole("button", { name: /Export something else/ })); expect(screen.getByRole("heading", { name: "Export a PDF report" })).toBeInTheDocument();
 });
@@ -36,8 +36,21 @@ it("fewer sections and one member remount choose with the requested defaults", a
 });
 it("useHasFunds disables the button for an empty household", () => { mount("/home", []); expect(screen.getByRole("button", { name: "Export PDF" })).toHaveAttribute("aria-disabled", "true"); });
 it("starts a download while closed and shows ready on the next open", async () => {
-  mount(); open(); await start(); fireEvent.click(screen.getByRole("button", { name: "Keep working" })); await act(async () => { await vi.advanceTimersByTimeAsync(2000); }); expect(api.downloadExportFile).toHaveBeenCalledTimes(1); expect(screen.getByRole("button", { name: "Export PDF" })).toBeInTheDocument(); open(); expect(screen.getByRole("heading", { name: "Your report is ready" })).toBeInTheDocument();
+  mount(); open(); await start(); fireEvent.click(screen.getByRole("button", { name: "Run in background" })); await act(async () => { await vi.advanceTimersByTimeAsync(2000); }); expect(api.downloadExportFile).toHaveBeenCalledTimes(1); expect(screen.getByRole("button", { name: "Export PDF" })).toBeInTheDocument(); open(); expect(screen.getByRole("heading", { name: "Your report is ready" })).toBeInTheDocument();
 });
 it("uses the eye setting for the initial folio option", () => {
   localStorage.setItem("unifolio.folioNumbersHidden", "1"); resetFolioVisibilityForTests({ rereadStorage: true }); mount(); expect(within(open()).getByRole("checkbox", { name: /Show folio numbers/ })).not.toBeChecked();
+});
+
+it("the_button_still_hides_the_dialog_and_the_job_continues", async () => {
+  mount(); open(); await start();
+  fireEvent.click(screen.getByRole("button", { name: "Run in background" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(api.cancelExport).not.toHaveBeenCalled();
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(api.getExportStatus).toHaveBeenCalledWith("demo-job");
+  expect(api.downloadExportFile).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  open();
+  expect(screen.getByRole("heading", { name: "Your report is ready" })).toBeInTheDocument();
 });
