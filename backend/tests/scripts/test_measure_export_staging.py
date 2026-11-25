@@ -92,3 +92,51 @@ def test_cases_quick_skips_the_cold_runs():
     assert [c["name"] for c in mod.cases("family", True, 130)] == ["full", "small"]
     assert [c["name"] for c in mod.cases("family", False, 130)] == ["full_cold", "full_warm", "small_warm", "small_cold"]
     assert mod.cases("family", False, 130)[0]["wait"] == 130 and mod.cases("family", False, 130)[1]["wait"] == 0
+
+
+# ---- round 2 ----
+
+def test_select_sections_is_one_based_and_inclusive():
+    assert mod.select_sections(1, 2) == mod.ALL_SECTIONS[:2]
+    assert mod.select_sections(24, 24) == [mod.ALL_SECTIONS[-1]]
+    assert len(mod.select_sections(1, 24)) == 24
+
+
+def test_select_sections_rejects_bad_ranges():
+    import pytest
+    for first, last in ((0, 3), (5, 4), (1, 25)):
+        with pytest.raises(ValueError):
+            mod.select_sections(first, last)
+
+
+def test_options_for_sets_cover_and_sections():
+    options = mod.options_for("family", ["overview-sips"], False)
+    assert options["cover"] is False and options["section_ids"] == ["overview-sips"] and options["scope"] == "family"
+
+
+def test_settle_time_is_the_start_of_the_final_quiet_stretch():
+    series = [(5, 300, 20, 1800, 2200), (10, 200, 20, 1800, 2200), (15, 10, 4, 300, 900), (20, 40, 4, 300, 900), (25, 5, 4, 300, 900), (30, 3, 4, 300, 900)]
+    assert mod.settle_time(series) == 25
+
+
+def test_settle_time_is_none_when_still_busy_or_unreadable():
+    assert mod.settle_time([(5, 300, 1, 1, 1), (10, 280, 1, 1, 1)]) is None
+    assert mod.settle_time([(5, None, 1, 1, 1)]) is None
+    assert mod.settle_time([]) is None
+
+
+def test_watch_idle_reports_cpu_between_samples(monkeypatch):
+    usages = iter([0, 5_000_000, 5_500_000])  # microseconds of CPU: 0 at start, then 5 s, then 5.5 s
+    monkeypatch.setattr(mod, "cpu_usage_usec", lambda: next(usages))
+    monkeypatch.setattr(mod, "chromium_snapshot", lambda: (3, 120.0))
+    monkeypatch.setattr(mod, "_read_int", lambda path: 900 * 1048576)
+    now = [-2.5]
+
+    def clock():  # every read moves 2.5 s: start 0, loop check, sample at 5, loop check, sample at 10, loop check (stop)
+        now[0] += 2.5
+        return now[0]
+
+    series = mod.watch_idle(10, 5, clock=clock, sleep=lambda _: None)
+    assert [row[0] for row in series] == [5, 10]
+    assert series[0][1] == 100 and series[1][1] == 10  # 5 s of CPU in 5 s = 100%; 0.5 s in 5 s = 10%
+    assert series[0][2:] == (3, 120, 900)

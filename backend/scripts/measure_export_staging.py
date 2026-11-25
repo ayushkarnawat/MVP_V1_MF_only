@@ -29,6 +29,18 @@ Needs a session (only for the API calls):
   --token-env NAME     read a session token from that environment variable (preferred; never printed).
   --mint-session-for   opt in: inserts ONE row in `sessions` for that user and deletes it again at the end
                        (even if the run fails). The only database write this script makes.
+ROUND 2 (25 Nov; asks WHY the full report prints for about 200 s). Pick one part per command with --part:
+  idle      wait for the browser to close, then count Chromium processes and memory with nothing exporting.
+  nocover   the full 24-section report with the cover OFF, cold, then again straight away. (No cover means no second
+            print. If the second run is no longer slower than the first, the timed-out second print was the cause.)
+  sections  one section at a time (cover off, 30 s apart), for --from-section N to --to-section M (1 to 24). Prints the
+            print cost of each section and a list sorted by cost.
+  probe     one full report with the cover ON, then watches the container's CPU for 5 minutes after the job says
+            "ready" (idle CPU should drop to near zero; if it stays busy, leftover work is still running).
+  all       every part in that order (about 50 minutes).
+Session without a token in any transcript: --mint-session-for-email <the owner's account email> looks the user up
+(prints only found yes/no) and mints ONE temporary session row, deleted again at the end. Run through the entrypoint:
+  docker compose exec -T -e PYTHONPATH=/app backend /app/docker-entrypoint.sh python /tmp/measure_export_staging.py ...
 Prints only counts, milliseconds, megabytes and yes/no flags: never names, tokens, folios, amounts or addresses.
 """
 import argparse
@@ -305,40 +317,195 @@ def print_run(name: str, result: dict, samples: dict) -> None:
         print(f"{key}: {value}")
 
 
+
+# ---- round 2 -------------------------------------------------------------------------------------------------------
+
+def options_for(scope: str, sections: list[str], cover: bool) -> dict:
+    return {"scope": scope, "section_ids": sections, "cover": cover, "data_dates": True, "show_folios": "masked"}
+
+
+def select_sections(first: int, last: int) -> list[str]:
+    """1-based, inclusive. Raises ValueError for an empty or out-of-range selection."""
+    if not (1 <= first <= last <= len(ALL_SECTIONS)):
+        raise ValueError("--from-section and --to-section must satisfy 1 <= from <= to <= %d" % len(ALL_SECTIONS))
+    return ALL_SECTIONS[first - 1:last]
+
+
+def watch_idle(seconds: float, interval: float, clock=time.perf_counter, sleep=time.sleep) -> list[tuple]:
+    """Samples the container every `interval` s for `seconds` s. Each row: (seconds_since_start, cpu_percent_of_one_core,
+    chromium_processes, chromium_mb, container_mb). cpu is None when the container's CPU counter cannot be read."""
+    series = []
+    last_usage, last_at = cpu_usage_usec(), clock()
+    start = last_at
+    while clock() - start < seconds:
+        sleep(interval)
+        usage, at = cpu_usage_usec(), clock()
+        cpu = None
+        if usage is not None and last_usage is not None and at > last_at:
+            cpu = round((usage - last_usage) / 1e6 / (at - last_at) * 100)
+        count, mb = chromium_snapshot()
+        mem = _read_int("/sys/fs/cgroup/memory.current")
+        series.append((round(at - start), cpu, count, round(mb), None if mem is None else round(mem / 1048576)))
+        last_usage, last_at = usage, at
+    return series
+
+
+def settle_time(series: list[tuple], threshold: int = 25) -> int | None:
+    """Seconds (since the watch began) from which every later sample is below `threshold` percent of one core.
+    None when the CPU never settled (or could not be read)."""
+    settled = None
+    for row in reversed(series):
+        cpu = row[1]
+        if cpu is None or cpu >= threshold:
+            break
+        settled = row[0]
+    return settled
+
+
+def print_series(name: str, series: list[tuple]) -> None:
+    print(f"== {name}: CPU and processes after the job (seconds, cpu % of one core, chromium processes, chromium MB, container MB)")
+    for index, row in enumerate(series):
+        if index < 12 or index % 6 == 0 or index == len(series) - 1:
+            print("  " + ", ".join(str(v) for v in row))
+    cpus = [r[1] for r in series if r[1] is not None]
+    if cpus:
+        print(f"cpu_max_percent: {max(cpus)}  cpu_average_percent: {round(sum(cpus) / len(cpus))}")
+    print(f"cpu_settled_below_25_percent_from_second: {settle_time(series)}")
+    if series:
+        print(f"chromium_processes_at_end: {series[-1][2]}  container_mb_at_end: {series[-1][4]}")
+
+
+def snapshot_now(label: str) -> None:
+    count, mb = chromium_snapshot()
+    mem = _read_int("/sys/fs/cgroup/memory.current")
+    print(f"{label}: chromium_processes={count} chromium_mb={round(mb)} container_mb={None if mem is None else round(mem / 1048576)}")
+
+
+def part_idle(idle_wait: int) -> None:
+    snapshot_now("before_waiting")
+    print(f"-- waiting {idle_wait} s so the export browser closes (it closes after 120 s idle)", flush=True)
+    time.sleep(idle_wait)
+    snapshot_now("idle_with_nothing_exporting")
+    print_series("idle", watch_idle(20, 5))
+
+
+def part_nocover(http, scope: str, idle_wait: int) -> list[tuple[str, dict]]:
+    out = []
+    for name, wait in (("full_nocover_cold", idle_wait), ("full_nocover_warm", 20)):
+        print(f"-- waiting {wait} s before {name}", flush=True)
+        time.sleep(wait)
+        sampler = Sampler()
+        sampler()
+        result = run_one(http, options_for(scope, ALL_SECTIONS, False), sampler=sampler)
+        print_run(name, result, sampler.report())
+        out.append((name, result))
+    return out
+
+
+def part_sections(http, scope: str, first: int, last: int, gap: int) -> list[tuple[str, dict]]:
+    out = []
+    for offset, section in enumerate(select_sections(first, last)):
+        number = first + offset
+        time.sleep(gap if (offset or first > 1) else 0)
+        result = run_one(http, options_for(scope, [section], False))
+        finishing = result.get("finishing_to_ready_ms")
+        print(f"section {number:2d} {section}: ok={result.get('ok')} total_ms={result.get('total_ms_to_ready')} "
+              f"building_ms={result.get('building_to_finishing_ms')} finishing_ms={finishing} pdf_bytes={result.get('pdf_bytes')}", flush=True)
+        out.append((section, result))
+    ranked = sorted(out, key=lambda row: row[1].get("finishing_to_ready_ms") or -1, reverse=True)
+    print("== sections ranked by printing cost (finishing stage, ms)")
+    for section, result in ranked:
+        print(f"{result.get('finishing_to_ready_ms')}  {section}")
+    return out
+
+
+def part_probe(http, scope: str, idle_wait: int) -> None:
+    print(f"-- waiting {idle_wait} s before the probe run", flush=True)
+    time.sleep(idle_wait)
+    sampler = Sampler()
+    sampler()
+    result = run_one(http, options_for(scope, ALL_SECTIONS, True), sampler=sampler)
+    print_run("probe_full_cover_on", result, sampler.report())
+    snapshot_now("right_after_ready")
+    print_series("probe", watch_idle(300, 5))
+
+
+def resolve_user(email: str):
+    from sqlalchemy import func
+
+    from app.db.session import SessionLocal
+    from app.models.user import User
+
+    db = SessionLocal()
+    try:
+        rows = db.query(User.id).filter(func.lower(User.email) == email.strip().lower()).all()
+    finally:
+        db.close()
+    return [r[0] for r in rows]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--api-base", default="http://127.0.0.1:8000")
     ap.add_argument("--scope", default="family", help="'family' or one member's uuid")
     ap.add_argument("--idle-wait", type=int, default=130, help="seconds to leave the browser idle before a cold run")
-    ap.add_argument("--quick", action="store_true", help="skip the two cold runs (one full and one small run only)")
+    ap.add_argument("--quick", action="store_true", help="round 1 only: skip the two cold runs")
+    ap.add_argument("--part", choices=["round1", "idle", "nocover", "sections", "probe", "all"], default="round1")
+    ap.add_argument("--from-section", type=int, default=1)
+    ap.add_argument("--to-section", type=int, default=len(ALL_SECTIONS))
+    ap.add_argument("--gap", type=int, default=30, help="seconds between single-section runs")
     ap.add_argument("--token-env", help="name of an environment variable holding a session token")
     ap.add_argument("--mint-session-for", type=uuid.UUID, help="opt in: one session row is inserted and deleted again")
+    ap.add_argument("--mint-session-for-email", help="opt in: look the user up by email (prints only found yes/no), then mint one session")
     args = ap.parse_args()
+
+    if args.part in ("sections", "all"):
+        try:
+            select_sections(args.from_section, args.to_section)
+        except ValueError as exc:
+            print(f"stopped: {exc}")
+            return 2
 
     token = os.environ.get(args.token_env, "") if args.token_env else ""
     minted = None
-    if not token and args.mint_session_for:
-        minted = mint_session(args.mint_session_for)
-        token = minted[2]
-        print("minted_one_temporary_session: yes (deleted at the end)")
     if not token:
-        print("stopped: no session given (pass --token-env or --mint-session-for)")
+        user_id = args.mint_session_for
+        if user_id is None and args.mint_session_for_email:
+            found = resolve_user(args.mint_session_for_email)
+            print(f"user_found_for_email: {'yes' if len(found) == 1 else 'NO'} (matches: {len(found)})")
+            if len(found) != 1:
+                print("stopped: the email must match exactly one user")
+                return 2
+            user_id = found[0]
+        if user_id is not None:
+            minted = mint_session(user_id)
+            token = minted[2]
+            print("minted_one_temporary_session: yes (deleted at the end)")
+    if not token:
+        print("stopped: no session given (pass --token-env, --mint-session-for or --mint-session-for-email)")
         return 2
     http = Http(args.api_base, token)
-    results = []
+    results: list[tuple[str, dict]] = []
     try:
-        plan = cases(args.scope, args.quick, args.idle_wait)
-        for index, case in enumerate(plan):
-            wait = case["wait"] or (20 if index else 0)  # the 15 s per-user cooldown, plus a margin
-            if wait:
-                print(f"-- waiting {wait} s before {case['name']}", flush=True)
-                time.sleep(wait)
-            sampler = Sampler()
-            sampler()
-            result = run_one(http, case["options"], sampler=sampler)
-            samples = sampler.report()
-            print_run(case["name"], result, samples)
-            results.append((case["name"], result))
+        if args.part == "round1":
+            for index, case in enumerate(cases(args.scope, args.quick, args.idle_wait)):
+                wait = case["wait"] or (20 if index else 0)
+                if wait:
+                    print(f"-- waiting {wait} s before {case['name']}", flush=True)
+                    time.sleep(wait)
+                sampler = Sampler()
+                sampler()
+                result = run_one(http, case["options"], sampler=sampler)
+                print_run(case["name"], result, sampler.report())
+                results.append((case["name"], result))
+        if args.part in ("idle", "all"):
+            part_idle(args.idle_wait)
+        if args.part in ("nocover", "all"):
+            results += part_nocover(http, args.scope, args.idle_wait)
+        if args.part in ("sections", "all"):
+            results += part_sections(http, args.scope, args.from_section, args.to_section, args.gap)
+        if args.part in ("probe", "all"):
+            part_probe(http, args.scope, args.idle_wait)
     finally:
         if minted is not None:
             remove_minted_session(minted[0], minted[1])
