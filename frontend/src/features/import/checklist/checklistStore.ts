@@ -2,9 +2,8 @@ import { clearChecklistState, getChecklistState, setChecklistState, type Checkli
 import { checklistCopy } from "./checklistCopy";
 
 export interface CamsLink {
-  state: "preparing" | "ready" | "failed";
+  state: "idle" | "failed";
   error: string | null;
-  url: string | null;
 }
 
 export interface ChecklistWindow {
@@ -31,7 +30,7 @@ function initialState(memberId: string): ChecklistSnapshot {
     step: saved?.step ?? "form",
     mode: "closed", pipWindow: null,
     finishedFromChecklist: false,
-    camsLink: { state: "preparing", error: null, url: null },
+    camsLink: { state: "idle", error: null },
   };
 }
 

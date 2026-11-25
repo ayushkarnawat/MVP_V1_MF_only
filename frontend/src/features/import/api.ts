@@ -262,6 +262,36 @@ export async function postOpeningBalance(
   return (await response.json()) as OpeningBalanceResponse;
 }
 
+export interface PendingCamsRequest {
+  import_id: string;
+  household_member_id: string;
+  expires_at: string;
+}
+
+export async function getPendingCamsRequest(memberId: string): Promise<PendingCamsRequest | null> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/pending?member_id=${encodeURIComponent(memberId)}`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+  const body = (await response.json()) as { pending: PendingCamsRequest | null };
+  return body.pending;
+}
+
+export async function getCamsLink(): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/cas-imports/cams-link`, {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, (await parseErrorDetail(response)) as ParseErrorPayload | string);
+  }
+  const body = (await response.json()) as { cams_url: string };
+  return body.cams_url;
+}
+
 export async function requestCamsStatement(
   householdMemberId: string,
 ): Promise<{

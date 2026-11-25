@@ -219,6 +219,35 @@ describe("MobileImportView", () => {
     expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
   });
 
+  it("mobile_request_still_opens_cams_as_today", async () => {
+    const response = {
+      import_id: "import-mobile-d2", household_member_id: "m-1", status: "waiting_for_user",
+      cams_url: "https://cams.example.test/statement", expires_at: "2026-12-01T12:00:00Z",
+    };
+    let resolveRequest!: (value: typeof response) => void;
+    vi.mocked(importApi.requestCamsStatement).mockImplementation(() => new Promise((resolve) => { resolveRequest = resolve; }));
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const readAddress = vi.spyOn(importApi, "getCamsLink").mockResolvedValue(response.cams_url);
+    try {
+      render(<MobileImportView defaultMemberId="m-1" />);
+      fireEvent.click(await screen.findByRole("button", { name: /request from cams/i }));
+      const button = screen.getByRole("button", { name: "Request Statement on CAMS" });
+      expect(screen.queryByRole("link", { name: "Request Statement on CAMS" })).not.toBeInTheDocument();
+      fireEvent.click(button);
+      expect(importApi.requestCamsStatement).toHaveBeenCalledExactlyOnceWith("m-1");
+      expect(openTab).not.toHaveBeenCalled();
+      const { act } = await import("@testing-library/react");
+      await act(async () => resolveRequest(response));
+      expect(await screen.findByText("Waiting for CAMS email")).toBeVisible();
+      expect(openTab).toHaveBeenCalledExactlyOnceWith(response.cams_url, "_blank");
+      expect(hasCasResumeStep2("m-1")).toBe(true);
+      expect(readAddress).not.toHaveBeenCalled();
+    } finally {
+      openTab.mockRestore();
+      readAddress.mockRestore();
+    }
+  });
+
   it("mobile upload shows the privacy line (no tick box) with mobile_upload surface", async () => {
     render(<MobileImportView defaultMemberId="m-1" defaultTab="upload" />);
 

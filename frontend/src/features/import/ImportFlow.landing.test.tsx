@@ -17,6 +17,8 @@ vi.mock("./api", async () => {
     ...actual,
     parseImport: vi.fn(), confirmPeopleImport: vi.fn(), discardImportSession: vi.fn(), resolvePan: vi.fn(), resolveName: vi.fn(),
     resolveAddAsFamily: vi.fn(), acknowledgePrompt: vi.fn(),
+    // The first Add data screen now waits for the server's answer about a waiting CAMS request.
+    getPendingCamsRequest: vi.fn(async () => null),
   };
 });
 vi.mock("../auth/api", async () => {
@@ -30,6 +32,8 @@ vi.mock("../legal/api", async () => {
 });
 
 async function uploadAFile() {
+  // Wait for the first screen (the choice, or the upload form when the flow opened straight on it).
+  await waitFor(() => expect(screen.queryByRole("button", { name: /already have a statement/i }) ?? screen.queryByLabelText(/cas pdf/i)).not.toBeNull());
   const uploadChoice = screen.queryByRole("button", { name: /already have a statement/i });
   if (uploadChoice) fireEvent.click(uploadChoice);
   const uploadTab = screen.queryByRole("tab", { name: /upload existing statement/i });

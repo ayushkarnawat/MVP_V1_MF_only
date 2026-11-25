@@ -30,7 +30,11 @@ import type {
 } from "@/features/auth/types";
 import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
 import { FIXABLE_REASONS, fixableHint, isFixable } from "../lib/headEligibility";
-import { REVIEW_DISCARDED_NOTE, STATEMENT_SAVING_CODE } from "../lib/headChangeCopy";
+import {
+  REVIEW_DISCARDED_NOTE,
+  STATEMENT_SAVING_CODE,
+  WAITING_CAMS_REQUEST_LINE,
+} from "../lib/headChangeCopy";
 import { cleanName, relationshipText } from "../lib/memberLabels";
 import { InfoNotice } from "./InfoNotice";
 import { StatementSavingNotice } from "./StatementSavingNotice";
@@ -594,90 +598,107 @@ export function ChangeHeadDialog({
           {loadingEligibility ? (
             <p className="text-sm text-[var(--shell-text-body)]">Loading family members…</p>
           ) : (
-            <fieldset className="space-y-2">
-              <legend className="sr-only">Family members</legend>
-              {eligibility.map(item => {
-                const member = members.find(m => m.id === item.member_id);
-                const memberName = cleanName(member?.name) || "Family member";
-                const relText = member ? relationshipText(member) : "Not set";
-                const eligible = item.reasons.length === 0;
-                const fixable = isFixable(item.reasons);
+            <>
+              <fieldset className="space-y-2">
+                <legend className="sr-only">Family members</legend>
+                {eligibility.map(item => {
+                  const member = members.find(m => m.id === item.member_id);
+                  const memberName = cleanName(member?.name) || "Family member";
+                  const relText = member ? relationshipText(member) : "Not set";
+                  const eligible = item.reasons.length === 0;
+                  const fixable = isFixable(item.reasons);
 
-                if (fixable) {
+                  if (fixable) {
+                    return (
+                      <button
+                        key={item.member_id}
+                        type="button"
+                        data-testid="head-fixable-row"
+                        disabled={startCodeSent || step1Submitting !== null}
+                        onClick={() => setDetailsFor(item.member_id)}
+                        className="flex w-full items-start gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-left text-sm hover:bg-[var(--ui-row-hover)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate font-semibold text-[var(--ui-text)]">
+                              {memberName}
+                            </span>
+                            <span className="shrink-0 rounded-full border border-[var(--pos)]/35 bg-[var(--pos-bg)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--pos-text)]">
+                              Add details
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
+                            {fixableHint(item.reasons)}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  }
+
+                  const firstUnfixable = item.reasons.find(r => !FIXABLE_REASONS.has(r)) ?? item.reasons[0];
+                  const reasonText = firstUnfixable
+                    ? (REASON_SENTENCES[firstUnfixable] ?? "This family member is not eligible right now.")
+                    : null;
+
                   return (
-                    <button
+                    <label
                       key={item.member_id}
-                      type="button"
-                      data-testid="head-fixable-row"
-                      disabled={startCodeSent || step1Submitting !== null}
-                      onClick={() => setDetailsFor(item.member_id)}
-                      className="flex w-full items-start gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-left text-sm hover:bg-[var(--ui-row-hover)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
+                      aria-disabled={!eligible}
+                      className={`flex items-start gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-sm ${
+                        eligible && !startCodeSent
+                          ? "cursor-pointer hover:bg-[var(--ui-row-hover)]"
+                          : "cursor-not-allowed opacity-60"
+                      }`}
                     >
+                      <input
+                        type="radio"
+                        name="head-change-member"
+                        value={item.member_id}
+                        disabled={!eligible || startCodeSent || step1Submitting !== null}
+                        checked={selectedMemberId === item.member_id}
+                        onChange={() => {
+                          if (eligible && !startCodeSent) {
+                            setSelectedMemberId(item.member_id);
+                            setStep1Error(null);
+                          }
+                        }}
+                        className="mt-0.5"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
                           <span className="truncate font-semibold text-[var(--ui-text)]">
                             {memberName}
                           </span>
-                          <span className="shrink-0 rounded-full border border-[var(--pos)]/35 bg-[var(--pos-bg)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--pos-text)]">
-                            Add details
+                          <span className="shrink-0 text-xs font-medium text-[var(--ui-text-muted)]">
+                            {relText}
                           </span>
                         </span>
-                        <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
-                          {fixableHint(item.reasons)}
-                        </span>
+                        {reasonText ? (
+                          <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
+                            {reasonText}
+                          </span>
+                        ) : null}
                       </span>
-                    </button>
+                    </label>
                   );
-                }
-
-                const firstUnfixable = item.reasons.find(r => !FIXABLE_REASONS.has(r)) ?? item.reasons[0];
-                const reasonText = firstUnfixable
-                  ? (REASON_SENTENCES[firstUnfixable] ?? "This family member is not eligible right now.")
-                  : null;
-
-                return (
-                  <label
-                    key={item.member_id}
-                    aria-disabled={!eligible}
-                    className={`flex items-start gap-3 rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-card)] p-3 text-sm ${
-                      eligible && !startCodeSent
-                        ? "cursor-pointer hover:bg-[var(--ui-row-hover)]"
-                        : "cursor-not-allowed opacity-60"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="head-change-member"
-                      value={item.member_id}
-                      disabled={!eligible || startCodeSent || step1Submitting !== null}
-                      checked={selectedMemberId === item.member_id}
-                      onChange={() => {
-                        if (eligible && !startCodeSent) {
-                          setSelectedMemberId(item.member_id);
-                          setStep1Error(null);
-                        }
-                      }}
-                      className="mt-0.5"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="truncate font-semibold text-[var(--ui-text)]">
-                          {memberName}
-                        </span>
-                        <span className="shrink-0 text-xs font-medium text-[var(--ui-text-muted)]">
-                          {relText}
-                        </span>
-                      </span>
-                      {reasonText ? (
-                        <span className="mt-1 block text-xs text-[var(--ui-text-muted)]">
-                          {reasonText}
-                        </span>
-                      ) : null}
-                    </span>
-                  </label>
-                );
-              })}
-            </fieldset>
+                })}
+              </fieldset>
+              {eligibility.some(item => item.waiting_cams_request === true) ? (
+                <div className="space-y-2">
+                  {eligibility
+                    .filter(item => item.waiting_cams_request === true)
+                    .map(item => {
+                      const member = members.find(m => m.id === item.member_id);
+                      const name = cleanName(member?.name) || "Family member";
+                      return (
+                        <InfoNotice key={item.member_id} testId="head-change-waiting-line">
+                          {WAITING_CAMS_REQUEST_LINE(name)}
+                        </InfoNotice>
+                      );
+                    })}
+                </div>
+              ) : null}
+            </>
           )}
 
           {startCodeSent ? (

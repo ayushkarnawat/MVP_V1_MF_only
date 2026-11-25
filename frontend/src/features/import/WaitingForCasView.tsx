@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { UploadForm } from "./UploadForm";
@@ -18,6 +18,8 @@ interface WaitingForCasViewProps {
   // Required: every upload goes through the parse -> review flow (M18).
   onUploadSubmit: (file: File, password: string) => void;
   surface?: UploadSurface;
+  hideCancel?: boolean;
+  uploadOpen?: boolean;
 }
 
 export function WaitingForCasView({
@@ -26,13 +28,19 @@ export function WaitingForCasView({
   onCancelled,
   onUploadSubmit,
   surface,
+  hideCancel = false,
+  uploadOpen = false,
 }: WaitingForCasViewProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(uploadOpen);
   const shouldReduceMotion = useReducedMotion();
   const tutorialLinkRef = useRef<HTMLButtonElement | null>(null);
   const tutorial = useTutorialPlayer();
+
+  useEffect(() => {
+    if (uploadOpen) setIsUploadOpen(true);
+  }, [uploadOpen]);
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -66,23 +74,25 @@ export function WaitingForCasView({
             </span>
           </div>
 
-          <Button
-            data-clickable="" data-effect="close"
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            disabled={isCancelling}
-            className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-surface)] h-8 px-3 rounded-lg cursor-pointer min-h-[36px]"
-          >
-            {isCancelling ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                <span>Cancelling...</span>
-              </>
-            ) : (
-              <span>Cancel request</span>
-            )}
-          </Button>
+          {!hideCancel && (
+            <Button
+              data-clickable="" data-effect="close"
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isCancelling}
+              className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-negative)] hover:bg-[var(--color-surface)] h-8 px-3 rounded-lg cursor-pointer min-h-[36px]"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  <span>Cancelling...</span>
+                </>
+              ) : (
+                <span>Cancel request</span>
+              )}
+            </Button>
+          )}
         </div>
 
         <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">

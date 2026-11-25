@@ -13,6 +13,7 @@ import { ME_FIXTURE } from "../fixtures/me";
 import { HOUSEHOLD_FIXTURE } from "../fixtures/members";
 import { REVIEW_DISCARDED_NOTE, STATEMENT_SAVING_CODE } from "../lib/headChangeCopy";
 import { ChangeHeadDialog } from "./ChangeHeadDialog";
+import { HEAD_CHANGE_WAITING_LINE } from "@/features/import/pendingCopy";
 
 const auth = vi.hoisted(() => ({
   me: null as MeResponse | null,
@@ -191,6 +192,36 @@ describe("ChangeHeadDialog", () => {
 
     fireEvent.click(fatherRadio);
     expect(nextButton).toBeEnabled();
+  });
+
+  it("shows_one_quiet_line_when_a_request_waits_and_blocks_nothing", async () => {
+    vi.mocked(authApi.getHeadChangeEligibility).mockResolvedValue({ members: [
+      { member_id: "m-spouse", reasons: ["no_email", "no_phone"], waiting_cams_request: false },
+      { member_id: "m-father", reasons: [], waiting_cams_request: true },
+    ] });
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    const father = await screen.findByRole("radio", { name: /Ramesh Surve/i });
+    const lines = screen.getAllByTestId("head-change-waiting-line");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent(HEAD_CHANGE_WAITING_LINE("Ramesh Surve"));
+    expect(within(lines[0]).queryByRole("button")).not.toBeInTheDocument();
+    expect(father).toBeEnabled();
+    fireEvent.click(father);
+    expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByLabelText(/your email code/i)).toBeVisible();
+    expect(authApi.requestHeadChangeStartCode).toHaveBeenCalled();
+  });
+
+  it("shows_no_line_when_nothing_waits", async () => {
+    vi.mocked(authApi.getHeadChangeEligibility).mockResolvedValue({ members: [
+      { member_id: "m-spouse", reasons: ["no_email", "no_phone"] },
+      { member_id: "m-father", reasons: [], waiting_cams_request: false },
+    ] });
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    expect(await screen.findByRole("radio", { name: /Ramesh Surve/i })).toBeEnabled();
+    expect(screen.queryByTestId("head-change-waiting-line")).not.toBeInTheDocument();
+    expect(screen.queryByText(/A CAMS request for .* is still waiting/)).not.toBeInTheDocument();
   });
 
   it("a_too_soon_error_is_shown_on_step_one", async () => {
