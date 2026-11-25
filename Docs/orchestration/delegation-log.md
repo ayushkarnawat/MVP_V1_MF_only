@@ -898,3 +898,4 @@ fix" rule.
 - 2026-11-25 hbcd-be-1 done (Tasks 1+3): 521 passed in tests/services/import_ + cams routes + history routes; committed on batch/hbcd-be
 - 2026-11-25 hbcd-be-2 handoff written (Tasks 2 clean-up script + 4 eligibility flag), relay to Codex
 - 2026-11-25 sb-3 done (table note; tests green, print keeps legacy chip); merged into batch/sb. sb-2 (MF bar): polish tests green but SummarySwitch buttons lack data-effect=switch (3 interactivity-rule tests); follow-up sent
+- 2026-11-25 hbcd-be-2 done (clean-up script + eligibility flag): 1020 passed across auth, import, cams and head-change routes; committed on batch/hbcd-be. Next: G1 review of Tasks 1-4 diff, then hbcd-rt (front-end foundation)
