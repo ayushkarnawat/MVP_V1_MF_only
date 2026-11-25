@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.orm import Query, sessionmaker
 
 from app.models.analytics import AnalyticsSection
 from app.models.auth import (
@@ -313,6 +313,69 @@ def test_complete_answers_statement_being_saved_while_a_confirm_is_processing(db
             request.new_email_verified_at, request.new_phone_verified_at) == before
     assert [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()] == codes_before
     assert db_session.get(Import, review.id).status == ImportStatus.PROCESSING
+
+
+def test_complete_answers_statement_being_saved_when_the_import_row_lock_is_not_available(
+    db_session, monkeypatch
+):
+    from app.models.auth import OtpRequest
+
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    request = db_session.get(HeadChangeRequest, request_id)
+    verified_before = (request.current_email_verified_at, request.current_phone_verified_at,
+                       request.new_email_verified_at, request.new_phone_verified_at)
+    codes_before = [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()]
+
+    class LockNotAvailable(Exception):
+        pgcode = "55P03"
+
+    error = OperationalError("SELECT imports FOR UPDATE NOWAIT", {}, LockNotAvailable())
+    original_all = Query.all
+
+    def all_with_locked_import(query):
+        if query.column_descriptions[0]["entity"] is Import:
+            raise error
+        return original_all(query)
+
+    monkeypatch.setattr(Query, "all", all_with_locked_import)
+
+    with pytest.raises(HeadChangeError) as exc:
+        _complete(db_session, household, request_id)
+
+    assert (exc.value.status_code, exc.value.code, exc.value.message) == (
+        409, "statement_being_saved", "A statement is being saved. Try again in a minute.")
+    _assert_unswapped(db_session, household)
+    request = db_session.get(HeadChangeRequest, request_id)
+    assert request.status == "pending"
+    assert all(value is not None for value in verified_before)
+    assert (request.current_email_verified_at, request.current_phone_verified_at,
+            request.new_email_verified_at, request.new_phone_verified_at) == verified_before
+    assert [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()] == codes_before
+
+
+def test_other_operational_errors_are_not_swallowed(db_session, monkeypatch):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+
+    class SerializationFailure(Exception):
+        pgcode = "40001"
+
+    error = OperationalError("SELECT imports FOR UPDATE NOWAIT", {}, SerializationFailure())
+    original_all = Query.all
+
+    def all_with_failed_import(query):
+        if query.column_descriptions[0]["entity"] is Import:
+            raise error
+        return original_all(query)
+
+    monkeypatch.setattr(Query, "all", all_with_failed_import)
+
+    with pytest.raises(OperationalError) as exc:
+        _complete(db_session, household, request_id)
+
+    assert exc.value is error
+    _assert_unswapped(db_session, household)
 
 
 def test_retry_after_the_saving_answer_succeeds_once_the_confirm_finished(db_session):

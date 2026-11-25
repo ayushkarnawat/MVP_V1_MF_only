@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 from urllib.parse import quote
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
@@ -1106,14 +1106,22 @@ def preview_head_change(
 def _settle_member_imports(
     db: DbSession, member_ids: list[uuid.UUID], now: datetime
 ) -> bool:
-    rows = (
-        db.query(Import)
-        .filter(Import.household_member_id.in_(member_ids))
-        .order_by(Import.id)
-        .populate_existing()
-        .with_for_update()
-        .all()
-    )
+    # NOWAIT so the swap never waits on an Import row while holding the member locks;
+    # a confirm takes them in the opposite order (Import, then member) and the two
+    # would deadlock (G1 review, 25 Nov 2026).
+    try:
+        rows = (
+            db.query(Import)
+            .filter(Import.household_member_id.in_(member_ids))
+            .order_by(Import.id)
+            .populate_existing()
+            .with_for_update(nowait=True)
+            .all()
+        )
+    except OperationalError as exc:
+        if getattr(exc.orig, "pgcode", None) == "55P03":
+            raise _error(409, SAVING_CODE, SAVING_MESSAGE) from exc
+        raise
     if any(
         row.status == ImportStatus.PROCESSING
         and _aware(row.uploaded_at) >= now - PENDING_PAN_TTL
