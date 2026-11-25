@@ -908,3 +908,4 @@ fix" rule.
 - 2026-11-25 es-2 done: look gate + --save-pdf committed c81e3119 on batch/es-be (11 gate tests pass, 76 export-script tests pass; CLI checked: identical PASS exit 0, changed block FAIL 0.3262% exit 1). sb-4 follow-up report received, verifying
 - 2026-11-25 hbcd-fe-3 packet written (dialog quiet line, reuses InfoNotice; clone ag-hbcd3, branch ag/hbcd3-dialog from batch/hbcd-rt)
 - 2026-11-25 sb-4 (G2 fixes) verified (201 files / 2314 tests, types clean, lint 0 errors) and merged into batch/sb. Summary bar complete pending patch-level gates
+- 2026-11-25 G1 review of patch 2 backend (51633989~1..c4db5b20): FAIL, two Medium findings in close_stuck_cams_requests.py (dry-run guard bypass via comment/CTE prefix; apply can close a renewed request); hbcd-be-3 handoff written, relay to Codex. The import/eligibility/read-route changes had no findings
