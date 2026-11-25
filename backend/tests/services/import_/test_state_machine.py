@@ -1,5 +1,15 @@
 import pytest
 
+
+def test_placeholder_constant_is_the_one_the_history_route_uses():
+    from app.api import imports
+    from app.services.import_.state_machine import CAMS_PLACEHOLDER_STATUSES
+
+    assert imports._CAMS_PLACEHOLDER_STATUSES is CAMS_PLACEHOLDER_STATUSES
+    assert CAMS_PLACEHOLDER_STATUSES == (
+        ImportStatus.REQUESTING_CAS, ImportStatus.WAITING_FOR_USER, ImportStatus.EXPIRED,
+    )
+
 from app.models.enums import ImportStatus
 from app.services.import_.state_machine import (
     ALLOWED_TRANSITIONS,

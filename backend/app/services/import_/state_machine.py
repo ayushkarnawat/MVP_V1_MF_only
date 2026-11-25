@@ -19,6 +19,11 @@ from __future__ import annotations
 from app.models.enums import ImportStatus
 
 
+CAMS_PLACEHOLDER_STATUSES: tuple[ImportStatus, ...] = (
+    ImportStatus.REQUESTING_CAS, ImportStatus.WAITING_FOR_USER, ImportStatus.EXPIRED,
+)
+
+
 class InvalidStateTransitionError(ValueError):
     """Raised when an illegal transition is attempted on a CASImport record."""
 
