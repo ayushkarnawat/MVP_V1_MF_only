@@ -585,7 +585,7 @@ export function ExportDialog(props: ExportDialogProps) {
                 onClick={onKeepWorking}
                 className="rounded-[12px] border-[1.5px] border-[var(--export-green)] bg-[var(--export-bg)] px-4 py-[10px] font-body text-[13.5px] font-bold text-[var(--export-green-text)]"
               >
-                Keep working
+                Run in background
               </button>
             </div>
           </>

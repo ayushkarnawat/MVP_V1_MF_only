@@ -26,7 +26,10 @@ export const ChipCheckbox = forwardRef<HTMLButtonElement, ChipCheckboxProps>(fun
       className="auth-choice flex items-center gap-2 rounded-[14px] px-2.5 text-left min-h-[var(--auth-chip-h)] w-full"
     >
       {icon ? (
-        <span aria-hidden="true" className="shrink-0 flex items-center text-[var(--auth-muted)] [&>svg]:h-5 [&>svg]:w-5">
+        <span
+          aria-hidden="true"
+          className="shrink-0 flex items-center justify-center rounded-[10px] bg-[var(--ui-card)] text-[var(--pos)] size-[min(32px,calc(var(--auth-chip-h)-12px))] [&>svg]:h-[56%] [&>svg]:w-[56%]"
+        >
           {icon}
         </span>
       ) : null}

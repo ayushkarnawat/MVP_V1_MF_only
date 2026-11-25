@@ -66,9 +66,8 @@
 
 .gotIt {
   background: var(--color-accent);
-  /* Same as the other accent buttons (onboarding): the surface token is white in
-     light mode, only ~2.2:1 on the green accent. */
-  color: #000000;
+  /* White text on the green accent button: owner decision, 25 Nov 2026 (QA-1 B). */
+  color: #FFFFFF;
   border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-4);

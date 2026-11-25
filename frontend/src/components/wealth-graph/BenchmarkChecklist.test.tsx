@@ -15,30 +15,35 @@ const OPTIONS: WealthBenchmarkOption[] = [
 ];
 
 describe("BenchmarkChecklist", () => {
-  it('allows at most MAX_BENCHMARKS and a fourth shows "Choose up to 3"', () => {
+  it("shows_choose_up_to_3_as_soon_as_the_panel_opens", () => {
+    render(<BenchmarkChecklist options={OPTIONS} values={["nifty_500"]} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /Nifty 500/i }));
+    expect(screen.getAllByText("Choose up to 3")).toHaveLength(1);
+    expect(screen.getByTestId("benchmark-limit-hint")).toHaveTextContent("Choose up to 3");
+  });
+
+  it("the_same_hint_turns_to_the_warning_when_a_fourth_is_ticked", () => {
     expect(MAX_BENCHMARKS).toBe(3);
     const onChange = vi.fn();
-    render(
-      <BenchmarkChecklist
-        options={OPTIONS}
-        values={["nifty_50", "nifty_500", "nifty_largemidcap_250"]}
-        onChange={onChange}
-      />,
-    );
-
-    const trigger = screen.getByRole("button", { name: /3 benchmarks/i });
-    fireEvent.click(trigger);
-
-    const group = screen.getByRole("group", { name: /benchmark/i });
-    expect(within(group).queryByText("Choose up to 3")).toBeNull();
-
-    const fourth = within(group).getByRole("checkbox", { name: "Nifty Midcap 150" });
-    expect(fourth).not.toBeChecked();
-
+    render(<BenchmarkChecklist options={OPTIONS} values={["nifty_50", "nifty_500", "nifty_largemidcap_250"]} onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button", { name: /3 benchmarks/i }));
+    const hint = screen.getByTestId("benchmark-limit-hint");
+    expect(hint).not.toHaveClass("text-[var(--warn-text)]");
+    const fourth = screen.getByRole("checkbox", { name: "Nifty Midcap 150" });
     fireEvent.click(fourth);
     expect(onChange).not.toHaveBeenCalled();
     expect(fourth).not.toBeChecked();
-    expect(within(group).getByText("Choose up to 3")).toBeInTheDocument();
+    expect(screen.getByTestId("benchmark-limit-hint")).toBe(hint);
+    expect(screen.getAllByText("Choose up to 3")).toHaveLength(1);
+    expect(hint).toHaveClass("bg-[var(--warn-bg)]", "text-[var(--warn-text)]");
+  });
+
+  it("the_hint_is_linked_with_aria_describedby", () => {
+    render(<BenchmarkChecklist options={OPTIONS} values={["nifty_500"]} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /Nifty 500/i }));
+    const hint = screen.getByTestId("benchmark-limit-hint");
+    expect(hint.id).not.toBe("");
+    expect(screen.getByRole("group", { name: /benchmark/i })).toHaveAttribute("aria-describedby", hint.id);
   });
 
   it("the last checked benchmark cannot be unchecked", () => {
