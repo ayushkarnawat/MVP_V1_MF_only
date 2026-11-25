@@ -162,24 +162,22 @@ function MemberImportContainer({
           />
         )}
 
-        {effectiveView === "waiting" && !activeRequest && (
-          <Skeleton className="h-48 w-full rounded-2xl" aria-busy="true" />
-        )}
-
-        {effectiveView === "waiting" && activeRequest && (
+        {effectiveView === "waiting" && (
           <div className="space-y-4 w-full">
-            <CamsWaitingCard
-              request={activeRequest}
-              memberName={memberName}
-              checklistMode={checklist.mode}
-              onShowChecklist={checklist.focus}
-              onUpload={() => setUploadOpen(true)}
-              onCancel={handleCancel}
-            />
+            {activeRequest && (
+              <CamsWaitingCard
+                request={activeRequest}
+                memberName={memberName}
+                checklistMode={checklist.mode}
+                onShowChecklist={checklist.focus}
+                onUpload={() => setUploadOpen(true)}
+                onCancel={handleCancel}
+              />
+            )}
             <WaitingForCasView
               passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
               serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
-              importId={activeRequest.import_id}
+              importId={activeRequest ? activeRequest.import_id : ""}
               onCancelled={() => {}}
               onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
               surface={surface}
