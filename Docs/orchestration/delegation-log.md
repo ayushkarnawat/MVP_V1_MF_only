@@ -886,3 +886,4 @@ fix" rule.
 - 2026-11-25 sb-rt-1: Codex blocked on inventory vs split rupee sign; Claude approved value-* figure rule, handoff amended
 - 2026-11-25 es-1 done: timing log committed on batch/es-be (112 pass; same 10 pre-existing failures; Claude added the _timing_clock patch line to the new timing test)
 - 2026-11-25 owner decision: ONE combined deploy of all three patches at the end, one deploy guide (master plan execution log)
+- 2026-11-25 G1 reviews: hofa-be a5cffae7 PASS (one low: comment overstated NOWAIT guarantee, fixed); es-1 4ef005d5 PASS no findings. Head of Family backend and export timing log cleared for patch 1
