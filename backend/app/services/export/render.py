@@ -19,6 +19,7 @@ from app.services.export import jobs
 from app.services.export.browser_pool import ExportBusyError, _finish_task, acquire_browser
 from app.services.export.pass_token import issue_export_pass
 from app.services.export.pdf_pages import extract_page_texts, section_pages
+from app.services.export.timing import ExportTimings
 
 if TYPE_CHECKING:
     from playwright.async_api import Page, Route
@@ -28,6 +29,7 @@ READY_WAIT_SECONDS = 90
 SECOND_PASS_TIMEOUT_SECONDS = 10
 _logger = logging.getLogger(__name__)
 _clock: Callable[[], float] = time.monotonic
+_timing_clock: Callable[[], float] = time.monotonic
 
 
 class PrintMember(TypedDict):
@@ -173,6 +175,7 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
     from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
     started = _clock()
+    timings = ExportTimings()
     page = None
     context = None
     blocked = [0]
@@ -180,7 +183,9 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
     two_pass = False
     scope_kind = "family" if options.scope == "family" else "member"
     try:
+        slot_started = _timing_clock()
         async with acquire_browser(user_id) as browser:
+            timings.slot_wait_ms = int((_timing_clock() - slot_started) * 1000)
             try:
                 frontend = origin(settings.frontend_base_url)
                 api = origin(settings.export_api_origin)
@@ -214,9 +219,14 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                 encoded = base64.urlsafe_b64encode(json.dumps(fragment, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).rstrip(b"=").decode("ascii")
                 url = settings.frontend_base_url.rstrip("/") + "/print/report#pass=" + quote(issued.token, safe="") + "&opts=" + encoded
                 jobs.update_job(job_id, stage="collecting")
-                await page.goto(url, timeout=30000)
+                goto_started = _timing_clock()
+                try:
+                    await page.goto(url, timeout=30000)
+                finally:
+                    timings.goto_ms = int((_timing_clock() - goto_started) * 1000)
                 _check(job_id, navigated)
                 jobs.update_job(job_id, stage="building")
+                build_started = _timing_clock()
                 wait = asyncio.create_task(page.wait_for_function(
                     "() => document.documentElement.dataset.printError === 'true' ? 'error' : (document.documentElement.dataset.printReady === 'true' ? 'ready' : false)",
                     timeout=READY_WAIT_SECONDS * 1000,
@@ -236,29 +246,49 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                     if not wait.done():
                         wait.cancel()
                     await asyncio.gather(wait, return_exceptions=True)
+                    timings.build_wait_ms = int((_timing_clock() - build_started) * 1000)
                 _check(job_id, navigated)
                 jobs.update_job(job_id, stage="finishing")
                 await page.emulate_media(media="print")
-                data = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
+                pdf1_started = _timing_clock()
+                try:
+                    data = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
+                finally:
+                    timings.pdf1_ms = int((_timing_clock() - pdf1_started) * 1000)
                 _check(job_id, navigated)
                 if options.cover:
+                    contents_started = _timing_clock()
                     try:
                         candidate = await asyncio.wait_for(
                             _second_pdf(page, data, options.section_ids, job_id, navigated),
                             timeout=SECOND_PASS_TIMEOUT_SECONDS,
                         )
+                    except TimeoutError:
+                        timings.contents_outcome = "timeout"
+                        candidate = None
                     except Exception:
                         # Contents are optional: never expose parser or browser diagnostics.
+                        timings.contents_outcome = "error"
                         candidate = None
+                    else:
+                        if candidate is None:
+                            timings.contents_outcome = "mismatch"
+                    finally:
+                        timings.contents_ms = int((_timing_clock() - contents_started) * 1000)
                     _check(job_id, navigated)
                     if candidate is not None:
                         data = candidate
                         two_pass = True
+                        timings.contents_outcome = "done"
                 size = len(data)
                 if size > MAX_PDF_BYTES:
                     jobs.update_job(job_id, status="failed", error_code="too_large")
                 else:
-                    jobs.store_pdf(job_id, data)
+                    store_started = _timing_clock()
+                    try:
+                        jobs.store_pdf(job_id, data)
+                    finally:
+                        timings.store_ms = int((_timing_clock() - store_started) * 1000)
                     jobs.update_job(job_id, status="ready", pdf_bytes=size)
             finally:
                 async def cleanup() -> None:
@@ -287,3 +317,4 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
         status = job["status"] if job else "failed"
         _logger.info("export finished: status=%s scope_kind=%s sections=%d duration_ms=%d pdf_bytes=%d blocked_requests=%d two_pass=%s",
                      status, scope_kind, len(options.section_ids), int((_clock() - started) * 1000), size, blocked[0], "yes" if two_pass else "no")
+        _logger.info("export timing: %s pdf_bytes=%d", timings.log_fields(), size)
