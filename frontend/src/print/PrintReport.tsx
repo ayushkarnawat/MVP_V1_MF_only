@@ -27,7 +27,6 @@ import "./print-markers.css";
 declare global {
   interface Window {
     __unifolioSetPrintPages?: (map: Record<string, number>) => Promise<void>;
-    __unifolioShowContentsOnly?: () => void;
   }
 }
 
@@ -51,14 +50,8 @@ function ReportAssembly({ options, browser }: { options: PrintOptions; browser: 
       setPages(previous => ({ ...previous, ...map }));
       await new Promise<void>(resolve => { requestAnimationFrame(() => resolve()); });
     };
-    const showContentsOnly = () => { document.documentElement.dataset.printContentsOnly = "true"; };
     window.__unifolioSetPrintPages = setPrintPages;
-    window.__unifolioShowContentsOnly = showContentsOnly;
-    return () => {
-      if (window.__unifolioSetPrintPages === setPrintPages) delete window.__unifolioSetPrintPages;
-      if (window.__unifolioShowContentsOnly === showContentsOnly) delete window.__unifolioShowContentsOnly;
-      delete document.documentElement.dataset.printContentsOnly;
-    };
+    return () => { if (window.__unifolioSetPrintPages === setPrintPages) delete window.__unifolioSetPrintPages; };
   }, []);
   const requested = new Set(options.sectionIds);
   const full = options.sectionIds.length === Object.keys(PRINT_SECTIONS).length && requested.size === options.sectionIds.length && Object.keys(PRINT_SECTIONS).every(id => requested.has(id));
