@@ -21,6 +21,7 @@ export function SummarySwitch({
           key={o}
           type="button"
           data-clickable=""
+          data-effect="switch"
           aria-pressed={value === o}
           onClick={() => onChange(o)}
           className={
