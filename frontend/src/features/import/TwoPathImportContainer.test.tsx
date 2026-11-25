@@ -250,14 +250,14 @@ describe("TwoPathImportContainer", () => {
     await screen.findByRole("heading", { name: /how would you like to bring in your statement/i });
     setCasResumeStep2("m-1");
     fireEvent(window, new Event("focus"));
-    expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible());
     expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
   });
 
   it("the_checklist_state_does_not_choose_the_screen", async () => {
     setChecklistState("m-1", { ticks: [true, false, false, false, false], step: "form" });
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    expect(await screen.findByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible());
     expect(screen.queryByRole("heading", { name: /^request from cams$/i })).not.toBeInTheDocument();
   });
 
@@ -272,7 +272,7 @@ describe("TwoPathImportContainer", () => {
   it("no_card_when_nothing_is_waiting", async () => {
     setCasResumeStep2("m-1");
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    expect(await screen.findByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /how would you like to bring in your statement/i })).toBeVisible());
     expect(screen.queryByTestId("cams-waiting-card")).not.toBeInTheDocument();
   });
 

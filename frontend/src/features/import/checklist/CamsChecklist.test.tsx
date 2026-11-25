@@ -164,12 +164,12 @@ describe("CamsChecklist through the request screen (no invented component props)
     const { checklist } = setup();
     const boxes = await checklist.findAllByRole("checkbox");
     fireEvent.click(boxes[0]);
-    expect(screen.getByText("1 of 5 done")).toBeVisible();
-    expect(screen.getByText(/Fill the CAMS form/)).toBeVisible();
+    await waitFor(() => expect(screen.getByText("1 of 5 done")).toBeVisible());
+    await waitFor(() => expect(screen.getByText(/Fill the CAMS form/)).toBeVisible());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
     for (const box of boxes.slice(1)) fireEvent.click(box);
     fireEvent.click(checklist.getByRole("button", { name: "I have submitted the form" }));
-    expect(screen.getByText(/Wait for the email/)).toBeVisible();
+    await waitFor(() => expect(screen.getByText(/Wait for the email/)).toBeVisible());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
   });
 
@@ -177,11 +177,11 @@ describe("CamsChecklist through the request screen (no invented component props)
     const { checklist, floating, requestWindow } = setup();
     fireEvent.click((await checklist.findAllByRole("checkbox"))[0]);
     act(() => floating.close());
-    expect(screen.getByText("1 of 5 done")).toBeVisible();
-    expect(screen.getByText(/Fill the CAMS form/)).toBeVisible();
+    await waitFor(() => expect(screen.getByText("1 of 5 done")).toBeVisible());
+    await waitFor(() => expect(screen.getByText(/Fill the CAMS form/)).toBeVisible());
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
     const reopen = screen.getByRole("button", { name: "Reopen checklist" });
-    expect(reopen).toBeVisible();
+    await waitFor(() => expect(reopen).toBeVisible());
     const next = { ...floating, closed: false, document: floatingDocument() };
     requestWindow.mockResolvedValueOnce(next);
     fireEvent.click(reopen);

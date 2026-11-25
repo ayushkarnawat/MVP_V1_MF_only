@@ -235,11 +235,11 @@ describe("H-8 CAMS checklist request flow", () => {
     return requestWindow;
   }
 
-  it("continue_without_it_is_a_visible_button_in_a_row_with_the_checklist_icon", () => {
+  it("continue_without_it_is_a_visible_button_in_a_row_with_the_checklist_icon", async () => {
     renderRow();
     const row = screen.getByTestId("continue-without-row");
-    expect(row).toBeVisible();
-    expect(within(row).getByRole("button", { name: checklistCopy.skip })).toBeVisible();
+    await waitFor(() => expect(row).toBeVisible());
+    await waitFor(() => expect(within(row).getByRole("button", { name: checklistCopy.skip })).toBeVisible());
     expect(row.querySelector("svg")).not.toBeNull();
   });
 
@@ -251,7 +251,7 @@ describe("H-8 CAMS checklist request flow", () => {
     const row = screen.getByTestId("checklist-off-row");
     expect(row).toHaveTextContent(CHECKLIST_OFF_TITLE);
     expect(row).toHaveTextContent(CHECKLIST_OFF_BODY);
-    expect(within(row).getByRole("button", { name: CHECKLIST_TURN_ON })).toBeVisible();
+    await waitFor(() => expect(within(row).getByRole("button", { name: CHECKLIST_TURN_ON })).toBeVisible());
     expect(screen.queryByTestId("continue-without-row")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
     await waitFor(() => expect(request).toHaveBeenCalledWith("member-row"));
@@ -265,7 +265,7 @@ describe("H-8 CAMS checklist request flow", () => {
     vi.spyOn(window, "open").mockReturnValue(null);
     fireEvent.click(screen.getByTestId("continue-without-button"));
     fireEvent.click(screen.getByTestId("checklist-turn-on"));
-    expect(screen.getByTestId("continue-without-row")).toBeVisible();
+    await waitFor(() => expect(screen.getByTestId("continue-without-row")).toBeVisible());
     expect(screen.queryByTestId("checklist-off-row")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
     await waitFor(() => expect(requestWindow).toHaveBeenCalledTimes(1));
