@@ -333,3 +333,34 @@ def test_apply_reports_closed_as_the_rows_actually_changed(db_session, monkeypat
     assert capsys.readouterr().out.splitlines() == [
         "past_expiry=0", "later_import=1", "closed=1", "left_open=2",
     ]
+
+
+@pytest.mark.parametrize("word", ["SETVAL", "NEXTVAL", "COMMIT", "ROLLBACK", "BEGIN", "START", "END",
+                                  "SAVEPOINT", "RELEASE", "LOCK", "COPY", "CALL", "DO"])
+def test_dry_run_guard_blocks_sequence_and_transaction_words(db_session, word):
+    from scripts import close_stuck_cams_requests as script
+
+    with script.guard(db_session):
+        for listener in db_session.get_bind().dispatch.before_cursor_execute:
+            with pytest.raises(script.WriteAttempted):
+                listener(None, None, f"SELECT {word.lower()}('probe')", (), None, False)
+
+
+def test_dry_run_guard_allows_columns_containing_sequence_and_transaction_words(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    columns = ["setval_count", "nextval_count", "commit_count", "rollback_count", "begin_date", "start_count",
+               "end_time", "savepoint_count", "release_count", "lock_count", "copy_count", "call_count", "do_count"]
+    with script.guard(db_session):
+        row = db_session.execute(text("SELECT " + ", ".join(f"1 AS {column}" for column in columns))).one()
+        assert tuple(row) == (1,) * len(columns)
+
+
+@pytest.mark.parametrize("previous", ["on", "off"])
+def test_postgresql_read_only_setup_and_teardown_statements(previous):
+    from scripts.close_stuck_cams_requests import _postgres_read_only_statements
+
+    setup, teardown = _postgres_read_only_statements(previous)
+    assert setup == ["SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", "SET TRANSACTION READ ONLY"]
+    mode = "READ ONLY" if previous == "on" else "READ WRITE"
+    assert teardown == [f"SET SESSION CHARACTERISTICS AS TRANSACTION {mode}"]

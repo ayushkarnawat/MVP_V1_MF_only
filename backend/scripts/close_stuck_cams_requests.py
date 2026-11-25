@@ -57,6 +57,16 @@ def _sql_tokens(statement: str) -> str:
     return "".join(tokens)
 
 
+def _postgres_read_only_statements(previous: str) -> tuple[list[str], list[str]]:
+    if previous not in {"on", "off"}:
+        raise ValueError("Unexpected PostgreSQL read-only default.")
+    mode = "READ ONLY" if previous == "on" else "READ WRITE"
+    return (
+        ["SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", "SET TRANSACTION READ ONLY"],
+        [f"SET SESSION CHARACTERISTICS AS TRANSACTION {mode}"],
+    )
+
+
 @contextmanager
 def guard(db: Session):
     def no_flush(session, context, instances):
@@ -67,14 +77,19 @@ def guard(db: Session):
         tokens = re.sub(r"\bFOR\s+(?:NO\s+KEY\s+UPDATE|KEY\s+SHARE|UPDATE|SHARE)\b",
                         " ", tokens, flags=re.IGNORECASE)
         if re.search(r"\b(?:INSERT|UPDATE|DELETE|MERGE|REPLACE|TRUNCATE|DROP|ALTER|CREATE|"
-                     r"PRAGMA|ATTACH|DETACH|VACUUM|SET)\b",
+                     r"PRAGMA|ATTACH|DETACH|VACUUM|SET|SETVAL|NEXTVAL|COMMIT|ROLLBACK|BEGIN|START|"
+                     r"END|SAVEPOINT|RELEASE|LOCK|COPY|CALL|DO)\b",
                      tokens, flags=re.IGNORECASE):
             raise WriteAttempted("Dry run refused a write statement. Nothing was committed.")
 
     bind = db.get_bind()
     sqlite_connection = None
+    postgres_teardown: list[str] = []
     if bind.dialect.name == "postgresql":
-        db.execute(text("SET TRANSACTION READ ONLY"))
+        previous = db.execute(text("SHOW default_transaction_read_only")).scalar_one()
+        setup, postgres_teardown = _postgres_read_only_statements(previous)
+        for statement in setup:
+            db.execute(text(statement))
     elif bind.dialect.name == "sqlite":
         sqlite_connection = db.connection()
         query_only = sqlite_connection.exec_driver_sql("PRAGMA query_only").scalar_one()
@@ -84,10 +99,18 @@ def guard(db: Session):
     try:
         yield
     finally:
-        event.remove(db, "before_flush", no_flush)
         event.remove(bind, "before_cursor_execute", no_write)
-        if sqlite_connection is not None and not sqlite_connection.closed:
-            sqlite_connection.exec_driver_sql(f"PRAGMA query_only = {query_only}")
+        try:
+            if postgres_teardown:
+                # Discard dry-run state, then persist only the restored session default.
+                db.rollback()
+                for statement in postgres_teardown:
+                    db.execute(text(statement))
+                db.commit()
+            if sqlite_connection is not None and not sqlite_connection.closed:
+                sqlite_connection.exec_driver_sql(f"PRAGMA query_only = {query_only}")
+        finally:
+            event.remove(db, "before_flush", no_flush)
 
 
 def _later_import():
