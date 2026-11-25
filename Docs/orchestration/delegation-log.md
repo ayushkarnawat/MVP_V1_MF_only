@@ -896,3 +896,4 @@ fix" rule.
 - 2026-11-25 sb-1 follow-up done (loading via same SummaryBar root); Portfolio bar complete: only SB-2 (MF bar, 5 tests) and SB-3 (table, 1 test) remain red; merged into batch/sb
 - 2026-11-25 sb-2 (MF bar) and sb-3 (table note, print unchanged) packets written; clones ag-sb2 (ag/sb2-mfbar) and ag-sb3 (ag/sb3-table) from batch/sb
 - 2026-11-25 hbcd-be-1 done (Tasks 1+3): 521 passed in tests/services/import_ + cams routes + history routes; committed on batch/hbcd-be
+- 2026-11-25 hbcd-be-2 handoff written (Tasks 2 clean-up script + 4 eligibility flag), relay to Codex
