@@ -50,6 +50,7 @@ from app.models.user import HouseholdMember
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.snapshots import invalidate_member_snapshots
 from app.services.import_ import preview_store
+from app.services.import_.cams_portal import close_member_requests
 from app.services.import_.lifecycle_service import SessionExpiredError
 from app.services.import_.new_funds import find_new_funds
 from app.services.import_.crypto import hash_pan
@@ -329,6 +330,7 @@ def _confirm_claimed(
         )
         db.add(import_rec)
         db.flush()
+        close_member_requests(db, [member.id])
         if created:
             # Circular FK: the member row had to exist before its import.
             member.detected_from_import_id = import_rec.id

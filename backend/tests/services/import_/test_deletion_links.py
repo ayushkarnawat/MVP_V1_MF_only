@@ -16,6 +16,25 @@ from app.services.import_.deletion import delete_import, delete_member_portfolio
 from tests.services.import_.test_confirm_people import _member, _solo, _upload, _user
 
 
+def test_a_member_with_only_a_waiting_request_is_handled_as_having_no_statement(db_session):
+    from app.models.enums import ImportStatus, Relationship
+    from app.models.imports import Import
+    from app.models.user import HouseholdMember
+    from app.services.import_.cams_portal import initiate_cams_request
+    from tests.services.import_.test_confirm_people import _confirm, _detected, _family, _start
+
+    me = _member(db_session, _user(db_session), "Aditi Sharma")
+    _confirm(db_session, _start(db_session, me, _family()), me.user_id)
+    member = next(m for m in _detected(db_session, me.user_id) if m.name == "RAMESH SHARMA")
+    member_id = member.id
+    statement = db_session.query(Import).filter_by(household_member_id=member_id, status=ImportStatus.CONFIRMED).one()
+    waiting, _ = initiate_cams_request(db_session, me.user_id, member_id)
+    waiting_id = waiting.id
+    delete_import(db_session, me.user_id, statement.id, "person")
+    assert db_session.get(HouseholdMember, member_id) is None
+    assert db_session.get(Import, waiting_id) is None
+
+
 @pytest.fixture(autouse=True)
 def isolate_cas_file_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)

@@ -1168,6 +1168,7 @@ def get_head_change_eligibility_route(
             MemberEligibilityItem(
                 member_id=str(item.member_id),
                 reasons=item.reasons,
+                waiting_cams_request=item.waiting_cams_request,
             )
             for item in items
         ]

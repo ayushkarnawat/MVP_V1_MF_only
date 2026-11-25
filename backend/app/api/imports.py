@@ -37,6 +37,7 @@ from app.services.import_.lifecycle_service import (
     validate_file_payload,
 )
 from app.services.import_.preview_store import PREVIEW_STATUSES
+from app.services.import_.state_machine import CAMS_PLACEHOLDER_STATUSES as _CAMS_PLACEHOLDER_STATUSES
 from app.services.import_.deletion import ImportNotFoundError, delete_import
 from app.services.import_.confirm_people import AlreadyImportedError, ConfirmInvalidError, confirm_people_import
 from app.services.import_.name_match import InvalidPersonNameError
@@ -101,7 +102,6 @@ def _history_item(import_record: Import, member_name: str, group_people_count: i
     )
 
 
-_CAMS_PLACEHOLDER_STATUSES = (ImportStatus.REQUESTING_CAS, ImportStatus.WAITING_FOR_USER, ImportStatus.EXPIRED)
 
 
 @router.get("/history", response_model=list[HouseholdImportHistoryItem])

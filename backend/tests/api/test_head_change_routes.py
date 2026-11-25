@@ -8,6 +8,23 @@ from app.models.enums import ImportStatus, Relationship
 from app.models.imports import Import
 
 
+def test_eligibility_route_returns_the_waiting_flag_and_still_lists_reasons(client):
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    household = _household(client)
+    bare = _add_member(client, household, name="Meera Sharma", relationship=None)
+    db = _db(client)
+    initiate_cams_request(db, uuid.UUID(household["user_id"]), uuid.UUID(household["candidate_id"]))
+    response = _eligibility(client, household)
+    assert response.status_code == 200
+    rows = {row["member_id"]: row for row in response.json()["members"]}
+    assert rows[household["candidate_id"]] == {
+        "member_id": household["candidate_id"], "reasons": [], "waiting_cams_request": True,
+    }
+    assert rows[bare]["waiting_cams_request"] is False
+    assert rows[bare]["reasons"] == ["no_email", "no_phone", "no_pan", "label_missing"]
+
+
 def _signup(client, phone: str) -> tuple[str, str]:
     otp = client.post("/auth/otp/request", json={"phone_number": phone}).json()["otp"]
     body = client.post(
@@ -614,7 +631,7 @@ def test_eligibility_lists_each_non_head_member_with_only_own_data_reasons(clien
 
     assert response.status_code == 200
     assert set(response.json()) == {"members"}
-    assert all(set(item) == {"member_id", "reasons"} for item in response.json()["members"])
+    assert all(set(item) == {"member_id", "reasons", "waiting_cams_request"} for item in response.json()["members"])
     assert _reasons(response) == {
         household["candidate_id"]: [],
         bare: ["no_email", "no_phone", "no_pan", "label_missing"],

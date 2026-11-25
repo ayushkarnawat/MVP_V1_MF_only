@@ -28,6 +28,7 @@ from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.profile_completion import removed_with_last_import
 from app.services.dashboard.snapshots import invalidate_member_snapshots, rebuild_member_snapshots
 from app.services.import_.preview_store import PREVIEW_STATUSES, discard_member_reviews
+from app.services.import_.state_machine import CAMS_PLACEHOLDER_STATUSES
 from app.services.import_.coverage_gap import evaluate_folio_coverage_gaps
 from app.services.import_.opening_restore import restore_openings
 from app.services.import_.file_storage import FileStorage, default_file_storage, release_file_if_unreferenced
@@ -72,6 +73,11 @@ class DeleteResult:
 def _remove_member(db: Session, member: HouseholdMember) -> None:
     member_id = member.id
     discard_member_reviews(db, [member_id])
+    # A removed member cannot leave a waiting CAMS request behind; the foreign key would refuse.
+    db.query(Import).filter(
+        Import.household_member_id == member_id,
+        Import.status.in_(CAMS_PLACEHOLDER_STATUSES),
+    ).delete(synchronize_session=False)
     db.query(Folio).filter(Folio.household_member_id == member_id).delete(synchronize_session=False)
     db.query(HouseholdMemberNameChange).filter(
         HouseholdMemberNameChange.household_member_id == member_id
@@ -161,7 +167,11 @@ def _delete_imports(
             # The explicit removal is refused in delete_member_portfolio before anything is
             # deleted; this is the automatic "detected member with no statement left" removal.
             continue
-        left = db.query(Import.id).filter(Import.household_member_id == member_id, Import.status.notin_(PREVIEW_STATUSES)).first() is not None
+        left = db.query(Import.id).filter(
+            Import.household_member_id == member_id,
+            Import.status.notin_(PREVIEW_STATUSES),
+            Import.status.notin_(CAMS_PLACEHOLDER_STATUSES),
+        ).first() is not None
         if left:
             continue
         # An untouched detected member exists only because of a statement (M17).

@@ -376,6 +376,7 @@ class HeadChangeUndoResponse(BaseModel):
 class MemberEligibilityItem(BaseModel):
     member_id: str
     reasons: list[str]
+    waiting_cams_request: bool = False
 
 
 class HeadChangeEligibilityResponse(BaseModel):
