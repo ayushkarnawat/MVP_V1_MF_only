@@ -23,6 +23,10 @@
   --neg: #E5484D;
   --neg-text: #C1272D;
   --neg-bg: #FDECEC;
+  --info: #4F46E5;
+  --info-text: #3730A3;
+  --info-bg: #EEEDFC;
+  --info-border: #D2CFF6;
 
   /* surfaces, text and interaction */
   --ui-page: #FCFCFC;
@@ -38,6 +42,7 @@
   --ui-disabled-border: #DFDFDF;
   --ui-tooltip-bg: #2A2A2A;
   --ui-tooltip-text: #FFFFFF;
+  --sb-glow: rgba(34, 197, 94, 0.11);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -60,6 +65,10 @@
     --neg: #F87171;
     --neg-text: #F87171;
     --neg-bg: rgba(248, 113, 113, 0.16);
+    --info: #818CF8;
+    --info-text: #818CF8;
+    --info-bg: rgba(129, 140, 248, 0.14);
+    --info-border: rgba(129, 140, 248, 0.30);
 
     --ui-page: #111111;
     --ui-card: #1A1A1A;
@@ -74,6 +83,7 @@
     --ui-disabled-border: #2E2E2E;
     --ui-tooltip-bg: #212121;
     --ui-tooltip-text: #FCFCFC;
+    --sb-glow: rgba(34, 197, 94, 0.14);
   }
 }
 
@@ -96,6 +106,10 @@
   --neg: #F87171;
   --neg-text: #F87171;
   --neg-bg: rgba(248, 113, 113, 0.16);
+  --info: #818CF8;
+  --info-text: #818CF8;
+  --info-bg: rgba(129, 140, 248, 0.14);
+  --info-border: rgba(129, 140, 248, 0.30);
 
   --ui-page: #111111;
   --ui-card: #1A1A1A;
@@ -110,4 +124,5 @@
   --ui-disabled-border: #2E2E2E;
   --ui-tooltip-bg: #212121;
   --ui-tooltip-text: #FCFCFC;
+  --sb-glow: rgba(34, 197, 94, 0.14);
 }

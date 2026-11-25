@@ -2,6 +2,10 @@ import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { MeasureFlip } from "./MeasureFlip";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { within } from "@testing-library/react";
+import { describe } from "vitest";
 
 function setup(face: "xirr" | "returns" = "xirr", canFlip = true) {
   const onFlip = vi.fn();
@@ -53,4 +57,29 @@ it("focus_stays_on_the_button_after_a_flip", () => {
   const button = screen.getByTestId("measure-flip"); button.focus(); fireEvent.click(button);
   expect(button).toHaveFocus(); expect(button).toHaveAccessibleName("Show XIRR");
   fireEvent.click(button); expect(button).toHaveFocus(); expect(button).toHaveAccessibleName("Show Returns");
+});
+
+describe("summary bar flip polish", () => {
+  it("the_flip_button_is_a_ghost_control_with_the_same_words_and_icon", () => {
+    const { unmount, onFlip } = setup();
+    const button = screen.getByRole("button", { name: "Show Returns" });
+    expect(within(button).getByTestId("flip-label").textContent).toBe("Show Returns");
+    expect(button.querySelector("svg.lucide-refresh-cw")).toHaveAttribute("aria-hidden", "true");
+    const css = readFileSync(resolve("src/components/MeasureFlip.module.css"), "utf8");
+    expect(css).toMatch(/background:\s*transparent/);
+    expect(css).toMatch(/border:\s*(?:0|none)\s*;/);
+    fireEvent.click(button);
+    expect(onFlip).toHaveBeenCalledTimes(1);
+    unmount();
+    setup("returns");
+    expect(screen.getByRole("button", { name: "Show XIRR" })).toHaveTextContent("Show XIRR");
+  });
+
+  it("reduced_motion_disables_the_turn", () => {
+    const css = readFileSync(resolve("src/components/MeasureFlip.module.css"), "utf8");
+    expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\.turn\s*\{[^}]*animation:\s*none\s*;/s);
+    const { onFlip } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Show Returns" }));
+    expect(onFlip).toHaveBeenCalledTimes(1);
+  });
 });

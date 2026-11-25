@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { ArrowRight, Mail, Phone } from "lucide-react";
+import { ArrowRight, FileText, Mail, Phone } from "lucide-react";
 import { GoogleButton } from "../GoogleButton";
 import type { SignInNotice } from "../session";
 import { isNoAccountError, validateEmail, validateIndianPhone } from "../validation";
@@ -147,7 +147,18 @@ export function LoginEntry({
               typeof notice === "string" ? (
                 <AuthAlert tone="info">{notice}</AuthAlert>
               ) : (
-                <AuthAlert tone="info" title={notice.title}>{notice.body}</AuthAlert>
+                <>
+                  <AuthAlert tone="info" title={notice.title}>{notice.body}</AuthAlert>
+                  {notice.extra ? (
+                    <div
+                      data-testid="notice-extra"
+                      className="flex items-start gap-2 rounded-[12px] bg-[var(--ui-card)] px-3 py-2 text-[12.5px] text-[var(--ui-text-muted)]"
+                    >
+                      <FileText className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{notice.extra}</span>
+                    </div>
+                  ) : null}
+                </>
               )
             ) : null}
             <SegmentedTabs

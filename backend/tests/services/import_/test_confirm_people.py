@@ -44,6 +44,39 @@ RAMESH_PAN = "BXQPS5678L"
 KIRAN_PAN = "DLKMN4321N"
 
 
+def test_confirming_an_import_closes_the_members_waiting_request(db_session):
+    from app.models.enums import ImportStatus
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    me = _member(db_session, _user(db_session), "Aditi Sharma", pan=ADITI_PAN)
+    waiting, _ = initiate_cams_request(db_session, me.user_id, me.id)
+    preview = _start(db_session, me, family_result([{"name": "ADITI SHARMA", "pan": ADITI_PAN}]))
+    _confirm(db_session, preview, me.user_id)
+    db_session.refresh(waiting)
+    assert waiting.status == ImportStatus.EXPIRED
+
+
+def test_confirm_closes_only_that_members_request(db_session):
+    from app.models.enums import ImportStatus
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    user = _user(db_session)
+    me = _member(db_session, user, "Aditi Sharma", pan=ADITI_PAN)
+    parent = _member(db_session, user, "Ramesh Sharma", relationship=Relationship.PARENT, pan=RAMESH_PAN)
+    third = _member(db_session, user, "Meera Sharma", relationship=Relationship.PARENT)
+    outsider = _member(db_session, _user(db_session), "Kiran Sharma")
+    rows = [initiate_cams_request(db_session, m.user_id, m.id)[0] for m in (me, parent, third, outsider)]
+    preview = _start(db_session, me, family_result([
+        {"name": "ADITI SHARMA", "pan": ADITI_PAN},
+        {"name": "RAMESH SHARMA", "pan": RAMESH_PAN},
+    ], addressee="ADITI SHARMA"))
+    _confirm(db_session, preview, user.id)
+    for row in rows:
+        db_session.refresh(row)
+    assert [r.status for r in rows] == [ImportStatus.EXPIRED, ImportStatus.EXPIRED,
+                                       ImportStatus.WAITING_FOR_USER, ImportStatus.WAITING_FOR_USER]
+
+
 @pytest.fixture(autouse=True)
 def isolate_cas_file_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(file_storage_module.default_file_storage, "_base_dir", tmp_path)

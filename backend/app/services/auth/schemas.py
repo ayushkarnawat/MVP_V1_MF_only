@@ -358,6 +358,7 @@ class PendingHeadChangeResponse(BaseModel):
 class HeadChangeCompleteResponse(BaseModel):
     status: Literal["completed"]
     logout_required: bool
+    discarded_review: bool = False
 
 
 class ContactChangeReverseBody(BaseModel):
@@ -375,6 +376,7 @@ class HeadChangeUndoResponse(BaseModel):
 class MemberEligibilityItem(BaseModel):
     member_id: str
     reasons: list[str]
+    waiting_cams_request: bool = False
 
 
 class HeadChangeEligibilityResponse(BaseModel):

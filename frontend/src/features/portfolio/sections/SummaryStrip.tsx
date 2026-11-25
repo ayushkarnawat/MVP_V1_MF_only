@@ -1,13 +1,25 @@
 import { useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Clock, TriangleAlert, Wallet } from "lucide-react";
 import { MeasureFlip } from "@/components/MeasureFlip";
 import { Modal } from "@/components/Modal";
 import { XirrCautionChip } from "@/components/XirrCautionChip";
+import { InfoGlyph } from "@/components/info/InfoGlyph";
+import {
+  SummaryBar,
+  SummaryCell,
+  SummaryErrorCard,
+  SummaryFigure,
+  SummaryLead,
+  SummarySpark,
+  SummarySwitch,
+} from "@/components/summary-bar";
+import disclaimerStyles from "@/components/summary-bar/summaryBar.module.css";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDataDate } from "@/lib/dataDates";
-import { formatPercent, formatRupees } from "@/lib/format";
 import { toPercentString } from "@/lib/decimal";
+import { formatPercent, formatRupees } from "@/lib/format";
 import { RETURNS_CAPTION, resolveFigures, XIRR_CAPTION } from "@/lib/xirrDisplay";
+import { sparkPoints, sparkTrend } from "../portfolioCopy";
 import {
   changeDirection,
   formatSignedPercent,
@@ -16,7 +28,6 @@ import {
   partialChipText,
   todayGainLine,
 } from "../portfolioFormat";
-import { sparkPoints, sparkTrend } from "../portfolioCopy";
 import type {
   PortfolioSummaryResponse,
   PortfolioValueSeriesResponse,
@@ -37,12 +48,6 @@ function dirColorClass(dir: "up" | "down" | "flat"): string {
   return "text-[var(--ui-text-muted)]";
 }
 
-function sparkStroke(trend: "up" | "down" | "flat"): string {
-  if (trend === "up") return "var(--pos)";
-  if (trend === "down") return "var(--neg)";
-  return "var(--ui-text-muted)";
-}
-
 export function SummaryStrip({
   status,
   data,
@@ -56,43 +61,16 @@ export function SummaryStrip({
   const [face, setFace] = useState<"xirr" | "returns">("xirr");
 
   if (status === "loading") {
-    return (
-      <section
-        role="status"
-        aria-label="Loading summary"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-4"
-      >
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-3 min-h-[110px]"
-          >
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-        ))}
-      </section>
-    );
+    return <SummaryBar loading ariaLabel="Loading summary" />;
   }
 
   if (status === "error" || !data) {
     return (
-      <div className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-6">
-        <h4 className="text-base font-semibold text-[var(--ui-text-default)]">
-          Couldn't load your portfolio summary
-        </h4>
-        <p className="mt-1 text-sm text-[var(--ui-text-muted)]">
-          This section failed to load, but the rest of the page is unaffected.
-        </p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-4 inline-flex items-center justify-center rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-surface)] px-3 py-1.5 text-sm font-medium text-[var(--ui-text-default)] hover:bg-[var(--ui-elevated)] cursor-pointer"
-        >
-          Retry
-        </button>
-      </div>
+      <SummaryErrorCard
+        title="Couldn't load your portfolio summary"
+        body="This section failed to load, but the rest of the page is unaffected."
+        onRetry={onRetry}
+      />
     );
   }
 
@@ -120,298 +98,224 @@ export function SummaryStrip({
       ? data.xirr_as_of
       : null;
 
+  const unrealisedDir = changeDirection(data.unrealized_gain);
+
   return (
-    <section
-      aria-label="Portfolio summary"
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-4"
-    >
-      {/* 1. Total Portfolio Value */}
-      <div
-        role="group"
-        aria-label="Total Portfolio Value"
-        data-testid="metric-total-value"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-2"
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-[var(--ui-text-muted)]">
-            Total Portfolio Value
-          </span>
-          <span
-            data-testid="info-total-value"
-            role="img"
-            tabIndex={0}
-            aria-label="Sum of current value across all valued holdings, family-combined or scoped to one member."
-            title="Sum of current value across all valued holdings, family-combined or scoped to one member."
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] text-[var(--ui-text-muted)] cursor-help"
-          >
-            i
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span
-            data-testid="value-total"
-            className="text-2xl font-extrabold tabular-nums text-[var(--ui-text-default)]"
-          >
-            {formatRupees(data.total_value)}
-          </span>
-          {seriesStatus === "loading" && (
-            <span data-testid="sparkline-loading">
-              <Skeleton className="h-[22px] w-[60px]" />
-            </span>
-          )}
-          {(seriesStatus === "error" || (seriesStatus === "data" && !series)) && (
-            <div className="flex items-center gap-1.5 text-xs text-[var(--ui-text-muted)]">
-              <span>Couldn't load trend</span>
-              <button
-                type="button"
-                onClick={onRetrySeries}
-                className="underline hover:text-[var(--ui-text-default)] cursor-pointer"
+    <>
+      <SummaryBar
+        ariaLabel="Portfolio summary"
+        lead={
+          <SummaryLead
+            testId="metric-total-value"
+            label="Total Portfolio Value"
+            icon={<Wallet className="h-3.5 w-3.5" aria-hidden="true" />}
+            info={
+              <InfoGlyph
+                testId="info-total-value"
+                text="Sum of current value across all valued holdings, family-combined or scoped to one member."
+              />
+            }
+            figure={
+              <SummaryFigure
+                testId="value-total"
+                text={formatRupees(data.total_value)}
+              />
+            }
+            trend={
+              <>
+                {seriesStatus === "loading" && (
+                  <span data-testid="sparkline-loading">
+                    <Skeleton className="h-[22px] w-[60px]" />
+                  </span>
+                )}
+                {(seriesStatus === "error" ||
+                  (seriesStatus === "data" && !series)) && (
+                  <div className="flex flex-wrap items-center gap-1.5 min-w-0 text-xs text-[var(--ui-text-muted)]">
+                    <span>Couldn't load trend</span>
+                    <button
+                      type="button"
+                      onClick={onRetrySeries}
+                      className="underline hover:text-[var(--ui-text)] cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {seriesStatus === "data" &&
+                  series &&
+                  !series.empty &&
+                  series.points.length >= 2 && (
+                    <SummarySpark
+                      points={sparkPoints(series.points)}
+                      trend={sparkTrend(series.points)}
+                      ariaLabel={`Portfolio value, last ${series.days} days`}
+                    />
+                  )}
+              </>
+            }
+            caption={
+              <div
+                data-testid="today-gain"
+                data-direction={changeDirection(data.today_gain)}
+                className={dirColorClass(changeDirection(data.today_gain))}
               >
-                Retry
-              </button>
-            </div>
-          )}
-          {seriesStatus === "data" &&
-            series &&
-            !series.empty &&
-            series.points.length >= 2 && (
-              <svg
-                data-testid="sparkline"
-                viewBox="0 0 72 26"
-                preserveAspectRatio="none"
-                role="img"
-                aria-label={`Portfolio value, last ${series.days} days`}
-                className="h-[22px] w-[60px] shrink-0 overflow-visible"
-              >
-                <polyline
-                  points={sparkPoints(series.points)}
-                  fill="none"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  stroke={sparkStroke(sparkTrend(series.points))}
+                {todayGainLine(data.today_gain, data.today_pct)}
+              </div>
+            }
+            footer={
+              partialChipText(data.missing_funds) !== "" ? (
+                <span
+                  role="note"
+                  title={`Based on the last known NAV for: ${data.missing_funds.map((f) => f.name).join(", ")}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--warn-bg)] px-2 py-0.5 text-xs text-[var(--warn-text)]"
+                >
+                  <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>{partialChipText(data.missing_funds)}</span>
+                </span>
+              ) : undefined
+            }
+          />
+        }
+        cells={[
+          <SummaryCell
+            key="invested"
+            testId="metric-invested"
+            label="Total Invested"
+            figure={
+              <SummaryFigure
+                testId="value-invested"
+                text={formatRupees(data.total_invested)}
+              />
+            }
+          />,
+          <SummaryCell
+            key="unrealised"
+            testId="metric-unrealised"
+            label="Unrealised Gain"
+            wash={
+              unrealisedDir === "up"
+                ? "pos"
+                : unrealisedDir === "down"
+                  ? "neg"
+                  : undefined
+            }
+            figure={
+              <SummaryFigure
+                testId="value-unrealised"
+                direction={unrealisedDir}
+                tone={
+                  unrealisedDir === "up"
+                    ? "pos"
+                    : unrealisedDir === "down"
+                      ? "neg"
+                      : "default"
+                }
+                text={formatSignedRupees(data.unrealized_gain)}
+              />
+            }
+            caption={
+              data.unrealized_pct !== null ? (
+                <div className="flex items-center gap-1.5">
+                  <div
+                    data-testid="delta-unrealised"
+                    className={dirColorClass(unrealisedDir)}
+                  >
+                    {`${formatSignedPercent(data.unrealized_pct, 1)} return on invested`}
+                  </div>
+                  <InfoGlyph
+                    testId="info-unrealised"
+                    text="Unrealised gain as a share of what you currently have invested. Not annualised."
+                  />
+                </div>
+              ) : undefined
+            }
+          />,
+          <SummaryCell
+            key="realised"
+            testId="metric-realised"
+            label="Realised Gain"
+            figure={
+              <SummaryFigure
+                testId="value-realised"
+                text={formatRupees(data.realized_gain)}
+              />
+            }
+          />,
+          <SummaryCell
+            key="xirr"
+            testId="metric-xirr"
+            label="XIRR"
+            ariaLabel="XIRR"
+          >
+            <MeasureFlip
+              face={shownFace}
+              onFlip={() => setFace(shownFace === "xirr" ? "returns" : "xirr")}
+              canFlip={canFlip}
+              labelXirr="XIRR"
+              labelReturns="Returns"
+              titleExtra={
+                <InfoGlyph
+                  testId="info-xirr"
+                  text={
+                    shownFace === "xirr"
+                      ? "Annualised return since inception. May include an opening balance from before you started tracking in Unifolio."
+                      : "Total gain as a share of money paid in, not annualised."
+                  }
                 />
-              </svg>
-            )}
-        </div>
-        <div
-          data-testid="today-gain"
-          data-direction={changeDirection(data.today_gain)}
-          className={`text-xs font-medium ${dirColorClass(changeDirection(data.today_gain))}`}
-        >
-          {todayGainLine(data.today_gain, data.today_pct)}
-        </div>
-        {partialChipText(data.missing_funds) !== "" && (
-          <div className="mt-1">
-            <span
-              role="note"
-              title={`Based on the last known NAV for: ${data.missing_funds.map((f) => f.name).join(", ")}`}
-              className="inline-flex items-center gap-1 rounded-full bg-[var(--warn-bg)] px-2 py-0.5 text-xs text-[var(--warn-text)]"
-            >
-              <TriangleAlert className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{partialChipText(data.missing_funds)}</span>
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Total Invested */}
-      <div
-        role="group"
-        aria-label="Total Invested"
-        data-testid="metric-invested"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-2"
-      >
-        <span className="text-xs font-semibold text-[var(--ui-text-muted)]">
-          Total Invested
-        </span>
-        <span
-          data-testid="value-invested"
-          className="text-2xl font-extrabold tabular-nums text-[var(--ui-text-default)]"
-        >
-          {formatRupees(data.total_invested)}
-        </span>
-        <div className="text-xs invisible" aria-hidden="true">
-          placeholder
-        </div>
-      </div>
-
-      {/* 3. Unrealised Gain */}
-      <div
-        role="group"
-        aria-label="Unrealised Gain"
-        data-testid="metric-unrealised"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-2"
-      >
-        <span className="text-xs font-semibold text-[var(--ui-text-muted)]">
-          Unrealised Gain
-        </span>
-        <span
-          data-testid="value-unrealised"
-          data-direction={changeDirection(data.unrealized_gain)}
-          className={`text-2xl font-extrabold tabular-nums ${dirColorClass(changeDirection(data.unrealized_gain))}`}
-        >
-          {formatSignedRupees(data.unrealized_gain)}
-        </span>
-        {data.unrealized_pct !== null ? (
-          <div className="flex items-center gap-1.5">
-            <div
-              data-testid="delta-unrealised"
-              className={`text-xs font-medium ${dirColorClass(changeDirection(data.unrealized_gain))}`}
-            >
-              {`${formatSignedPercent(data.unrealized_pct, 1)} return on invested`}
-            </div>
-            <span
-              data-testid="info-unrealised"
-              role="img"
-              tabIndex={0}
-              aria-label="Unrealised gain as a share of what you currently have invested. Not annualised."
-              title="Unrealised gain as a share of what you currently have invested. Not annualised."
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] text-[var(--ui-text-muted)] cursor-help"
-            >
-              i
-            </span>
-          </div>
-        ) : (
-          <div className="text-xs invisible" aria-hidden="true">
-            placeholder
-          </div>
-        )}
-      </div>
-
-      {/* 4. Realised Gain */}
-      <div
-        role="group"
-        aria-label="Realised Gain"
-        data-testid="metric-realised"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-2"
-      >
-        <span className="text-xs font-semibold text-[var(--ui-text-muted)]">
-          Realised Gain
-        </span>
-        <span
-          data-testid="value-realised"
-          className="text-2xl font-extrabold tabular-nums text-[var(--ui-text-default)]"
-        >
-          {formatRupees(data.realized_gain)}
-        </span>
-        <div className="text-xs invisible" aria-hidden="true">
-          placeholder
-        </div>
-      </div>
-
-      {/* 5. XIRR */}
-      <div
-        role="group"
-        aria-label="XIRR"
-        data-testid="metric-xirr"
-        className="rounded-2xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-4 flex flex-col justify-between gap-2"
-      >
-        <MeasureFlip
-          face={shownFace}
-          onFlip={() => setFace(shownFace === "xirr" ? "returns" : "xirr")}
-          canFlip={canFlip}
-          labelXirr="XIRR"
-          labelReturns="Returns"
-          titleExtra={
-            <span
-              data-testid="info-xirr"
-              role="img"
-              tabIndex={0}
-              aria-label={
-                shownFace === "xirr"
-                  ? "Annualised return since inception. May include an opening balance from before you started tracking in Unifolio."
-                  : "Total gain as a share of money paid in, not annualised."
               }
-              title={
-                shownFace === "xirr"
-                  ? "Annualised return since inception. May include an opening balance from before you started tracking in Unifolio."
-                  : "Total gain as a share of money paid in, not annualised."
-              }
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] text-[var(--ui-text-muted)] cursor-help"
             >
-              i
+              <div className="flex h-[34px] mt-3 items-center justify-between gap-2 min-w-0">
+                <SummaryFigure
+                  testId="value-xirr"
+                  text={formatXirr(shownFigure)}
+                />
+                {shownFace === "xirr" && figures.caution !== null && (
+                  <XirrCautionChip caution={figures.caution} />
+                )}
+              </div>
+              <div className="mt-1.5 min-h-[34px]">
+                {disclaimer !== null ? (
+                  <button
+                    type="button"
+                    data-clickable=""
+                    onClick={() => setShowExplanation(true)}
+                    className={disclaimerStyles.disclaimer}
+                  >
+                    {shownFace === "xirr"
+                      ? `${basis === "Lifetime" ? "Since inception" : "Current holdings"} — opening-balance disclaimer may apply ›`
+                      : `${RETURNS_CAPTION} — opening-balance disclaimer may apply ›`}
+                  </button>
+                ) : (
+                  <div
+                    data-testid="xirr-caption"
+                    className="text-xs text-[var(--ui-text-muted)]"
+                  >
+                    {shownFace === "xirr" ? XIRR_CAPTION : RETURNS_CAPTION}
+                  </div>
+                )}
+              </div>
+            </MeasureFlip>
+          </SummaryCell>,
+        ]}
+        footerLeft={
+          xirrAsOf !== null ? (
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[var(--ui-text-muted)] whitespace-nowrap">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              <span data-testid="xirr-as-of">
+                {formatDataDate("prices", xirrAsOf)}
+              </span>
             </span>
-          }
-          belowTitle={
-            <div className="flex">
-              <div
-                role="group"
-                aria-label="XIRR basis"
-                className="inline-flex rounded-lg border border-[var(--ui-divider)] p-0.5 bg-[var(--ui-surface)] text-xs"
-              >
-                <button
-                  type="button"
-                  data-clickable=""
-                  aria-pressed={basis === "Lifetime"}
-                  onClick={() => setBasis("Lifetime")}
-                  className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
-                    basis === "Lifetime"
-                      ? "bg-[var(--ui-elevated)] text-[var(--ui-text-default)] shadow-xs"
-                      : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text-default)]"
-                  }`}
-                >
-                  Lifetime
-                </button>
-                <button
-                  type="button"
-                  data-clickable=""
-                  aria-pressed={basis === "Current"}
-                  onClick={() => setBasis("Current")}
-                  className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
-                    basis === "Current"
-                      ? "bg-[var(--ui-elevated)] text-[var(--ui-text-default)] shadow-xs"
-                      : "text-[var(--ui-text-muted)] hover:text-[var(--ui-text-default)]"
-                  }`}
-                >
-                  Current
-                </button>
-              </div>
-            </div>
-          }
-        >
-          <span
-            data-testid="value-xirr"
-            className="text-2xl font-extrabold tabular-nums text-[var(--ui-text-default)]"
-          >
-            {formatXirr(shownFigure)}
-          </span>
-          <div className={disclaimer !== null ? "min-h-[4.25rem]" : "min-h-8"}>
-            {disclaimer !== null ? (
-              <button
-                type="button"
-                data-clickable=""
-                onClick={() => setShowExplanation(true)}
-                className="text-xs text-[var(--ui-text-muted)] underline cursor-pointer hover:text-[var(--ui-text-default)] text-left"
-              >
-                {shownFace === "xirr"
-                  ? `${basis === "Lifetime" ? "Since inception" : "Current holdings"} — opening-balance disclaimer may apply ›`
-                  : `${RETURNS_CAPTION} — opening-balance disclaimer may apply ›`}
-              </button>
-            ) : (
-              <div
-                data-testid="xirr-caption"
-                className="text-xs text-[var(--ui-text-muted)]"
-              >
-                {shownFace === "xirr" ? XIRR_CAPTION : RETURNS_CAPTION}
-              </div>
-            )}
-          </div>
-          <div className="min-h-6">
-            {shownFace === "xirr" && figures.caution !== null && (
-              <XirrCautionChip caution={figures.caution} />
-            )}
-          </div>
-          {xirrAsOf !== null && (
-            <div
-              data-testid="xirr-as-of"
-              className="text-xs text-[var(--ui-text-muted)]"
-            >
-              {formatDataDate("prices", xirrAsOf)}
-            </div>
-          )}
-        </MeasureFlip>
-      </div>
+          ) : undefined
+        }
+        footerRight={
+          <SummarySwitch
+            ariaLabel="XIRR basis"
+            options={["Lifetime", "Current"]}
+            value={basis}
+            onChange={(v) => setBasis(v as "Lifetime" | "Current")}
+          />
+        }
+      />
 
       {disclaimer !== null && (
         <Modal
@@ -463,6 +367,6 @@ export function SummaryStrip({
           </div>
         </Modal>
       )}
-    </section>
+    </>
   );
 }

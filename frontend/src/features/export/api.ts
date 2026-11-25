@@ -7,6 +7,7 @@ export interface ExportJobStatus {
   stage: "collecting" | "building" | "finishing";
   sections_total: number;
   scope_kind: "family" | "member";
+  created_at: string;
   error_code: string | null;
   pdf_bytes: number | null;
 }

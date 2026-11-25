@@ -1,6 +1,7 @@
 """API routes for CAS Import lifecycle management per Updated-CAS-PRD & Updated-CAS-App-Flow."""
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,7 @@ from app.services.auth.session import get_data_user
 from app.services.dashboard.holdings import invalidate_holdings_cache
 from app.services.dashboard.household_members import get_household_member_for_user
 from app.services.dashboard.member_details import require_member
+from app.services.import_.cams_portal import build_cams_mailback_url, get_pending_request
 
 router = APIRouter(tags=["cas-imports"])
 
@@ -59,6 +61,20 @@ class CAMSInitiateResponse(BaseModel):
     expires_at: str
 
 
+class CASPendingRequest(BaseModel):
+    import_id: str
+    household_member_id: str
+    expires_at: datetime
+
+
+class CASPendingResponse(BaseModel):
+    pending: CASPendingRequest | None
+
+
+class CASCamsLinkResponse(BaseModel):
+    cams_url: str
+
+
 
 def _serialize_import_response(rec: Import) -> dict[str, Any]:
     return {
@@ -89,6 +105,34 @@ _REVIEW_REQUIRED = {
 @router.post("/cas-imports", status_code=status.HTTP_409_CONFLICT)
 async def upload_cas_import(user: User = Depends(get_data_user)):
     raise HTTPException(status_code=409, detail=_REVIEW_REQUIRED)
+
+
+@router.get("/cas-imports/pending", response_model=CASPendingResponse)
+def get_cas_pending_request(
+    member_id: str,
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+) -> CASPendingResponse:
+    try:
+        member_uuid = uuid.UUID(member_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid member_id.") from exc
+
+    require_member(db, user.id, member_uuid)
+    request = get_pending_request(db, user.id, member_uuid)
+    return CASPendingResponse(pending=CASPendingRequest(
+        import_id=str(request.id),
+        household_member_id=str(request.household_member_id),
+        expires_at=request.expires_at,
+    ) if request is not None else None)
+
+
+@router.get("/cas-imports/cams-link", response_model=CASCamsLinkResponse)
+def get_cas_cams_link(
+    user: User = Depends(get_data_user),
+    db: Session = Depends(get_db),
+) -> CASCamsLinkResponse:
+    return CASCamsLinkResponse(cams_url=build_cams_mailback_url())
 
 
 @router.get("/cas-imports/{import_id}", response_model=CASImportStatusResponse)

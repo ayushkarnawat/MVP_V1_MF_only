@@ -111,7 +111,7 @@ def test_weighted_average_matches_spreadsheet_for_three_categories():
     assert actual == expected
 
 
-def test_three_year_floor_excludes_short_history_from_all_periods():
+def test_short_history_fund_joins_only_the_periods_it_has():
     detailed, sizes = THIN
     short_history = uuid.UUID(int=105)
     averages = category_period_weighted_averages(
@@ -119,12 +119,44 @@ def test_three_year_floor_excludes_short_history_from_all_periods():
         {**sizes, short_history: Decimal("9000")},
     )
 
-    # SUMPRODUCT(size / SUM(size), return) over the four rows with a 3Y return.
+    # The short-history fund contributes 8100 to the 1Y weighted numerator only.
     assert {period: (average.value, average.peers) for period, average in averages.items()} == {
-        "1y": (Decimal("0.0958"), 4),
+        "1y": ((Decimal("47.9") + Decimal("8100")) / Decimal("9500"), 5),
         "3y": (Decimal("0.0366"), 4),
         "5y": (Decimal("0.1117"), 4),
     }
+
+
+def test_legacy_blended_average_still_uses_the_3y_floor():
+    detailed, sizes = THIN
+    young = uuid.UUID(int=105)
+    extended = {**detailed, young: (Decimal("0.90"), None, None, None)}
+    assert category_blended_weighted_average(extended, sizes).value == Decimal("0.08166")
+    assert category_blended_weighted_average({young: extended[young]}, {}).value is None
+
+
+def test_thin_category_follows_the_3y_count():
+    detailed, sizes = THIN
+    extended = {**detailed, **{uuid.UUID(int=i): (Decimal("0.90"), None, None, None) for i in (105, 106)}}
+    held = Scheme(id=uuid.UUID(int=101), name="Paper Moon Fund", sebi_category="CA3 Thin Category")
+    pool = CategoryPool(CategoryPeers([held], 6, {held.id: held.id}), extended,
+                        category_period_weighted_averages(extended, sizes),
+                        category_blended_weighted_average(extended, sizes))
+    row = category_rank_row(held, pool)
+    assert row.periods["1y"].peers == 6
+    assert row.periods["3y"].peers == 4
+    assert row.thin_category is True
+
+
+def test_period_members_drops_none_values_per_period():
+    a, b, c = (uuid.UUID(int=i) for i in (1, 2, 3))
+    detailed = {a: (Decimal("0"), None, None, None),
+                b: (None, Decimal("0.2"), None, Decimal("0.2")),
+                c: (Decimal("0.1"), Decimal("0.3"), Decimal("0.4"), Decimal("0.36"))}
+    assert category_ranking.period_members(detailed, "1Y") == {a: Decimal("0"), c: Decimal("0.1")}
+    assert category_ranking.period_members(detailed, "3Y") == {b: Decimal("0.2"), c: Decimal("0.3")}
+    assert category_ranking.period_members(detailed, "5Y") == {c: Decimal("0.4")}
+    assert category_ranking.category_period_averages(detailed)["1y"] == (Decimal("0.05"), 2)
 
 
 def test_missing_sizes_counted_but_unweighted_and_plain_fallback_flagged():
@@ -261,15 +293,29 @@ def seed_pool(db_session, monkeypatch):
     return seed
 
 
+def seed_short_history_peer(db, schemes, today):
+    from datetime import timedelta
+
+    peer = schemes[-1]
+    db.query(NavHistory).filter(NavHistory.scheme_id == peer.id).delete()
+    for on_date, value in ((today - timedelta(days=426), "100"),
+                           (years_ago(today, 1), "100"), (today, "130")):
+        db.add(NavHistory(scheme_id=peer.id, date=on_date, nav=Decimal(value)))
+    db.commit()
+    return peer
+
+
 def test_rank_pool_and_average_pool_hold_the_same_funds(db_session, seed_pool):  # was ...except_index_rule; FX-10b, owner-approved 19 Nov
     today = date.today()
     category = "CA3 Rank Comparison Category"
-    held, active_peer, index_fund, etf = seed_pool(category, today, (
+    held, active_peer, index_fund, etf, young = seed_pool(category, today, (
         ("Paper Moon Comet Fund", "Growth", "0.10"),
         ("Paper Moon Cloud Fund", "Growth", "0.20"),
         ("Paper Moon Trail Index Fund", "Growth", "0.30"),
         ("Paper Moon Lantern ETF", "Growth", "0.50"),
+        ("Paper Moon Sprout Fund", "Growth", "0.30"),
     ))
+    seed_short_history_peer(db_session, [young], today)
 
     async def load_pools():
         peers = await get_category_peers(db_session, category, SchemePlanType.DIRECT)
@@ -278,7 +324,7 @@ def test_rank_pool_and_average_pool_hold_the_same_funds(db_session, seed_pool): 
         return peers, averages, ranks
 
     peers, averages, ranks = asyncio.run(load_pools())
-    shared_peers = {held.id, active_peer.id, index_fund.id, etf.id}
+    shared_peers = {held.id, active_peer.id, index_fund.id, etf.id, young.id}
     assert {peer.id for peer in peers.schemes} == shared_peers
     assert {peer.id for peer in averages.peers.schemes} == shared_peers
     assert {peer.id for peer in ranks.peers.schemes} == shared_peers
@@ -288,10 +334,54 @@ def test_rank_pool_and_average_pool_hold_the_same_funds(db_session, seed_pool): 
         average_members = {scheme_id for scheme_id, values in averages.detailed.items() if values[column] is not None}
         rank_members = set(ranks.pools[period.upper()])
         average = averages.averages[period]
-        assert average_members == rank_members == {held.id, active_peer.id}
-        assert average.peers == 2
+        expected_members = {held.id, active_peer.id, young.id} if period == "1y" else {held.id, active_peer.id}
+        assert average_members == rank_members == expected_members
+        assert average.peers == len(expected_members)
         assert average.value is not None
-        assert average.value.quantize(FOUR_PLACES) == Decimal("0.1500")
+        assert average.value.quantize(FOUR_PLACES) == Decimal("0.2000" if period == "1y" else "0.1500")
+
+
+def test_average_pool_includes_one_year_only_funds_in_the_1y_period(db_session, seed_pool):
+    today = date.today()
+    held, young = seed_pool("CA3 Short History Category", today, (
+        ("Paper Moon Oak Fund", "Growth", "0.10"),
+        ("Paper Moon Sprout Fund", "Growth", "0.30"),
+    ))
+    seed_short_history_peer(db_session, [young], today)
+
+    async def load():
+        return (await load_category_pool(db_session, held, today),
+                await load_ranking_pools(db_session, held, today))
+
+    average, rank = asyncio.run(load())
+    rank_pool_1y = rank.pools["1Y"]
+    assert {sid for sid, values in average.detailed.items() if values[0] is not None} == set(rank_pool_1y)
+    assert average.averages["1y"].peers == len(rank_pool_1y) == 2
+
+
+@pytest.mark.parametrize("short_first", [False, True])
+def test_peer_returns_cache_keeps_the_legacy_and_all_periods_dicts_separate(db_session, seed_pool, short_first):
+    today = date.today()
+    held, young = seed_pool("CA3 Legacy Cache Category", today, (
+        ("Paper Moon Oak Fund", "Growth", "0.10"),
+        ("Paper Moon Sprout Fund", "Growth", "0.30"),
+    ))
+    seed_short_history_peer(db_session, [young], today)
+
+    async def load():
+        first = await category_ranking._category_returns_detailed(db_session, [held, young], today,
+                                                                 include_short_history=short_first)
+        snapshot = dict(first)
+        second = await category_ranking._category_returns_detailed(db_session, [held, young], today,
+                                                                  include_short_history=not short_first)
+        assert first == snapshot
+        return (second, first) if short_first else (first, second)
+
+    legacy, all_periods = asyncio.run(load())
+    assert set(legacy) == {held.id}
+    assert set(all_periods) == {held.id, young.id}
+    assert legacy is not all_periods
+    assert all_periods[young.id] == (Decimal("0.3"), None, None, None)
 
 
 def test_no_idcw_in_any_average_pool(db_session, seed_pool):

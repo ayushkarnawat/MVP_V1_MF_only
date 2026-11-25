@@ -5,6 +5,8 @@ import {
   cancelImportRequest,
   confirmImport,
   getCasImportStatus,
+  getPendingCamsRequest,
+  getCamsLink,
   getMemberCoverageGaps,
   getMemberImportHistory,
   getImportNewFunds,
@@ -23,6 +25,34 @@ import {
   postOpeningBalance,
   requestCamsStatement,
 } from "./api";
+
+describe("pending CAMS reads", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("getPendingCamsRequest_reads_the_route_and_returns_null_when_none", async () => {
+    const pending = { import_id: "import-pending", household_member_id: "member /pending", expires_at: "2026-12-01T12:00:00Z" };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ pending }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ pending: null }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getPendingCamsRequest("member /pending")).toEqual(pending);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/cas-imports/pending?member_id=member%20%2Fpending"),
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(await getPendingCamsRequest("member /pending")).toBeNull();
+  });
+
+  it("getCamsLink_returns_the_address", async () => {
+    const camsUrl = "https://cams.example.test/statement";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ cams_url: camsUrl }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getCamsLink()).toBe(camsUrl);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/cas-imports/cams-link"), expect.objectContaining({ method: "GET" }),
+    );
+  });
+});
 
 describe("parseImport", () => {
   afterEach(() => {

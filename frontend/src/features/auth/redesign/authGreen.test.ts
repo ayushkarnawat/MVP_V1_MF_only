@@ -40,8 +40,10 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
     expect(token("--auth-btn-shadow")).toMatch(/rgba\(34,\s*197,\s*94,/);
     expect(css).toMatch(/box-shadow:\s*0 0 0 3px rgba\(34,\s*197,\s*94,/);
   });
-  it("the primary button: dark text on the green, palette hover, pressed and disabled states, a visible focus ring", () => {
-    expect(rule(".auth-btn")).toMatch(/color:\s*#111111/i);
+  it("the primary button: white text on the green, palette hover, pressed and disabled states, a visible focus ring", () => {
+    expect(rule(".auth-btn")).toMatch(/color:\s*#FFFFFF/i);
+    const hoverColor = /(?:^|;)\s*color:\s*([^;]+)/i.exec(rule(".auth-btn:hover:not(:disabled)"))?.[1].trim();
+    if (hoverColor) expect(hoverColor.toUpperCase()).toBe("#FFFFFF");
     expect(rule(".auth-btn:hover:not(:disabled)")).toMatch(/background:\s*#16A34A/i);
     expect(rule(".auth-btn:active:not(:disabled)")).toMatch(/background:\s*#15803D/i);
     // Pressed: a white label (5.02:1 on #15803D); the dark label would be 3.76:1 (Codex whole-batch review of B, finding 4).
@@ -53,8 +55,7 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
   it("the countdown button keeps its own grey (B-8) and still wins over the general disabled rule", () => {
     expect(rule(".auth-btn.auth-btn-count:disabled")).toMatch(/background:\s*#DFDFDF/i);
   });
-  it("text stays readable: dark text on the button green, and the deep green on white and on the mint panel", () => {
-    expect(contrast("#111111", "#22C55E")).toBeGreaterThanOrEqual(7);
+  it("text stays readable: the deep green on white and on the mint panel", () => {
     expect(contrast("#15803D", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
     for (const stop of ["#F2FCF6", "#F8FDF9"]) expect(contrast("#15803D", stop)).toBeGreaterThanOrEqual(4.5);
   });
@@ -82,8 +83,7 @@ describe("auth-tokens.css: the brand green switch (palette values only)", () => 
     expect(rule(".auth-field:focus-within")).toMatch(/border-color:\s*var\(--auth-focus\)/);
     expect(css).toMatch(/input\.auth-otp-cell:focus-visible\s*\{[^}]*border-color:\s*var\(--auth-focus\)/);
   });
-  it("the pressed button label and the marks on green meet the contrast minimums", () => {
-    expect(contrast("#FFFFFF", "#15803D")).toBeGreaterThanOrEqual(4.5);
+  it("the marks on green meet the contrast minimums", () => {
     expect(contrast("#111111", "#22C55E")).toBeGreaterThanOrEqual(4.5);
   });
 });

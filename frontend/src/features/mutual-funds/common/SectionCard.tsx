@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { InfoPopover } from "../../../components/info/InfoPopover";
+import { INFO_GLYPH_CLASS } from "@/components/info/infoGlyph";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { usePrintMode } from "../../../lib/printMode";
 
@@ -24,7 +25,7 @@ export function InfoMark({ text, testId, content }: InfoMarkProps) {
           title={text}
           data-tooltip={text}
           data-testid={testId}
-          className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] font-semibold text-[var(--ui-text-muted)] hover:border-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+          className={INFO_GLYPH_CLASS}
         >
           i
         </span>

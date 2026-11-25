@@ -80,13 +80,15 @@ describe("ChangeHeadDialog: fix a member's missing details from the list (QA fix
     expect(screen.queryByRole("radio", { name: /Aditi Surve/ })).toBeNull();
     expect(within(screen.getByRole("button", { name: /Karan Surve/ })).getByText("Needs a different email address.")).toBeInTheDocument();
   });
-  it("a member with a reason that cannot be fixed here stays a disabled row with that reason, even when other reasons are fixable", async () => {
+  it("an_old_servers_import_reason_renders_the_generic_sentence_and_the_row_stays_disabled", async () => {
     mount();
     await screen.findByRole("radio", { name: /Ramesh Surve/ });
     expect(screen.getByRole("radio", { name: /Neha Surve/ })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Neha Surve/ })).toBeNull();
     expect(screen.getByRole("radio", { name: /Meera Surve/ })).toBeDisabled();
-    expect(screen.getByText("Finish or cancel the statement you are importing first.")).toBeInTheDocument();
+    const importingRow = screen.getByRole("radio", { name: /Meera Surve/ }).closest("label");
+    if (!importingRow) throw new Error("Expected the member row");
+    expect(within(importingRow).getByText("This family member is not eligible right now.")).toBeInTheDocument();
     expect(screen.queryByText("Add their PAN in their profile first.")).toBeNull();
   });
   it("an eligible member is still a radio, selectable as before", async () => {

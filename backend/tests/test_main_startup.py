@@ -40,8 +40,31 @@ def test_auth_guard_secret_startup_requirement(monkeypatch, environment, enabled
     else:
         with pytest.raises(StopIteration):
             boot().send(None)
-        start.assert_awaited_once()
+        start.assert_not_awaited()
         stop.assert_awaited_once()
+
+
+def test_startup_does_not_launch_a_browser(monkeypatch):
+    import asyncio
+    from app.services.analytics import pdf_export
+
+    monkeypatch.setattr(main.settings, "environment", "development")
+    start, stop, close_pool = AsyncMock(), AsyncMock(), AsyncMock()
+    monkeypatch.setattr(main, "start_browser", start)
+    monkeypatch.setattr(pdf_export, "async_playwright", start)
+    monkeypatch.setattr(main, "stop_browser", stop)
+    monkeypatch.setattr(main, "close_pool", close_pool)
+
+    async def boot():
+        async with main.lifespan(main.app):
+            start.assert_not_called()
+            stop.assert_not_awaited()
+            close_pool.assert_not_awaited()
+
+    asyncio.run(boot())
+    start.assert_not_called()
+    stop.assert_awaited_once()
+    close_pool.assert_awaited_once()
 
 
 @pytest.mark.parametrize("environment", ["staging", "production"])

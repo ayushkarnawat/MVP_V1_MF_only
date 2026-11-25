@@ -82,6 +82,7 @@ export interface PendingHeadChangeResponse {
 export interface HeadChangeCompleteResponse {
   status: "completed";
   logout_required: boolean;
+  discarded_review?: boolean;
 }
 
 export interface HeadChangeUndoResponse {
@@ -95,6 +96,7 @@ export interface ContactChangeReverseResponse {
 export interface MemberEligibilityItem {
   member_id: string;
   reasons: string[];
+  waiting_cams_request?: boolean;
 }
 
 export interface HeadChangeEligibilityResponse {

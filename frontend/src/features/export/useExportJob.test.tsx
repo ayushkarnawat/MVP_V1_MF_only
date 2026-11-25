@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useExportJob, formatExportSize } from "./useExportJob";
+import { useExportJob, formatExportSize, EXPORT_LONG_NOTE } from "./useExportJob";
 import { ExportCooldownError, ExportInProgressError } from "./api";
 import type { ExportChoice } from "./exportTypes";
 const api = vi.hoisted(() => ({ createExport: vi.fn(), getExportStatus: vi.fn(), downloadExportFile: vi.fn(), cancelExport: vi.fn() }));
@@ -9,7 +9,7 @@ vi.mock("../../shell/scope/ScopeContext", () => ({ useScope: () => ({ members: [
 const choice: ExportChoice = { who: "family", sectionIds: ["overview-sips", "performance-returns"], cover: true, dataDates: true, showFolios: false };
 const labels = { scopeLabel: "Family combined", presetLabel: "Custom" };
 const click = vi.fn(); const revoke = vi.fn(); const blob = new Blob(["demo-pdf"]);
-const status = (state = "preparing", stage = "collecting", code: string | null = null) => ({ status: state, stage, sections_total: 2, scope_kind: "family", error_code: code, pdf_bytes: 831488 });
+const status = (state = "preparing", stage = "collecting", code: string | null = null) => ({ job_id: "demo-job", status: state, stage, sections_total: 2, scope_kind: "family", error_code: code, pdf_bytes: 831488, created_at: new Date(Date.now() - 130000).toISOString() });
 beforeEach(() => {
   vi.useFakeTimers(); Object.values(api).forEach(mock => mock.mockReset()); click.mockReset(); revoke.mockReset();
   api.createExport.mockResolvedValue({ job_id: "demo-job", status: "preparing" }); api.getExportStatus.mockResolvedValue(status()); api.downloadExportFile.mockResolvedValue({ blob, fileName: "demo.pdf" }); api.cancelExport.mockResolvedValue(undefined);
@@ -63,3 +63,80 @@ it("cancels a job that finishes creating after cancel was pressed", async () => 
   act(() => { started = result.current.start(choice, labels); }); act(() => result.current.cancel()); await act(async () => { finish({ job_id: "demo-late", status: "preparing" }); await started; }); expect(api.cancelExport).toHaveBeenCalledWith("demo-late"); expect(result.current.state).toBe("idle"); await tick(); expect(api.getExportStatus).not.toHaveBeenCalled();
 });
 it.each([[0, "0 KB"], [831488, "812 KB"], [1048576, "1.0 MB"], [1572864, "1.5 MB"]] as const)("formats %s bytes using integer size units", (bytes, expected) => expect(formatExportSize(bytes)).toBe(expected));
+
+it("shows_the_elapsed_time_while_preparing", async () => {
+  vi.setSystemTime(new Date("2026-11-26T10:00:00Z"));
+  const { result } = renderHook(() => useExportJob());
+  await act(async () => { await result.current.start(choice, labels); });
+  expect(result.current.progress.elapsed).toBe("0 s so far");
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(result.current.progress.elapsed).toBe("1 s so far");
+  api.getExportStatus.mockImplementationOnce(async () => status());
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(result.current.progress.elapsed).toBe("2 min 10 s so far");
+  api.getExportStatus.mockResolvedValue({ ...status(), created_at: new Date(Date.now()).toISOString() });
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+  expect(result.current.progress.elapsed).toBe("2 min 15 s so far");
+});
+
+it("elapsed_time_keeps_counting_after_the_dialog_is_reopened", async () => {
+  api.createExport.mockRejectedValueOnce(new ExportInProgressError("demo-existing"));
+  const view = renderHook(({ open }) => {
+    const job = useExportJob();
+    return { job, visibleProgress: open ? job.progress : null };
+  }, { initialProps: { open: true } });
+  await act(async () => { await view.result.current.job.start(choice, labels); });
+  await tick();
+  expect(view.result.current.visibleProgress?.elapsed).toBe("2 min 12 s so far");
+  view.rerender({ open: false });
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+  expect(view.result.current.visibleProgress).toBeNull();
+  act(() => view.result.current.job.reopen());
+  view.rerender({ open: true });
+  expect(view.result.current.visibleProgress?.elapsed).toBe("2 min 17 s so far");
+});
+
+it("stage_line_names_the_finishing_stage_only_while_finishing", async () => {
+  const { result } = renderHook(() => useExportJob());
+  expect(result.current.progress.stageLine).toBeNull();
+  await act(async () => { await result.current.start(choice, labels); });
+  for (const stage of ["collecting", "building", "finishing"]) {
+    api.getExportStatus.mockResolvedValue(status("preparing", stage));
+    await tick();
+    expect(result.current.progress.stageLine).toBe(stage === "finishing" ? "Finishing the PDF" : null);
+  }
+  api.getExportStatus.mockResolvedValue(status("ready", "finishing"));
+  await tick();
+  expect(result.current.progress.stageLine).toBeNull();
+});
+
+it("long_note_only_for_large_reports_and_only_while_preparing", async () => {
+  const { result } = renderHook(() => useExportJob());
+  expect(result.current.progress.longNote).toBeNull();
+  await act(async () => { await result.current.start(choice, labels); });
+  for (const total of [24, 5, 19, 20]) {
+    api.getExportStatus.mockResolvedValue({ ...status(), sections_total: total });
+    await tick();
+    expect(result.current.progress.longNote).toBe(total >= 20 ? EXPORT_LONG_NOTE : null);
+  }
+  api.getExportStatus.mockResolvedValue({ ...status("ready"), sections_total: 24 });
+  await tick();
+  expect(result.current.progress.longNote).toBeNull();
+  await act(async () => { await result.current.start(choice, labels); });
+  api.getExportStatus.mockResolvedValue({ ...status("failed"), sections_total: 24 });
+  await tick();
+  expect(result.current.progress.longNote).toBeNull();
+});
+
+it.each(["ready", "failed", "cancelled", "cancel", "unmount"])("elapsed_clears_when_ready_failed_or_cancelled: %s", async terminal => {
+  const view = renderHook(() => useExportJob());
+  await act(async () => { await view.result.current.start(choice, labels); });
+  await tick();
+  expect(view.result.current.progress.elapsed).toBe("2 min 12 s so far");
+  if (terminal === "unmount") view.unmount();
+  else if (terminal === "cancel") act(() => view.result.current.cancel());
+  else { api.getExportStatus.mockResolvedValue(status(terminal)); await tick(); }
+  if (terminal !== "unmount") expect(view.result.current.progress.elapsed).toBeUndefined();
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+  expect(vi.getTimerCount()).toBe(0);
+});

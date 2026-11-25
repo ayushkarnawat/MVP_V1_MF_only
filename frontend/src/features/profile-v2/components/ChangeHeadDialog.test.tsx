@@ -11,7 +11,9 @@ import type {
 import { ApiError } from "@/lib/apiClient";
 import { ME_FIXTURE } from "../fixtures/me";
 import { HOUSEHOLD_FIXTURE } from "../fixtures/members";
+import { REVIEW_DISCARDED_NOTE, STATEMENT_SAVING_CODE } from "../lib/headChangeCopy";
 import { ChangeHeadDialog } from "./ChangeHeadDialog";
+import { HEAD_CHANGE_WAITING_LINE } from "@/features/import/pendingCopy";
 
 const auth = vi.hoisted(() => ({
   me: null as MeResponse | null,
@@ -117,8 +119,14 @@ const PREVIEW_FIXTURE: HeadChangePreviewResponse = {
 };
 
 describe("ChangeHeadDialog", () => {
+  // A test that turns fake timers on and fails before its own cleanup (a red test) must not leak them into the next test.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps queued once-values: a test that fails before using them must not feed the next test.
+    vi.mocked(authApi.completeHeadChange).mockReset();
     setSignInNotice(null);
     auth.me = { ...ME_FIXTURE, head_member_id: "m-self" };
     auth.refreshMe.mockResolvedValue(undefined);
@@ -184,6 +192,36 @@ describe("ChangeHeadDialog", () => {
 
     fireEvent.click(fatherRadio);
     expect(nextButton).toBeEnabled();
+  });
+
+  it("shows_one_quiet_line_when_a_request_waits_and_blocks_nothing", async () => {
+    vi.mocked(authApi.getHeadChangeEligibility).mockResolvedValue({ members: [
+      { member_id: "m-spouse", reasons: ["no_email", "no_phone"], waiting_cams_request: false },
+      { member_id: "m-father", reasons: [], waiting_cams_request: true },
+    ] });
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    const father = await screen.findByRole("radio", { name: /Ramesh Surve/i });
+    const lines = screen.getAllByTestId("head-change-waiting-line");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveTextContent(HEAD_CHANGE_WAITING_LINE("Ramesh Surve"));
+    expect(within(lines[0]).queryByRole("button")).not.toBeInTheDocument();
+    expect(father).toBeEnabled();
+    fireEvent.click(father);
+    expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByLabelText(/your email code/i)).toBeVisible();
+    expect(authApi.requestHeadChangeStartCode).toHaveBeenCalled();
+  });
+
+  it("shows_no_line_when_nothing_waits", async () => {
+    vi.mocked(authApi.getHeadChangeEligibility).mockResolvedValue({ members: [
+      { member_id: "m-spouse", reasons: ["no_email", "no_phone"] },
+      { member_id: "m-father", reasons: [], waiting_cams_request: false },
+    ] });
+    render(<ChangeHeadDialog members={HOUSEHOLD_FIXTURE} onClose={vi.fn()} />);
+    expect(await screen.findByRole("radio", { name: /Ramesh Surve/i })).toBeEnabled();
+    expect(screen.queryByTestId("head-change-waiting-line")).not.toBeInTheDocument();
+    expect(screen.queryByText(/A CAMS request for .* is still waiting/)).not.toBeInTheDocument();
   });
 
   it("a_too_soon_error_is_shown_on_step_one", async () => {
@@ -492,6 +530,73 @@ describe("ChangeHeadDialog", () => {
 
   const NETWORK_SENTENCE = "We could not reach the server. Check your connection and try again.";
   const STEP1_TITLE = "Choose who will be Head of Family";
+
+  it("shows_the_saving_notice_and_keeps_step_3_when_complete_answers_statement_being_saved", async () => {
+    vi.mocked(authApi.completeHeadChange).mockRejectedValueOnce(
+      new ApiError(409, {
+        code: STATEMENT_SAVING_CODE,
+        message: "A statement is being saved. Try again in a minute.",
+      }),
+    );
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    expect(screen.getByTestId("statement-saving-notice")).toHaveAttribute("role", "status");
+    expect(screen.getByRole("heading", { name: "Review the change" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(auth.logout).not.toHaveBeenCalled();
+    expect(auth.refreshMe).not.toHaveBeenCalled();
+  });
+
+  it("try_again_calls_complete_again_with_the_same_request", async () => {
+    vi.useFakeTimers();
+    vi.mocked(authApi.completeHeadChange)
+      .mockRejectedValueOnce(new ApiError(409, {
+        code: STATEMENT_SAVING_CODE,
+        message: "A statement is being saved. Try again in a minute.",
+      }))
+      .mockResolvedValueOnce({ status: "completed", logout_required: true });
+    await toStep3();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+    await settle();
+
+    const retry = screen.getByTestId("saving-retry");
+    expect(retry).toBeDisabled();
+    fireEvent.click(retry);
+    expect(authApi.completeHeadChange).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTimeAsync(60000));
+    expect(retry).toBeEnabled();
+    fireEvent.click(retry);
+    await settle();
+
+    expect(authApi.completeHeadChange).toHaveBeenCalledTimes(2);
+    expect(authApi.completeHeadChange).toHaveBeenNthCalledWith(1, "req-1");
+    expect(authApi.completeHeadChange).toHaveBeenNthCalledWith(2, "req-1");
+    expect(auth.logout).toHaveBeenCalledTimes(1);
+    expect(getSignInNotice()).toMatchObject({ title: "Head of Family changed" });
+  });
+
+  it.each([true, false, undefined])(
+    "the_completion_notice_has_an_extra_line_only_when_discarded_review_is_true (%s)",
+    async discardedReview => {
+      vi.mocked(authApi.completeHeadChange).mockResolvedValueOnce({
+        status: "completed",
+        logout_required: true,
+        ...(discardedReview === undefined ? {} : { discarded_review: discardedReview }),
+      });
+      await toStep3();
+      fireEvent.click(screen.getByRole("button", { name: "Confirm the change" }));
+      await settle();
+
+      expect(auth.logout).toHaveBeenCalledTimes(1);
+      const notice = getSignInNotice();
+      expect(notice).toMatchObject({ title: "Head of Family changed" });
+      if (!notice || typeof notice === "string") throw new Error("Expected a structured sign-in notice");
+      if (discardedReview === true) expect(notice.extra).toBe(REVIEW_DISCARDED_NOTE);
+      else expect(notice).not.toHaveProperty("extra");
+    },
+  );
 
   it("a_failed_cancel_on_step_two_is_shown_on_step_two", async () => {
     vi.mocked(authApi.cancelHeadChange).mockRejectedValueOnce(

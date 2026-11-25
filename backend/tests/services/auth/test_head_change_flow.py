@@ -14,6 +14,51 @@ from app.models.user import HouseholdMember, User
 NOW = datetime(2026, 11, 2, tzinfo=timezone.utc)
 
 
+def test_eligibility_lists_a_waiting_cams_request_flag_per_member():
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    db = _session()
+    user, _, candidate = _household(db)
+    other = _second_candidate(db, user)
+    initiate_cams_request(db, user.id, candidate.id)
+    rows = {row.member_id: row for row in _head_change().list_member_eligibility(db, user)}
+    assert rows[candidate.id].waiting_cams_request is True
+    assert rows[other.id].waiting_cams_request is False
+
+
+def test_the_flag_never_adds_a_reason_or_blocks():
+    from app.services.import_.cams_portal import initiate_cams_request
+    from app.services.legal.consent import ConsentEvidence
+
+    db = _session()
+    user, _, candidate = _household(db)
+    before = _head_change().list_member_eligibility(db, user)[0].reasons
+    initiate_cams_request(db, user.id, candidate.id)
+    row = _head_change().list_member_eligibility(db, user)[0]
+    assert row.waiting_cams_request is True
+    assert row.reasons == before == []
+    started = _start(db, user, candidate)
+    _verify_all(db, user, started)
+    _head_change().complete_head_change(db, user, started.request.id, evidence=ConsentEvidence(
+        ip_truncated="127.0.0.0", ip_hmac="test", user_agent="pytest", device_id=None,
+    ))
+    db.refresh(candidate)
+    assert candidate.is_head is True
+
+
+def test_a_request_past_its_expiry_does_not_set_the_flag():
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    db = _session()
+    user, _, candidate = _household(db)
+    request, _ = initiate_cams_request(db, user.id, candidate.id)
+    request.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    row = _head_change().list_member_eligibility(db, user)[0]
+    assert row.waiting_cams_request is False
+    assert request.status == ImportStatus.WAITING_FOR_USER
+
+
 def _session():
     from app.db.base import Base
 
@@ -588,12 +633,6 @@ def test_wrong_code_is_counted_even_when_the_surrounding_request_fails():
             "This person's PAN is already on another Unifolio account, so they cannot become head.",
         ),
         (
-            "import",
-            409,
-            "import_in_progress",
-            "Finish or cancel the statement you are importing, then try again.",
-        ),
-        (
             "label",
             409,
             "member_not_eligible",
@@ -624,15 +663,6 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
         candidate.detected_pan_encrypted = "encrypted-conflict"
         candidate.detected_pan_hash = "conflicting-pan"
         candidate.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
-    elif case == "import":
-        db.add(
-            Import(
-                id=uuid.uuid4(),
-                household_member_id=head.id,
-                status=ImportStatus.PREVIEWING,
-                uploaded_at=NOW,
-            )
-        )
     elif case == "label":
         candidate.relationship = None
     db.commit()
@@ -643,6 +673,37 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
         )
 
     _assert_error(exc, status=status, code=code, message=message)
+
+
+def test_start_code_and_start_succeed_while_a_cams_request_waits():
+    db = _session()
+    user, _, candidate = _household(db)
+    db.add(Import(
+        id=uuid.uuid4(), household_member_id=candidate.id,
+        status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+        uploaded_at=NOW, expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+    ))
+    db.commit()
+
+    result = _start(db, user, candidate)
+
+    assert result.request.to_member_id == candidate.id
+    assert result.request.status == "pending"
+
+
+def test_start_succeeds_with_an_unfinished_review_open():
+    db = _session()
+    user, _, candidate = _household(db)
+    db.add(Import(
+        id=uuid.uuid4(), household_member_id=candidate.id,
+        status=ImportStatus.PREVIEWING, uploaded_at=NOW,
+    ))
+    db.commit()
+
+    result = _start(db, user, candidate)
+
+    assert result.request.to_member_id == candidate.id
+    assert result.request.status == "pending"
 
 
 def test_failed_email_delivery_saves_no_request_or_new_code_and_uses_no_throttle(monkeypatch):

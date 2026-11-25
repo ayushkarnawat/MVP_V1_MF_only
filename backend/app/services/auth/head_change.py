@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 from urllib.parse import quote
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
@@ -22,7 +22,8 @@ from app.models.auth import (
     PendingIdentityVerification,
     Session as SessionModel,
 )
-from app.models.enums import AuthIdentityProvider, ConsentAction, Relationship
+from app.models.enums import AuthIdentityProvider, ConsentAction, ImportStatus, Relationship
+from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.auth.contact_change_events import contact_changed_recently_until
 from app.services.auth.email_provider import EmailSendError, get_email_provider
@@ -48,6 +49,8 @@ from app.services.auth.otp import (
     verify_otp,
 )
 from app.services.dashboard.member_details import MemberNotFoundError
+from app.services.import_.pan_claims import PENDING_PAN_TTL
+from app.services.import_.preview_store import discard_member_reviews
 from app.services.legal.consent import (
     SIGNUP_DOCUMENTS,
     ConsentEvidence,
@@ -59,6 +62,8 @@ from app.services.legal.registry import current_document
 HEAD_CHANGE_TTL_MINUTES = 10
 UNDO_TTL_HOURS = 24
 CHANGE_AGAIN_AFTER_DAYS = 7
+SAVING_CODE = "statement_being_saved"
+SAVING_MESSAGE = "A statement is being saved. Try again in a minute."
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +75,6 @@ START_CODE_ELIGIBILITY_REASONS = {
     "same_email_as_head",
     "same_phone_as_head",
     "head_change_already_open",
-    "import_in_progress",
     "account_pending_deletion",
 }
 
@@ -119,6 +123,7 @@ class HeadChangeResult:
     from_member_id: uuid.UUID
     to_member_id: uuid.UUID
     status: str
+    discarded_review: bool = False
 
 
 @dataclass(frozen=True)
@@ -420,12 +425,6 @@ def _reason_error(reason: EligibilityReason) -> HeadChangeError:
             403,
             "account_pending_deletion",
             "This account is scheduled for deletion. Reactivate it first.",
-        )
-    if reason == "import_in_progress":
-        return _error(
-            409,
-            "import_in_progress",
-            "Finish or cancel the statement you are importing, then try again.",
         )
     return _error(
         409,
@@ -782,12 +781,15 @@ def peek_pending_head_change(
 class MemberEligibility:
     member_id: uuid.UUID
     reasons: list[str]
+    waiting_cams_request: bool = False
 
 
 def list_member_eligibility(db: DbSession, user: User) -> list[MemberEligibility]:
     """Each non-head member with ONLY the reasons that come from the account's own data. The
     reasons that would reveal another account (`email_in_use`, `phone_in_use`,
     `pan_registered_elsewhere`) are dropped here and stay behind the verified start code."""
+    from app.services.import_.cams_portal import get_pending_request
+
     _expire_stale_request(db, user)
     _current_head(db, user)
     members = (
@@ -809,6 +811,7 @@ def list_member_eligibility(db: DbSession, user: User) -> list[MemberEligibility
             MemberEligibility(
                 member_id=member.id,
                 reasons=[reason for reason in reasons if reason in START_CODE_ELIGIBILITY_REASONS],
+                waiting_cams_request=get_pending_request(db, user.id, member.id) is not None,
             )
         )
     return rows
@@ -1104,6 +1107,38 @@ def preview_head_change(
     )
 
 
+def _lock_unavailable_as_saving(exc: OperationalError) -> None:
+    if getattr(exc.orig, "pgcode", None) == "55P03":
+        raise _error(409, SAVING_CODE, SAVING_MESSAGE) from exc
+    raise exc
+
+
+def _settle_member_imports(
+    db: DbSession, member_ids: list[uuid.UUID], now: datetime
+) -> bool:
+    # NOWAIT so the swap never waits on an Import row while holding the member locks;
+    # a confirm takes them in the opposite order (Import, then member) and the two
+    # would deadlock (G1 review, 25 Nov 2026).
+    try:
+        rows = (
+            db.query(Import)
+            .filter(Import.household_member_id.in_(member_ids))
+            .order_by(Import.id)
+            .populate_existing()
+            .with_for_update(nowait=True)
+            .all()
+        )
+    except OperationalError as exc:
+        _lock_unavailable_as_saving(exc)
+    if any(
+        row.status == ImportStatus.PROCESSING
+        and _aware(row.uploaded_at) >= now - PENDING_PAN_TTL
+        for row in rows
+    ):
+        raise _error(409, SAVING_CODE, SAVING_MESSAGE)
+    return discard_member_reviews(db, member_ids) > 0
+
+
 def complete_head_change(
     db: DbSession,
     user: User,
@@ -1120,34 +1155,42 @@ def complete_head_change(
     new_head: HouseholdMember | None = None
 
     try:
-        # Lock order is a cross-database contract: account, members by id, request.
-        locked_user = (
-            db.query(User)
-            .filter(User.id == user.id)
-            .populate_existing()
-            .with_for_update()
-            .one_or_none()
-        )
-        if locked_user is None:
-            raise _error(404, "request_not_found", "Head change request not found.")
-        members = (
-            db.query(HouseholdMember)
-            .filter(HouseholdMember.user_id == locked_user.id)
-            .order_by(HouseholdMember.id)
-            .populate_existing()
-            .with_for_update()
-            .all()
-        )
-        locked_request = (
-            db.query(HeadChangeRequest)
-            .filter(
-                HeadChangeRequest.id == request_id,
-                HeadChangeRequest.user_id == locked_user.id,
+        # The swap takes the account, member, request and Import row locks NOWAIT, so it
+        # never waits on the locks a statement confirm uses: a confirm takes them in several
+        # orders, so waiting here can deadlock and PostgreSQL may abort the confirm (G1
+        # reviews, 25 Nov 2026). Later writes (sessions, identities, OTP rows) still take
+        # ordinary locks; those are not used by a confirm. The order below (account,
+        # members by id, request, Import rows) stays the same on every database.
+        try:
+            locked_user = (
+                db.query(User)
+                .filter(User.id == user.id)
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .one_or_none()
             )
-            .populate_existing()
-            .with_for_update()
-            .one_or_none()
-        )
+            if locked_user is None:
+                raise _error(404, "request_not_found", "Head change request not found.")
+            members = (
+                db.query(HouseholdMember)
+                .filter(HouseholdMember.user_id == locked_user.id)
+                .order_by(HouseholdMember.id)
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .all()
+            )
+            locked_request = (
+                db.query(HeadChangeRequest)
+                .filter(
+                    HeadChangeRequest.id == request_id,
+                    HeadChangeRequest.user_id == locked_user.id,
+                )
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .one_or_none()
+            )
+        except OperationalError as exc:
+            _lock_unavailable_as_saving(exc)
         if locked_request is None or locked_request.status != "pending":
             raise _error(404, "request_not_found", "Head change request not found.")
         if _aware(locked_request.expires_at) <= now:
@@ -1203,6 +1246,7 @@ def complete_head_change(
         if reasons:
             raise _reason_error(reasons[0])
 
+        discarded = _settle_member_imports(db, [m.id for m in members], now)
         label_plan = _build_label_plan(members, old_head.id, new_head)
         if label_plan.old_head_new_label is None:
             raise _reason_error("label_missing")
@@ -1384,6 +1428,7 @@ def complete_head_change(
         from_member_id=old_head.id,
         to_member_id=new_head.id,
         status="completed",
+        discarded_review=discarded,
     )
 
 

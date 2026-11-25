@@ -519,6 +519,20 @@ export function ExportDialog(props: ExportDialogProps) {
                 <DialogDescription className="mt-[2px] text-[12.5px] text-[var(--export-muted)]">
                   {progress.subtitle}
                 </DialogDescription>
+                {(progress.stageLine || progress.elapsed) && (
+                  <div className="mt-[2px] flex flex-wrap items-center gap-x-2 text-[12.5px] text-[var(--export-muted)]">
+                    {progress.stageLine ? (
+                      <span data-testid="export-stage-line" className="font-semibold text-[var(--export-green-text)]">
+                        {progress.stageLine}
+                      </span>
+                    ) : null}
+                    {progress.elapsed ? (
+                      <span data-testid="export-elapsed" className="tabular-nums" aria-live="off">
+                        {progress.elapsed}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -568,6 +582,15 @@ export function ExportDialog(props: ExportDialogProps) {
               </span>
             </div>
 
+            {progress.longNote ? (
+              <p
+                data-testid="export-long-note"
+                className="border-t border-[var(--export-divider)] bg-[var(--export-strip-bg)] px-6 pb-3 text-[12px] text-[var(--export-muted)]"
+              >
+                {progress.longNote}
+              </p>
+            ) : null}
+
             <div className="flex justify-end gap-2 border-t border-[var(--export-divider)] px-6 py-[14px]">
               <button
                 type="button"
@@ -585,7 +608,7 @@ export function ExportDialog(props: ExportDialogProps) {
                 onClick={onKeepWorking}
                 className="rounded-[12px] border-[1.5px] border-[var(--export-green)] bg-[var(--export-bg)] px-4 py-[10px] font-body text-[13.5px] font-bold text-[var(--export-green-text)]"
               >
-                Keep working
+                Run in background
               </button>
             </div>
           </>

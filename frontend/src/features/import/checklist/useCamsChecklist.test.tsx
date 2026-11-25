@@ -91,7 +91,7 @@ describe("useCamsChecklist", () => {
     const { result, unmount } = renderHook(() => useCamsChecklist("member-h8"));
     expect(result.current.step).toBe("form");
     expect(result.current.ticks).toEqual([false, false, false, false, false]);
-    act(() => result.current.setCamsLink({ state: "ready", error: null, url: "https://cams.example.test/statement" }));
+    act(() => result.current.setCamsLink({ state: "idle", error: null }));
     for (let i = 0; i < 5; i++) act(() => result.current.toggle(i));
     act(() => result.current.markSubmitted());
     expect(result.current.step).toBe("waiting");

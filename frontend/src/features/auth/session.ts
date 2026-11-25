@@ -3,6 +3,7 @@ const TOKEN_KEY = "unifolio_session_token";
 export interface SignInNotice {
   title: string;
   body: string;
+  extra?: string;
 }
 
 let signInNotice: string | SignInNotice | null = null;

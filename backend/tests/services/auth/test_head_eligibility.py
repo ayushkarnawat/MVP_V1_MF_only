@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import get_args
 
 import pytest
 from sqlalchemy import create_engine
@@ -15,7 +16,7 @@ from app.models.enums import (
 )
 from app.models.imports import Import
 from app.models.user import HouseholdMember, User
-from app.services.auth.head_eligibility import member_eligibility
+from app.services.auth.head_eligibility import EligibilityReason, member_eligibility
 from app.services.dashboard.member_details import MemberNotFoundError
 
 
@@ -257,20 +258,20 @@ ACTIVE_IMPORT_STATUSES = [
 ]
 
 
-@pytest.mark.parametrize("status", ACTIVE_IMPORT_STATUSES)
-def test_import_in_progress_for_each_non_terminal_import_status(status):
-    db, user, head, candidate = _eligible_household()
+@pytest.mark.parametrize("status", list(ImportStatus))
+def test_no_import_status_blocks_eligibility(status):
+    db, user, _, candidate = _eligible_household()
     db.add(
         Import(
             id=uuid.uuid4(),
-            household_member_id=head.id,
+            household_member_id=candidate.id,
             status=status,
             uploaded_at=NOW,
         )
     )
     db.flush()
 
-    assert member_eligibility(db, user, candidate.id) == ["import_in_progress"]
+    assert member_eligibility(db, user, candidate.id) == []
 
 
 @pytest.mark.parametrize(
@@ -298,15 +299,13 @@ def test_terminal_import_does_not_block_eligibility(status):
     assert member_eligibility(db, user, candidate.id) == []
 
 
-def test_live_pan_claim_is_import_in_progress_but_an_expired_claim_is_not():
-    db, user, head, candidate = _eligible_household()
-    head.pan_encrypted = "pending-pan"
-    head.pan_lookup_hash = "pending-pan-hash"
-    head.pan_pending_until = datetime.now(timezone.utc) + timedelta(minutes=5)
+def test_a_live_pan_claim_does_not_block_eligibility():
+    db, user, _, candidate = _eligible_household()
+    candidate.pan_pending_until = datetime.now(timezone.utc) + timedelta(minutes=5)
 
-    assert member_eligibility(db, user, candidate.id) == ["import_in_progress"]
+    assert member_eligibility(db, user, candidate.id) == []
 
-    head.pan_pending_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+    candidate.pan_pending_until = datetime.now(timezone.utc) - timedelta(minutes=1)
     assert member_eligibility(db, user, candidate.id) == []
 
 
@@ -328,7 +327,7 @@ def test_head_change_already_open():
 
 
 def test_reasons_are_returned_in_the_documented_order():
-    db, user, _, candidate = _eligible_household()
+    db, user, head, candidate = _eligible_household()
     candidate.email = user.email
     candidate.phone_number = user.phone_number
     candidate.pan_encrypted = candidate.pan_lookup_hash = None
@@ -342,6 +341,12 @@ def test_reasons_are_returned_in_the_documented_order():
         subject=user.phone_number,
         provider=AuthIdentityProvider.PHONE_OTP,
     )
+    db.add(HeadChangeRequest(
+        id=uuid.uuid4(), user_id=user.id, from_member_id=head.id,
+        to_member_id=candidate.id, status="pending",
+        expires_at=NOW + timedelta(minutes=10),
+    ))
+    db.flush()
 
     assert member_eligibility(db, user, candidate.id) == [
         "same_email_as_head",
@@ -351,7 +356,57 @@ def test_reasons_are_returned_in_the_documented_order():
         "no_pan",
         "label_missing",
         "account_pending_deletion",
+        "head_change_already_open",
     ]
+
+
+def test_reason_list_has_exactly_the_eleven_values():
+    assert list(get_args(EligibilityReason)) == [
+        "no_email", "no_phone", "same_email_as_head", "same_phone_as_head",
+        "email_in_use", "phone_in_use", "pan_registered_elsewhere", "no_pan",
+        "label_missing", "account_pending_deletion", "head_change_already_open",
+    ]
+
+
+@pytest.mark.parametrize("reason", [
+    "no_email", "no_phone", "same_email_as_head", "same_phone_as_head",
+    "email_in_use", "phone_in_use", "pan_registered_elsewhere", "no_pan",
+    "label_missing", "account_pending_deletion", "head_change_already_open",
+])
+def test_each_of_the_other_eleven_reasons_still_blocks(reason):
+    db, user, head, candidate = _eligible_household()
+    if reason == "no_email":
+        candidate.email = None
+    elif reason == "no_phone":
+        candidate.phone_number = None
+    elif reason == "same_email_as_head":
+        candidate.email = user.email
+    elif reason == "same_phone_as_head":
+        candidate.phone_number = user.phone_number
+    elif reason == "email_in_use":
+        _other_user(db, email=candidate.email)
+    elif reason == "phone_in_use":
+        _other_user(db, phone=candidate.phone_number)
+    elif reason == "pan_registered_elsewhere":
+        candidate.pan_encrypted = candidate.pan_lookup_hash = None
+        candidate.detected_pan_encrypted = "encrypted-conflicting-pan"
+        candidate.detected_pan_hash = "conflicting-pan-hash"
+        candidate.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
+    elif reason == "no_pan":
+        candidate.pan_encrypted = candidate.pan_lookup_hash = None
+    elif reason == "label_missing":
+        candidate.relationship = None
+    elif reason == "account_pending_deletion":
+        user.pending_deletion = True
+    else:
+        db.add(HeadChangeRequest(
+            id=uuid.uuid4(), user_id=user.id, from_member_id=head.id,
+            to_member_id=candidate.id, status="pending",
+            expires_at=NOW + timedelta(minutes=10),
+        ))
+    db.flush()
+
+    assert member_eligibility(db, user, candidate.id) == [reason]
 
 
 @pytest.mark.parametrize("target", ["current_head", "foreign_member", "unknown"])

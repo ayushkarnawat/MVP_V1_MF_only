@@ -373,7 +373,7 @@
   font-weight: 600;
   border-radius: var(--radius-sm);
   background: var(--color-accent);
-  color: #000000;
+  color: #FFFFFF;
   border: none;
   cursor: pointer;
   transition: all var(--motion-fast);

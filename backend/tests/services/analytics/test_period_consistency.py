@@ -15,6 +15,34 @@ from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import CategoryPeers
 
 
+def test_rank_total_equals_average_peers_for_every_period_with_short_history_peer(db_session):
+    db, today = db_session, date.today()
+    old, young = schemes = [Scheme(id=uuid.uuid4(), name=f"Paper Moon Fund {i}", amc_name="Paper Moon AMC",
+        sebi_category="Equity Scheme - Flexi Cap Fund", plan_type=SchemePlanType.DIRECT) for i in range(2)]
+    db.add_all(schemes)
+    db.flush()
+    for scheme, windows in ((old, (5, 3, 1, 0)), (young, (1, 0))):
+        for years in windows:
+            db.add(NavHistory(scheme_id=scheme.id, date=years_ago(today, years),
+                              nav=Decimal("100" if years else "130")))
+    db.commit()
+    peers = CategoryPeers(schemes, 2, {s.id: s.id for s in schemes})
+    holdings = [SimpleNamespace(scheme_id=str(old.id))]
+    category_ranking._category_returns_cache.clear()
+    try:
+        with patch.object(category_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
+             patch.object(performance_ranking, "compute_holdings", new=AsyncMock(return_value=holdings)), \
+             patch.object(category_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
+             patch.object(performance_ranking, "get_category_peers", new=AsyncMock(return_value=peers)), \
+             patch.object(category_ranking, "warm_nav_history", new=AsyncMock()):
+            average = asyncio.run(category_ranking.compute_category_ranking(db, [uuid.uuid4()])).funds[0]
+            ranking = asyncio.run(performance_ranking.compute_performance_ranking(db, [uuid.uuid4()])).funds[0]
+        for period, count in (("1Y", 2), ("3Y", 1), ("5Y", 1)):
+            assert average.periods[period.lower()].peers == ranking.periods[period].total == count
+    finally:
+        category_ranking._category_returns_cache.clear()
+
+
 @pytest.mark.parametrize("refresh_navs", [False, True])
 def test_performance_ranking_uses_the_same_period_returns_as_category_ranking(db_session, refresh_navs):
     db, today = db_session, date.today()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta, timezone
 import urllib.parse
 import uuid
@@ -20,6 +21,33 @@ CAMS_MAILBACK_BASE_URL = "https://www.camsonline.com/Investors/Statements/Consol
 def build_cams_mailback_url() -> str:
     """Generates the CAMS Online mailback portal URL."""
     return CAMS_MAILBACK_BASE_URL
+
+
+def close_member_requests(db: Session, member_ids: Sequence[uuid.UUID]) -> int:
+    requests = db.query(Import).filter(
+        Import.household_member_id.in_(member_ids),
+        Import.status == ImportStatus.WAITING_FOR_USER,
+    ).all()
+    for request in requests:
+        request.status = transition_status(request.status, ImportStatus.EXPIRED)
+    return len(requests)
+
+
+def get_pending_request(
+    db: Session,
+    user_id: uuid.UUID,
+    member_id: uuid.UUID,
+    now: datetime | None = None,
+) -> Import | None:
+    now = now or datetime.now(timezone.utc)
+    return db.query(Import).join(
+        HouseholdMember, Import.household_member_id == HouseholdMember.id,
+    ).filter(
+        HouseholdMember.user_id == user_id,
+        Import.household_member_id == member_id,
+        Import.status == ImportStatus.WAITING_FOR_USER,
+        Import.expires_at > now,
+    ).first()
 
 
 

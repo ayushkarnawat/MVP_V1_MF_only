@@ -13,6 +13,13 @@ export function formatExportSize(bytes: number): string {
   const tenths = (value * 10n + 524288n) / 1048576n;
   return `${tenths / 10n}.${tenths % 10n} MB`;
 }
+export function formatElapsed(seconds: number): string {
+  const whole = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  return whole < 60 ? `${whole} s so far` : `${Math.floor(whole / 60)} min ${whole % 60} s so far`;
+}
+export const EXPORT_STAGE_FINISHING = "Finishing the PDF";
+export const EXPORT_LONG_NOTE = "A full report with all 24 sections can take a few minutes. You can keep using Unifolio; it will be ready to download here.";
+export const EXPORT_LONG_NOTE_MIN_SECTIONS = 20;
 export function useExportJob() {
   const { members } = useScope();
   const [state, setState] = useState<State>("idle");
@@ -20,6 +27,9 @@ export function useExportJob() {
   const [labels, setLabels] = useState<Labels>({ scopeLabel: "", presetLabel: "" });
   const [stage, setStage] = useState<"collecting" | "building" | "finishing">("collecting");
   const [total, setTotal] = useState(0);
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const startedAt = useRef(0);
   const [code, setCode] = useState<string | null>(null);
   const [ready, setReady] = useState<{ fileName: string; chips: string[] } | null>(null);
   const run = useRef(0); const active = useRef(false); const mounted = useRef(true); const jobId = useRef<string | null>(null);
@@ -33,6 +43,15 @@ export function useExportJob() {
     mounted.current = true;
     return () => { mounted.current = false; run.current++; stop(); releaseUrls(); file.current = null; };
   }, []);
+  useEffect(() => {
+    if (state !== "preparing") return;
+    const parsed = createdAt === null ? NaN : Date.parse(createdAt);
+    const origin = Number.isFinite(parsed) ? parsed : startedAt.current;
+    const update = () => setElapsedSeconds(previous => Math.max(previous, 0, Math.floor((Date.now() - origin) / 1000)));
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [state, createdAt]);
   function save(saved: { blob: Blob; fileName: string }) {
     const url = URL.createObjectURL(saved.blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = saved.fileName; document.body.append(anchor);
     try { anchor.click(); } finally { anchor.remove(); urls.current.set(url, setTimeout(() => { URL.revokeObjectURL(url); urls.current.delete(url); }, 1000)); }
@@ -41,6 +60,7 @@ export function useExportJob() {
   async function start(choice: ExportChoice, nextLabels: Labels): Promise<void> {
     if (active.current) return;
     const version = ++run.current; active.current = true; jobId.current = null; file.current = null; releaseUrls();
+    startedAt.current = Date.now(); setCreatedAt(null); setElapsedSeconds(0);
     setLastChoice({ ...choice, sectionIds: [...choice.sectionIds] }); setLabels(nextLabels); setTotal(choice.sectionIds.length); setStage("collecting"); setCode(null); setReady(null); setState("preparing");
     const current = () => mounted.current && version === run.current && active.current;
     let id: string;
@@ -58,6 +78,7 @@ export function useExportJob() {
       let downloading = false;
       try {
         const status = await getExportStatus(id); if (!current()) return; errors = 0; setStage(status.stage); setTotal(status.sections_total);
+        setCreatedAt(previous => previous ?? status.created_at);
         if (status.status === "preparing") { schedule(); return; }
         if (status.status === "cancelled") { stop(); setState("idle"); return; }
         if (status.status === "failed") { fail(status.error_code); return; }
@@ -82,7 +103,7 @@ export function useExportJob() {
   function reset() { run.current++; stop(); jobId.current = null; file.current = null; releaseUrls(); setLastChoice(null); setReady(null); setCode(null); setState("idle"); }
   const index = stage === "collecting" ? 0 : stage === "building" ? 2 : 3;
   const rows: StageRow[] = ROWS.map((label, row) => ({ label, state: state === "ready" ? "done" : state === "idle" ? "todo" : row < index ? "done" : row === index ? "now" : "todo", ...(row === 2 && stage === "building" ? { note: `${total} sections` } : {}) }));
-  return { state, progress: { subtitle: `${labels.scopeLabel} · ${labels.presetLabel} · ${total} sections`, percent: state === "ready" ? 100 : state === "idle" ? 0 : stage === "collecting" ? 15 : stage === "building" ? 55 : 90, rows }, ready, failed: { code, canTryFewer: (lastChoice?.sectionIds.length ?? 0) > 1, canExportMember: lastChoice?.who === "family" && members.length > 1 }, start, cancel, reset, lastChoice,
+  return { state, elapsedSeconds, progress: { subtitle: `${labels.scopeLabel} · ${labels.presetLabel} · ${total} sections`, percent: state === "ready" ? 100 : state === "idle" ? 0 : stage === "collecting" ? 15 : stage === "building" ? 55 : 90, rows, elapsed: state === "preparing" ? formatElapsed(elapsedSeconds) : undefined, stageLine: state === "preparing" && stage === "finishing" ? EXPORT_STAGE_FINISHING : null, longNote: state === "preparing" && total >= EXPORT_LONG_NOTE_MIN_SECTIONS ? EXPORT_LONG_NOTE : null }, ready, failed: { code, canTryFewer: (lastChoice?.sectionIds.length ?? 0) > 1, canExportMember: lastChoice?.who === "family" && members.length > 1 }, start, cancel, reset, lastChoice,
     reopen: () => {}, // Visibility belongs to ExportHost; reopening preserves the running job.
     downloadAgain: () => { if (file.current) save(file.current); },
   };

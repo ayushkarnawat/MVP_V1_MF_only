@@ -117,7 +117,6 @@ async def lifespan(app: FastAPI):
     if settings.environment != "development":
         _assert_pan_keys_configured()
         _warn_if_local_file_storage_in_non_dev()
-    await start_browser()
     yield
     await stop_browser()
     await close_pool()
