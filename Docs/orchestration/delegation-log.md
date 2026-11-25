@@ -881,3 +881,4 @@ fix" rule.
 - 2026-11-25 hofa-be-3 done (NOWAIT fix; 200 service/route tests pass; Postgres race test unrun, staging check); merged into batch/hofa; G1 re-review pending owner
 - 2026-11-25 es-1: Codex wrote 13 red tests (sandbox cannot run them; Claude ran: 13 red right reason); es-1b handoff written (code + two narrow test edits), relay to Codex
 - 2026-11-25 hofa-be G1 review 2: FAIL (High: User/member lock vs confirm member insert); hofa-be-4 handoff written (every swap lock NOWAIT), relay to Codex
+- 2026-11-25 summary bar: worktrees unifolio-sb (batch/sb from batch/vis) and unifolio-sb-rt (batch/sb-rt); baseline 8 files/232 passed; sb-rt-1 handoff written (Codex), relay
