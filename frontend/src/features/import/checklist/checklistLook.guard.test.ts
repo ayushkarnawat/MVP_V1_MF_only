@@ -10,6 +10,7 @@ const touchedFiles = [
   resolve(checklistDir, "CamsChecklistHost.tsx"),
   resolve(importDir, "RequestCamsPath.tsx"),
   resolve(importDir, "TwoPathImportContainer.tsx"),
+  resolve(importDir, "CamsWaitingCard.tsx"),
   resolve(importDir, "usePendingCamsRequest.ts"),
   resolve(importDir, "pendingCopy.ts"),
 ];
