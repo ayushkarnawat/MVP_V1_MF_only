@@ -899,3 +899,4 @@ fix" rule.
 - 2026-11-25 hbcd-be-2 handoff written (Tasks 2 clean-up script + 4 eligibility flag), relay to Codex
 - 2026-11-25 sb-3 done (table note; tests green, print keeps legacy chip); merged into batch/sb. sb-2 (MF bar): polish tests green but SummarySwitch buttons lack data-effect=switch (3 interactivity-rule tests); follow-up sent
 - 2026-11-25 hbcd-be-2 done (clean-up script + eligibility flag): 1020 passed across auth, import, cams and head-change routes; committed on batch/hbcd-be. Next: G1 review of Tasks 1-4 diff, then hbcd-rt (front-end foundation)
+- 2026-11-25 hbcd-rt-1 handoff written (patch 2 front-end foundation and red tests, Codex; worktree unifolio-hbcd-rt merged with batch/hofa and batch/vis; baseline 78 files / 994 passed), relay to Codex
