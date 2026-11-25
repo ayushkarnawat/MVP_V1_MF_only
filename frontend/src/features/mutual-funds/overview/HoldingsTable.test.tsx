@@ -535,3 +535,21 @@ describe("Returns and annualised XIRR columns", () => {
     expect(screen.getByRole("columnheader", { name: /^XIRR/ })).toHaveAttribute("title", "Yearly rate, worked out from the dates of your investments.");
   });
 });
+
+describe("shared table caution note", () => {
+  it("table_note_uses_the_shared_caution_component", () => {
+    table({ xirrByScheme: { "S-KOTAK": "0.418", "S-JM": "0.1" }, xirrMetaByScheme: {
+      "S-KOTAK": { since_purchase_return: "0.065", xirr_caution: "young" },
+      "S-JM": { since_purchase_return: "0", xirr_caution: "single_transaction" },
+    } });
+    for (const [id, caution] of [["S-KOTAK:m1", "young"], ["S-JM:m2", "single_transaction"]] as const) {
+      const cell = within(row(id)).getByTestId("xirr");
+      const chip = within(cell).getByTestId("xirr-caution");
+      expect(chip).toHaveAttribute("data-variant", "note");
+      expect(chip.textContent).toBe(CAUTION_CHIP[caution].text);
+      expect(chip).toHaveAttribute("title", CAUTION_CHIP[caution].tip);
+      expect(chip).toHaveAttribute("aria-label", CAUTION_CHIP[caution].tip);
+      expect(within(chip).getByTestId("caution-dot")).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+});
