@@ -23,6 +23,7 @@
 
 .lead {
   padding: 16px 20px 0;
+  container-type: inline-size;
   background:
     radial-gradient(120% 110% at 100% 0%, var(--sb-glow) 0%, transparent 56%),
     linear-gradient(180deg, var(--ui-elevated) 0%, color-mix(in srgb, var(--pos) 4%, var(--ui-elevated)) 100%);
@@ -90,24 +91,27 @@
 }
 
 .fig {
-  height: 34px;
+  min-height: 34px;
   margin-top: 12px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  row-gap: 4px;
   min-width: 0;
 }
 
 .figure {
   font-family: "DM Sans", system-ui, sans-serif;
   font-weight: 700;
-  font-size: clamp(18px, 10.5cqi, 28px);
+  font-size: clamp(14px, 10.5cqi, 28px);
   line-height: 34px;
   height: 34px;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  min-width: 0;
   color: var(--ui-text);
 }
 
@@ -144,9 +148,10 @@
 
 .leadFoot {
   margin: 12px -20px 0;
-  height: 36px;
-  padding: 0 20px;
+  min-height: 36px;
+  padding: 6px 20px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   border-top: 1px solid var(--ui-divider);
   background: var(--ui-card);
@@ -220,8 +225,6 @@
   padding: 0;
   font-size: 12px;
   line-height: 17px;
-  max-height: 34px;
-  overflow: hidden;
 }
 
 .disclaimer:focus-visible {

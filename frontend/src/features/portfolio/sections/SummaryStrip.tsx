@@ -130,7 +130,7 @@ export function SummaryStrip({
                 )}
                 {(seriesStatus === "error" ||
                   (seriesStatus === "data" && !series)) && (
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--ui-text-muted)]">
+                  <div className="flex flex-wrap items-center gap-1.5 min-w-0 text-xs text-[var(--ui-text-muted)]">
                     <span>Couldn't load trend</span>
                     <button
                       type="button"

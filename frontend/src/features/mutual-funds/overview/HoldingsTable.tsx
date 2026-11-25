@@ -415,11 +415,11 @@ function FamilyFigures({ row, child = false }: { row: ConsolidatedHolding | Cons
       {figure}
     </td>)}
     {/* The test ids sit on the figure itself, not the cell, so the phone-only column label in the cell is not part of the figure's text. */}
-    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap text-right"}>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap sm:text-right"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[7].label}</span>}
       <span data-testid={child ? "child-returns" : "returns"}>{formatXirr(row.since_purchase_return)}</span>
     </td>
-    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap text-right"}>
+    <td className={printMode ? "px-1 py-3 tabular-nums break-words" : "px-4 py-3 sm:py-5 tabular-nums whitespace-nowrap sm:text-right"}>
       {!printMode && <span className="block text-xs text-[var(--ui-text-muted)] sm:hidden">{FAMILY_COLUMNS[8].label}</span>}
       <div data-testid={child ? "child-xirr" : "xirr"}><XirrFigure value={row.xirr} caution={row.xirr_caution} /></div>
     </td>
@@ -473,7 +473,7 @@ function FamilyHoldingsTable({ rows, sort, onSort, query, chips = [], onAnalyse,
     <div data-testid={printMode ? undefined : "family-phone-cards"} className={printMode ? "" : "overflow-x-auto"}>
       <table aria-labelledby="holdings-title" className={printMode ? "table w-full table-fixed text-left text-xs" : "block w-full text-left text-sm sm:table sm:min-w-[960px]"}>
         <thead className={printMode ? "table-header-group" : "hidden sm:table-header-group"}><tr className="border-b border-[var(--ui-divider)] text-xs text-[var(--ui-text-muted)]">
-          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : `px-4 py-4 font-medium${col.key === "returns" || col.key === "xirr" ? " text-right" : ""}`} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
+          {FAMILY_COLUMNS.map(col => <th key={col.label} title={col.title} className={printMode ? "px-1 py-4 font-medium" : `px-4 py-4 font-medium${col.key === "returns" || col.key === "xirr" ? " sm:text-right" : ""}`} style={printMode ? { width: FAMILY_PRINT_WIDTHS[col.label] } : undefined}
             aria-sort={col.key && sort?.key === col.key ? sort.dir === "desc" ? "descending" : "ascending" : undefined}>
             {col.key && !printMode ? <button type="button" data-clickable="" data-effect="sort" onClick={() => onSort(nextSort(sort, col.key!))}>{col.label}</button> : col.label}
           </th>)}
