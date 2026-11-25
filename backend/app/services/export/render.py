@@ -18,7 +18,7 @@ from app.models.user import HouseholdMember, User
 from app.services.export import jobs
 from app.services.export.browser_pool import ExportBusyError, _finish_task, acquire_browser
 from app.services.export.pass_token import issue_export_pass
-from app.services.export.pdf_pages import extract_page_texts, section_pages, splice_first_pages
+from app.services.export.pdf_pages import extract_page_texts, section_pages
 from app.services.export.timing import ExportTimings
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 MAX_PDF_BYTES = 40 * 1024 * 1024
 READY_WAIT_SECONDS = 90
-CONTENTS_PASS_TIMEOUT_SECONDS = 30
+SECOND_PASS_TIMEOUT_SECONDS = 10
 _logger = logging.getLogger(__name__)
 _clock: Callable[[], float] = time.monotonic
 _timing_clock: Callable[[], float] = time.monotonic
@@ -152,27 +152,22 @@ def _check(job_id: str, navigated: asyncio.Event) -> None:
         raise _PrintError()
 
 
-async def _contents_pdf(page: "Page", first_pdf: bytes, section_ids: list[str],
+async def _second_pdf(page: "Page", first_pdf: bytes, section_ids: list[str],
                       job_id: str, navigated: asyncio.Event) -> bytes | None:
     # pypdf is CPU-heavy and synchronous: parse off the event loop so one long report cannot freeze the whole worker.
     texts = await asyncio.to_thread(extract_page_texts, first_pdf)
     pages = section_pages(texts)
     if not (set(section_ids) | {"notes"}).issubset(pages):
         return None
-    n = min(pages.values()) - 1
-    if n < 1:
-        return None
-    if not await page.evaluate("typeof window.__unifolioSetPrintPages === 'function' && typeof window.__unifolioShowContentsOnly === 'function'"):
+    if not await page.evaluate("typeof window.__unifolioSetPrintPages === 'function'"):
         return None
     _check(job_id, navigated)
     await page.evaluate("pages => window.__unifolioSetPrintPages(pages)", pages)
     _check(job_id, navigated)
-    await page.evaluate("() => window.__unifolioShowContentsOnly()")
-    _check(job_id, navigated)
-    replacement = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
-    if len(await asyncio.to_thread(extract_page_texts, replacement)) != n:
+    second_pdf = await page.pdf(format="A4", print_background=True, prefer_css_page_size=True)
+    if len(await asyncio.to_thread(extract_page_texts, second_pdf)) != len(texts):
         return None
-    return await asyncio.to_thread(splice_first_pages, first_pdf, replacement, n)
+    return second_pdf
 
 
 async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
@@ -263,11 +258,10 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                 _check(job_id, navigated)
                 if options.cover:
                     contents_started = _timing_clock()
-                    candidate = None
                     try:
                         candidate = await asyncio.wait_for(
-                            _contents_pdf(page, data, options.section_ids, job_id, navigated),
-                            timeout=CONTENTS_PASS_TIMEOUT_SECONDS,
+                            _second_pdf(page, data, options.section_ids, job_id, navigated),
+                            timeout=SECOND_PASS_TIMEOUT_SECONDS,
                         )
                     except TimeoutError:
                         timings.contents_outcome = "timeout"
@@ -281,9 +275,6 @@ async def run_export(job_id: str, user_id: uuid.UUID, options: ExportOptions,
                             timings.contents_outcome = "mismatch"
                     finally:
                         timings.contents_ms = int((_timing_clock() - contents_started) * 1000)
-                        if candidate is None:
-                            with suppress(Exception):
-                                await page.close()
                     _check(job_id, navigated)
                     if candidate is not None:
                         data = candidate

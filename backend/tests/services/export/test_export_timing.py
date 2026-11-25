@@ -20,7 +20,7 @@ def run_timed_export(rig, monkeypatch, caplog, outcome="done"):
             raise RuntimeError("Invented private error")
         return None if outcome == "mismatch" else b"%PDF invented final"
 
-    monkeypatch.setattr(render, "_contents_pdf", second_pdf)
+    monkeypatch.setattr(render, "_second_pdf", second_pdf)
     job_id = jobs.create_job(UUID(int=1), "family", 1)
 
     async def scenario():
