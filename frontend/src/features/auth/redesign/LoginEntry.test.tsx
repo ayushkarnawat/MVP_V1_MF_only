@@ -111,6 +111,25 @@ describe("LoginEntry: the right panel", () => {
     mount({ notice: "You were signed out. Log in again to continue." });
     expect(screen.getByRole("status")).toHaveTextContent("You were signed out. Log in again to continue.");
   });
+  it("renders_the_notice_extra_line_when_present", () => {
+    const notice = {
+      title: "Head of Family changed",
+      body: "Sign in with the new Head's email or phone number.",
+      extra: "A statement you had uploaded but not yet confirmed was removed. Upload the file again when you are ready.",
+    };
+    mount({ notice });
+    expect(screen.getByText(notice.title)).toBeInTheDocument();
+    expect(screen.getByText(notice.body)).toBeInTheDocument();
+    expect(screen.getByTestId("notice-extra")).toHaveTextContent(notice.extra);
+  });
+  it.each([
+    { title: "Head of Family changed", body: "Sign in again to continue." },
+    "Sign in again to continue.",
+  ])("renders_no_extra_line_for_a_plain_notice (%j)", notice => {
+    mount({ notice });
+    expect(screen.queryByTestId("notice-extra")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Sign in again to continue.");
+  });
   it("has no Google button by default", () => {
     mount();
     expect(screen.queryByRole("button", { name: "Continue with Google" })).toBeNull();

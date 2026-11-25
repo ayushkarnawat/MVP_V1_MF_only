@@ -82,6 +82,7 @@ export interface PendingHeadChangeResponse {
 export interface HeadChangeCompleteResponse {
   status: "completed";
   logout_required: boolean;
+  discarded_review?: boolean;
 }
 
 export interface HeadChangeUndoResponse {
