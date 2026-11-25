@@ -1,8 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RequestCamsPath } from "../RequestCamsPath";
 import * as api from "../api";
+import { CamsChecklistHost } from "./CamsChecklistHost";
+import { getChecklistState, setChecklistState } from "../casResumeState";
 
 // The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
 // document of a hidden iframe, not a bare document made with createHTMLDocument.
@@ -144,5 +146,59 @@ describe("CamsChecklist through the request screen (no invented component props)
     expect(checklist.getByText("1 of 5 done")).toBeInTheDocument();
     expect(screen.getByText("1 of 5 done")).toBeInTheDocument();
     expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  it("reset_button_reads_reset_checklist_and_start_over_is_gone", () => {
+    setChecklistState("member-reset-copy", { ticks: [true, false, false, false, false], step: "form" });
+    render(<CamsChecklistHost memberId="member-reset-copy" />);
+    const reset = screen.getByRole("button", { name: "Reset checklist" });
+    expect(reset).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Start over" })).not.toBeInTheDocument();
+    fireEvent.click(reset);
+    const saved = getChecklistState("member-reset-copy");
+    if (saved) expect(saved).toEqual({ ticks: [false, false, false, false, false], step: "form" });
+    else expect(saved).toBeNull();
+  });
+
+  it("status_strip_shows_progress_and_the_current_step", async () => {
+    const { checklist } = setup();
+    const boxes = await checklist.findAllByRole("checkbox");
+    fireEvent.click(boxes[0]);
+    expect(screen.getByText("1 of 5 done")).toBeVisible();
+    expect(screen.getByText(/Fill the CAMS form/)).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
+    for (const box of boxes.slice(1)) fireEvent.click(box);
+    fireEvent.click(checklist.getByRole("button", { name: "I have submitted the form" }));
+    expect(screen.getByText(/Wait for the email/)).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("closed_state_shows_a_visible_reopen_action", async () => {
+    const { checklist, floating, requestWindow } = setup();
+    fireEvent.click((await checklist.findAllByRole("checkbox"))[0]);
+    act(() => floating.close());
+    expect(screen.getByText("1 of 5 done")).toBeVisible();
+    expect(screen.getByText(/Fill the CAMS form/)).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
+    const reopen = screen.getByRole("button", { name: "Reopen checklist" });
+    expect(reopen).toBeVisible();
+    const next = { ...floating, closed: false, document: floatingDocument() };
+    requestWindow.mockResolvedValueOnce(next);
+    fireEvent.click(reopen);
+    await waitFor(() => expect(requestWindow).toHaveBeenCalledTimes(2));
+    expect((await within(next.document.body).findAllByRole("checkbox"))[0]).toBeChecked();
+  });
+
+  it("panel_mode_shows_the_same_strip", async () => {
+    Reflect.deleteProperty(window, "documentPictureInPicture");
+    vi.spyOn(window, "open").mockReturnValue(null);
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    render(<RequestCamsPath memberId="member-panel-strip" onRequestInitiated={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    const boxes = await screen.findAllByRole("checkbox");
+    fireEvent.click(boxes[0]);
+    expect(screen.getAllByText("1 of 5 done").length).toBeGreaterThan(0);
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
+    expect(screen.getAllByText(/Fill the CAMS form/).length).toBeGreaterThan(0);
   });
 });

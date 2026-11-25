@@ -1,7 +1,9 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within, act } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { RequestCamsPath } from "./RequestCamsPath";
 import * as api from "./api";
+import { checklistCopy } from "./checklist/checklistCopy";
+import { CHECKLIST_OFF_TITLE, CHECKLIST_OFF_BODY, CHECKLIST_TURN_ON } from "./pendingCopy";
 
 // The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
 // document of a hidden iframe, not a bare document made with createHTMLDocument.
@@ -96,22 +98,22 @@ describe("H-8 CAMS checklist request flow", () => {
     expect(screen.getAllByRole("checkbox")).toHaveLength(5);
   });
 
-  it("the request screen's line is the full sentence", () => {
+  it("the request screen row keeps the first sentence", () => {
     localStorage.clear();
     vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn() });
     render(<RequestCamsPath memberId="member-h9b" onRequestInitiated={vi.fn()} />);
-    expect(screen.getByText("A small checklist will float over the CAMS page to guide you. You can close it any time.")).toBeInTheDocument();
+    expect(screen.getByTestId("continue-without-row")).toHaveTextContent(`${checklistCopy.introduction.split(".")[0]}.`);
   });
 
-  it("Continue without it is still an inline link next to the sentence", () => {
+  it("Continue without it is a button in the checklist row", () => {
     localStorage.clear();
     vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn() });
     render(<RequestCamsPath memberId="member-h9b" onRequestInitiated={vi.fn()} />);
-    const sentence = screen.getByText("A small checklist will float over the CAMS page to guide you. You can close it any time.");
-    const link = screen.getByRole("link", { name: "Continue without it" });
-    expect(sentence.tagName).toBe("P");
-    expect(link.closest("p")).toBe(sentence);
-    expect(link).toHaveAttribute("data-effect", "close");
+    const row = screen.getByTestId("continue-without-row");
+    const button = within(row).getByRole("button", { name: checklistCopy.skip });
+    expect(button).toHaveAttribute("data-testid", "continue-without-button");
+    expect(button).toHaveAttribute("data-effect", "close");
+    expect(within(row).queryByRole("link", { name: checklistCopy.skip })).not.toBeInTheDocument();
   });
 
   it("a failed request keeps the screen error and offers the same error and Try again in the checklist without reopening", async () => {
@@ -176,8 +178,10 @@ describe("H-8 CAMS checklist request flow", () => {
     const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
     const { unmount } = render(<RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} />);
     expect(screen.getByText(/A small checklist will float over the CAMS page/)).toBeInTheDocument();
-    const skip = screen.queryByRole("link", { name: "Continue without it" }) ?? screen.getByRole("button", { name: "Continue without it" });
+    const skip = within(screen.getByTestId("continue-without-row")).getByRole("button", { name: checklistCopy.skip });
     fireEvent.click(skip);
+    expect(screen.getByTestId("checklist-off-row")).toHaveTextContent(CHECKLIST_OFF_TITLE);
+    expect(screen.getByTestId("checklist-turn-on")).toHaveTextContent(CHECKLIST_TURN_ON);
     expect(request).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
     await waitFor(() => expect(openTab).toHaveBeenCalledExactlyOnceWith(response.cams_url, "_blank"));
@@ -188,6 +192,120 @@ describe("H-8 CAMS checklist request flow", () => {
     expect(screen.queryByText("Continue without it")).not.toBeInTheDocument();
     expect(screen.queryByText(/A small checklist will float over the CAMS page/)).not.toBeInTheDocument();
   });
+
+  it("request_does_not_wait_for_the_checklist_window", async () => {
+    localStorage.clear();
+    const floating = floatingWindow();
+    let resolveWindow!: (value: typeof floating) => void;
+    const requestWindow = vi.fn(() => new Promise<typeof floating>((resolve) => { resolveWindow = resolve; }));
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    const initiated = vi.fn();
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    try {
+      await waitFor(() => expect(initiated).toHaveBeenCalledExactlyOnceWith(response.import_id, response.expires_at));
+      expect(requestWindow.mock.invocationCallOrder[0]).toBeLessThan(request.mock.invocationCallOrder[0]);
+      expect(openTab).toHaveBeenCalledWith(response.cams_url, "_blank");
+    } finally {
+      await act(async () => resolveWindow(floating));
+    }
+  });
+
+  it("a_failing_checklist_window_never_stops_the_request", async () => {
+    localStorage.clear();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockRejectedValue(new Error("Synthetic window refusal")) });
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    const initiated = vi.fn();
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    await waitFor(() => expect(initiated).toHaveBeenCalledWith(response.import_id, response.expires_at));
+    expect(request).toHaveBeenCalledExactlyOnceWith("member-h8");
+    expect(openTab).toHaveBeenCalledWith(response.cams_url, "_blank");
+    expect(await screen.findAllByRole("checkbox")).toHaveLength(5);
+  });
+
+  function renderRow() {
+    localStorage.clear();
+    const requestWindow = vi.fn().mockResolvedValue(floatingWindow());
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    render(<RequestCamsPath memberId="member-row" onRequestInitiated={vi.fn()} />);
+    return requestWindow;
+  }
+
+  it("continue_without_it_is_a_visible_button_in_a_row_with_the_checklist_icon", () => {
+    renderRow();
+    const row = screen.getByTestId("continue-without-row");
+    expect(row).toBeVisible();
+    expect(within(row).getByRole("button", { name: checklistCopy.skip })).toBeVisible();
+    expect(row.querySelector("svg")).not.toBeNull();
+  });
+
+  it("pressing_it_turns_the_checklist_off_for_this_request_and_shows_turn_it_back_on", async () => {
+    const requestWindow = renderRow();
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    fireEvent.click(screen.getByTestId("continue-without-button"));
+    const row = screen.getByTestId("checklist-off-row");
+    expect(row).toHaveTextContent(CHECKLIST_OFF_TITLE);
+    expect(row).toHaveTextContent(CHECKLIST_OFF_BODY);
+    expect(within(row).getByRole("button", { name: CHECKLIST_TURN_ON })).toBeVisible();
+    expect(screen.queryByTestId("continue-without-row")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    await waitFor(() => expect(request).toHaveBeenCalledWith("member-row"));
+    await waitFor(() => expect(openTab).toHaveBeenCalledWith(response.cams_url, "_blank"));
+    expect(requestWindow).not.toHaveBeenCalled();
+  });
+
+  it("turn_it_back_on_restores_the_checklist", async () => {
+    const requestWindow = renderRow();
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    vi.spyOn(window, "open").mockReturnValue(null);
+    fireEvent.click(screen.getByTestId("continue-without-button"));
+    fireEvent.click(screen.getByTestId("checklist-turn-on"));
+    expect(screen.getByTestId("continue-without-row")).toBeVisible();
+    expect(screen.queryByTestId("checklist-off-row")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    await waitFor(() => expect(requestWindow).toHaveBeenCalledTimes(1));
+  });
+
+  it("the_choice_does_not_cancel_or_start_a_request", () => {
+    renderRow();
+    const request = vi.spyOn(api, "requestCamsStatement").mockRejectedValue(new Error("Unexpected request"));
+    const cancel = vi.spyOn(api, "cancelImportRequest").mockRejectedValue(new Error("Unexpected cancellation"));
+    const openTab = vi.spyOn(window, "open");
+    fireEvent.click(screen.getByTestId("continue-without-button"));
+    fireEvent.click(screen.getByTestId("checklist-turn-on"));
+    expect(request).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
+    expect(openTab).not.toHaveBeenCalled();
+  });
+
+  it("every_built_word_in_the_row_is_unchanged", () => {
+    renderRow();
+    const row = screen.getByTestId("continue-without-row");
+    expect(within(row).getByRole("button", { name: checklistCopy.skip })).toHaveTextContent(checklistCopy.skip);
+    expect(row.textContent?.replace(checklistCopy.skip, "").trim()).toBe(`${checklistCopy.introduction.split(".")[0]}.`);
+  });
+
+  it("row_is_not_shown_on_phones", () => {
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: query.includes("max-width") || query.includes("767"), media: query,
+      onchange: null, addListener: vi.fn(), removeListener: vi.fn(),
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    })));
+    vi.stubGlobal("innerWidth", 390);
+    renderRow();
+    const row = screen.queryByTestId("continue-without-row");
+    if (row) {
+      const desktopOnly = row.closest(".hidden.md\\:block, .hidden.md\\:flex, .hidden.md\\:grid");
+      expect(desktopOnly).not.toBeNull();
+    } else expect(row).not.toBeInTheDocument();
+    expect(screen.queryByTestId("checklist-off-row")).not.toBeInTheDocument();
+  });
+
 });
 
 describe("RequestCamsPath", () => {

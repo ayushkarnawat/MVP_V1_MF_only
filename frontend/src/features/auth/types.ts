@@ -96,6 +96,7 @@ export interface ContactChangeReverseResponse {
 export interface MemberEligibilityItem {
   member_id: string;
   reasons: string[];
+  waiting_cams_request?: boolean;
 }
 
 export interface HeadChangeEligibilityResponse {

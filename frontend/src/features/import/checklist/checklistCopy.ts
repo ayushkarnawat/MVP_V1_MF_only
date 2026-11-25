@@ -29,7 +29,7 @@ export const checklistCopy = {
   submitted: "I have submitted the form",
   fileReady: "I have the file",
   reopen: "Reopen checklist",
-  startOver: "Start over",
+  startOver: "Reset checklist",
   skip: "Continue without it",
   introduction: "A small checklist will float over the CAMS page to guide you. You can close it any time.",
   requestFailed: "Failed to initiate CAMS request.",
