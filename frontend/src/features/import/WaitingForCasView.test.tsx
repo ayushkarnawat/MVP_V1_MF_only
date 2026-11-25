@@ -208,7 +208,9 @@ describe("H-8 waiting screen checklist integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Import History" }));
     fireEvent.click(screen.getByRole("button", { name: "Back to import" }));
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /already have a statement/i }));
+    // The server still says a request waits, so coming back from Import History shows the waiting screen again (not the choice screen).
+    expect(await screen.findByText("Waiting for CAMS email")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Already got the email\? Upload it now/i }));
     expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
   });
