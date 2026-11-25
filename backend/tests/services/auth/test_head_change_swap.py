@@ -354,6 +354,65 @@ def test_complete_answers_statement_being_saved_when_the_import_row_lock_is_not_
     assert [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()] == codes_before
 
 
+def _assert_swap_lock_error(db, monkeypatch, entity, pgcode="55P03"):
+    from app.models.auth import OtpRequest
+
+    household = _household(db)
+    request_id = _ready_request(db, household)
+    request = db.get(HeadChangeRequest, request_id)
+    verified_before = (request.current_email_verified_at, request.current_phone_verified_at,
+                       request.new_email_verified_at, request.new_phone_verified_at)
+    codes_before = [(row.id, row.otp_hash, row.attempt_count) for row in db.query(OtpRequest).all()]
+
+    class DriverError(Exception):
+        pass
+
+    original = DriverError()
+    original.pgcode = pgcode
+    error = OperationalError("SELECT FOR UPDATE NOWAIT", {}, original)
+    method = "all" if entity is HouseholdMember else "one_or_none"
+    original_query = getattr(Query, method)
+
+    def query_with_lock_error(query):
+        if query.column_descriptions[0]["entity"] is entity and query._for_update_arg is not None:
+            raise error
+        return original_query(query)
+
+    monkeypatch.setattr(Query, method, query_with_lock_error)
+    if pgcode == "55P03":
+        with pytest.raises(HeadChangeError) as exc:
+            _complete(db, household, request_id)
+        assert (exc.value.status_code, exc.value.code, exc.value.message) == (
+            409, "statement_being_saved", "A statement is being saved. Try again in a minute.")
+    else:
+        with pytest.raises(OperationalError) as exc:
+            _complete(db, household, request_id)
+        assert exc.value is error
+    _assert_unswapped(db, household)
+    request = db.get(HeadChangeRequest, request_id)
+    assert request.status == "pending"
+    assert all(value is not None for value in verified_before)
+    assert (request.current_email_verified_at, request.current_phone_verified_at,
+            request.new_email_verified_at, request.new_phone_verified_at) == verified_before
+    assert [(row.id, row.otp_hash, row.attempt_count) for row in db.query(OtpRequest).all()] == codes_before
+
+
+def test_complete_answers_statement_being_saved_when_the_account_row_lock_is_not_available(db_session, monkeypatch):
+    _assert_swap_lock_error(db_session, monkeypatch, User)
+
+
+def test_complete_answers_statement_being_saved_when_a_member_row_lock_is_not_available(db_session, monkeypatch):
+    _assert_swap_lock_error(db_session, monkeypatch, HouseholdMember)
+
+
+def test_complete_answers_statement_being_saved_when_the_request_row_lock_is_not_available(db_session, monkeypatch):
+    _assert_swap_lock_error(db_session, monkeypatch, HeadChangeRequest)
+
+
+def test_a_serialization_error_on_the_account_lock_is_not_swallowed(db_session, monkeypatch):
+    _assert_swap_lock_error(db_session, monkeypatch, User, "40001")
+
+
 def test_other_operational_errors_are_not_swallowed(db_session, monkeypatch):
     household = _household(db_session)
     request_id = _ready_request(db_session, household)

@@ -1103,6 +1103,12 @@ def preview_head_change(
     )
 
 
+def _lock_unavailable_as_saving(exc: OperationalError) -> None:
+    if getattr(exc.orig, "pgcode", None) == "55P03":
+        raise _error(409, SAVING_CODE, SAVING_MESSAGE) from exc
+    raise exc
+
+
 def _settle_member_imports(
     db: DbSession, member_ids: list[uuid.UUID], now: datetime
 ) -> bool:
@@ -1119,9 +1125,7 @@ def _settle_member_imports(
             .all()
         )
     except OperationalError as exc:
-        if getattr(exc.orig, "pgcode", None) == "55P03":
-            raise _error(409, SAVING_CODE, SAVING_MESSAGE) from exc
-        raise
+        _lock_unavailable_as_saving(exc)
     if any(
         row.status == ImportStatus.PROCESSING
         and _aware(row.uploaded_at) >= now - PENDING_PAN_TTL
@@ -1147,34 +1151,40 @@ def complete_head_change(
     new_head: HouseholdMember | None = None
 
     try:
-        # Lock order is a cross-database contract: account, members by id, request.
-        locked_user = (
-            db.query(User)
-            .filter(User.id == user.id)
-            .populate_existing()
-            .with_for_update()
-            .one_or_none()
-        )
-        if locked_user is None:
-            raise _error(404, "request_not_found", "Head change request not found.")
-        members = (
-            db.query(HouseholdMember)
-            .filter(HouseholdMember.user_id == locked_user.id)
-            .order_by(HouseholdMember.id)
-            .populate_existing()
-            .with_for_update()
-            .all()
-        )
-        locked_request = (
-            db.query(HeadChangeRequest)
-            .filter(
-                HeadChangeRequest.id == request_id,
-                HeadChangeRequest.user_id == locked_user.id,
+        # The swap takes every lock NOWAIT and never waits: a confirm takes the account,
+        # member and Import locks in several orders, so waiting here can deadlock and
+        # PostgreSQL may abort the confirm (G1 reviews, 25 Nov 2026). The order below
+        # (account, members by id, request, Import rows) stays the same on every database.
+        try:
+            locked_user = (
+                db.query(User)
+                .filter(User.id == user.id)
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .one_or_none()
             )
-            .populate_existing()
-            .with_for_update()
-            .one_or_none()
-        )
+            if locked_user is None:
+                raise _error(404, "request_not_found", "Head change request not found.")
+            members = (
+                db.query(HouseholdMember)
+                .filter(HouseholdMember.user_id == locked_user.id)
+                .order_by(HouseholdMember.id)
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .all()
+            )
+            locked_request = (
+                db.query(HeadChangeRequest)
+                .filter(
+                    HeadChangeRequest.id == request_id,
+                    HeadChangeRequest.user_id == locked_user.id,
+                )
+                .populate_existing()
+                .with_for_update(nowait=True)
+                .one_or_none()
+            )
+        except OperationalError as exc:
+            _lock_unavailable_as_saving(exc)
         if locked_request is None or locked_request.status != "pending":
             raise _error(404, "request_not_found", "Head change request not found.")
         if _aware(locked_request.expires_at) <= now:

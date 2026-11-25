@@ -200,6 +200,79 @@ def test_confirm_first_then_swap_does_not_deadlock_on_postgres(pg_session_factor
         assert retry.get(Import, review_id).status == ImportStatus.CONFIRMED
 
 
+def test_confirm_holding_a_member_lock_then_creating_a_member_does_not_deadlock_with_the_swap(pg_session_factory):
+    from sqlalchemy import text
+    from app.models.enums import MemberNameSource, MemberOrigin
+    from app.services.auth import head_change
+    from app.services.import_.confirm_people import _finalise_pan_claims
+    from app.services.import_.pan_claims import claim_pan_for_member
+
+    with pg_session_factory() as setup:
+        household = _household(setup, suffix="w4")
+        request_id = _ready_request(setup, household)
+        user_id = household.user.id
+        member_id = household.other_member.id
+        pan = "ABCDE1234F"
+        claim_pan_for_member(setup, household.other_member, pan, pending=True)
+        review_id = uuid.uuid4()
+        setup.add(Import(id=review_id, household_member_id=member_id,
+                         status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc)))
+        setup.commit()
+
+    outcome = {}
+
+    def swap():
+        try:
+            with pg_session_factory() as db:
+                db.execute(text("SET LOCAL statement_timeout = '3s'"))
+                outcome["result"] = head_change.complete_head_change(
+                    db, db.get(User, user_id), request_id, _evidence())
+        except Exception as exc:
+            outcome["error"] = exc
+
+    with pg_session_factory() as confirm:
+        confirm.execute(text("SET LOCAL statement_timeout = '3s'"))
+        assert confirm.query(Import).filter(
+            Import.id == review_id, Import.status == ImportStatus.PREVIEWING
+        ).update({Import.status: ImportStatus.PROCESSING}, synchronize_session=False) == 1
+        _finalise_pan_claims(confirm, {"pending_claims": [(member_id, pan)]}, member_id)
+        assert confirm.get(HouseholdMember, member_id).pan_pending_until is None
+        thread = threading.Thread(target=swap, daemon=True)
+        thread.start()
+        try:
+            thread.join(timeout=2)
+            assert not thread.is_alive(), "swap waited while confirm held a member lock"
+            error = outcome.get("error")
+            assert isinstance(error, HeadChangeError)
+            assert (error.status_code, error.code, error.message) == (
+                409, "statement_being_saved", "A statement is being saved. Try again in a minute.")
+            new_member_id = uuid.uuid4()
+            confirm.add(HouseholdMember(
+                id=new_member_id, user_id=user_id, name="Detected Member",
+                origin=MemberOrigin.CAS_DETECTED, name_source=MemberNameSource.CAS,
+                created_at=datetime.now(timezone.utc)))
+            confirm.flush()
+            confirm.query(Import).filter(Import.id == review_id).update(
+                {Import.status: ImportStatus.CONFIRMED}, synchronize_session=False)
+            confirm.commit()
+        finally:
+            confirm.rollback()
+            thread.join(timeout=4)
+
+    with pg_session_factory() as retry:
+        assert retry.get(HouseholdMember, new_member_id).user_id == user_id
+        assert retry.get(HouseholdMember, member_id).pan_pending_until is None
+        request = retry.get(HeadChangeRequest, request_id)
+        assert request.status == "pending"
+        assert all(value is not None for value in (
+            request.current_email_verified_at, request.current_phone_verified_at,
+            request.new_email_verified_at, request.new_phone_verified_at))
+        result = head_change.complete_head_change(retry, retry.get(User, user_id), request_id, _evidence())
+        assert result.status == "completed"
+        assert result.discarded_review is False
+        assert retry.get(Import, review_id).status == ImportStatus.CONFIRMED
+
+
 def test_a_cancel_waiting_behind_the_swap_does_not_overwrite_completed(
     pg_session_factory, monkeypatch
 ):
