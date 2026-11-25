@@ -890,3 +890,4 @@ fix" rule.
 - 2026-11-25 QA checklist: added section 'QA-round patches' (VP-01..08, D12-01..04, HA-01..07, ES-01); all visual checks are the owner's QA; dev server stopped
 - 2026-11-25 sb-rt-1 done: baselines (24 states) + helpers green, 20 red layout tests as expected; Claude ruled: Prices as on moves to bottom strip, two old tests (xirr-as-of containment) now look in the whole bar; merged into batch/sb
 - 2026-11-25 sb-1 packet written (Antigravity, primitives and Portfolio bar; clone ag-sb1, branch ag/sb1-primitives from batch/sb)
+- 2026-11-25 patch 2 started early: hbcd-be-1 handoff written (Tasks 1+3: close waiting CAMS request on import, GET pending, GET cams-link; worktree unifolio-hbcd-be on batch/hbcd-be which holds batch/hofa; baseline 114 passed), relay to Codex. Wave-start answer: REQUESTING_CAS cannot go to EXPIRED so only WAITING_FOR_USER is closed
