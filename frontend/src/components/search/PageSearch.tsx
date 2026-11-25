@@ -5,6 +5,7 @@ import { useScope } from "../../shell/scope/ScopeContext";
 import { buildResults } from "./buildResults";
 import { parseQuery } from "./queryParser";
 import { pushRecentSearch, readRecentFunds, readRecentSearches } from "./recentSearches";
+import { EMPTY_SEARCH_HINT } from "./searchCopy";
 import { buildSectionEntries } from "./searchRegistry";
 import type { PageFilterSource, Recents, ResultGroup, ResultRow, SearchScope } from "./searchResultTypes";
 import { usePageSearchState } from "./usePageSearchState";
@@ -131,6 +132,8 @@ export function PageSearch({
     };
     return buildResults(parsed, source, data, registry, recents, scope);
   }, [open, draft, pageKey, noun, total, matched, chipsAllowed, extraResults, data, registry, recents, viewMode, memberId]);
+
+  const showEmptyHint = !hasDraft && groups.length === 0 && recents.searches.length === 0;
 
   const flatOptions: FlatOption[] = useMemo(() => {
     if (!open) return [];
@@ -460,7 +463,7 @@ export function PageSearch({
                           {row.tag}
                         </span>
                       )}
-                      {showHint && (
+                      {showHint && getRowHint(row) !== row.tag && (
                         <span
                           data-testid={`row-hint-${row.id}`}
                           className="ml-auto shrink-0 text-[10px] text-[var(--ui-text-muted)]"
@@ -509,6 +512,12 @@ export function PageSearch({
               </div>
             )}
           </div>
+
+            {showEmptyHint && (
+              <div data-testid="search-empty-hint" className="px-2 py-2 text-xs text-[var(--ui-text-muted)]">
+                {EMPTY_SEARCH_HINT}
+              </div>
+            )}
 
             {status === "error" && (
               <div className="flex items-center justify-between gap-2 px-2 py-2 text-xs text-[var(--ui-text-muted)]">
