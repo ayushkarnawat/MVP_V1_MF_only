@@ -15,10 +15,10 @@ def test_comparison_reports_only_counts_and_percentage_point_differences():
                 b: (Decimal(".30"), Decimal(".32"), Decimal(".40"), Decimal(".368")),
                 young: (Decimal("9"), None, None, None)}
     # Old: only A has size, so 1Y=10%, 3Y=12%; 5Y has no weighted value.
-    # New: 1Y=(10+30)/2=20%, 3Y=(12+32)/2=22%, 5Y=40%.
+    # New: 1Y=(10+30+900)/3%, 3Y=(12+32)/2=22%, 5Y=40%.
     result = module.compare_category_averages(detailed, {a: Decimal("100")})
     assert result == {
-        "1y": {"before": Decimal(".10"), "after": Decimal(".20"), "difference_pp": Decimal("10.00"), "peers_before": 1, "peers_after": 2},
+        "1y": {"before": Decimal(".10"), "after": Decimal("9.40") / 3, "difference_pp": (Decimal("9.40") / 3 - Decimal(".10")) * 100, "peers_before": 1, "peers_after": 3},
         "3y": {"before": Decimal(".12"), "after": Decimal(".22"), "difference_pp": Decimal("10.00"), "peers_before": 1, "peers_after": 2},
         "5y": {"before": None, "after": Decimal(".40"), "difference_pp": None, "peers_before": 0, "peers_after": 1},
     }
@@ -33,3 +33,27 @@ def test_comparison_reports_only_counts_and_percentage_point_differences():
         assert compared[period]["before"] == Decimal(".275")
         assert compared[period]["after"] == Decimal(".70") / Decimal("3")
         assert (compared[period]["after"] * Decimal("100")).quantize(Decimal(".0001")) == Decimal("23.3333")
+
+
+def test_report_uses_per_period_pools_and_shows_zero_difference_for_a_clean_category(monkeypatch):
+    from datetime import date
+    from types import SimpleNamespace
+    from app.services.analytics import category_ranking
+    from app.services.analytics.risk_metrics import years_ago
+    from scripts import category_average_diff_report as report
+
+    today = date(2026, 11, 19)
+    old, young = uuid.uuid4(), uuid.uuid4()
+    dates = {year: years_ago(today, year) for year in (1, 3, 5)}
+    navs = {old: {today: Decimal("120"), **{day: Decimal("100") for day in dates.values()}},
+            young: {today: Decimal("120"), dates[1]: Decimal("100")}}
+    monkeypatch.setattr(report, "_bulk_nav_on_or_before", lambda *args: navs)
+    detailed = report._local_returns(None, [SimpleNamespace(id=old), SimpleNamespace(id=young)], today)
+    assert set(detailed) == {old, young}
+    result = report.compare_category_averages(detailed, {old: Decimal("100"), young: Decimal("100")})
+    app = category_ranking.category_period_weighted_averages(detailed, {old: Decimal("100"), young: Decimal("100")})
+    for period in ("1y", "3y", "5y"):
+        assert result[period]["after"] == app[period].value
+        assert result[period]["difference_pp"] == 0
+    assert result["1y"]["peers_after"] == 2
+    assert result["3y"]["peers_after"] == result["5y"]["peers_after"] == 1
