@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.models.reference import Scheme
 from app.services.analytics.category_ranking import (
     _aum_weighted_average, _blend_returns, _bulk_nav_on_or_before, _cagr,
-    _latest_aaum_by_scheme, category_period_averages,
+    _latest_aaum_by_scheme, category_period_averages, period_members,
 )
 from app.services.analytics.risk_metrics import years_ago
 from app.services.analytics.scheme_universe import SchemeUniverseClient, canonical_category
@@ -37,11 +37,10 @@ def compare_category_averages(detailed: dict, aaum_by_scheme: dict) -> dict:
     Returns are fractions; only the difference is in percentage points.
     A missing old/new average has no numeric difference, rather than zero.
     """
-    eligible = {sid: values for sid, values in detailed.items() if values[1] is not None}
-    after = category_period_averages(eligible)
+    after = category_period_averages(detailed)
     result = {}
-    for period, index in (("1y", 0), ("3y", 1), ("5y", 2)):
-        pool = {sid: values[index] for sid, values in eligible.items() if values[index] is not None}
+    for period in ("1y", "3y", "5y"):
+        pool = period_members(detailed, period.upper())
         before = _aum_weighted_average(pool, aaum_by_scheme)
         mean, count = after[period]
         result[period] = {
@@ -94,12 +93,13 @@ def _local_returns(db: Session, schemes: list[Scheme], today: date) -> dict:
     detailed = {}
     for scheme in schemes:
         row = navs.get(scheme.id, {})
-        end, start3 = row.get(today), row.get(targets[1])
-        if end is None or start3 is None or end <= 0 or start3 <= 0:
+        end = row.get(today)
+        if end is None or not end.is_finite() or end <= 0:
             continue
-        values = [_cagr(row[target], end, years) if row.get(target) is not None and row[target] > 0 else None
+        values = [_cagr(row[target], end, years) if row.get(target) is not None and row[target].is_finite() and row[target] > 0 else None
                   for target, years in zip(targets, (1, 3, 5))]
-        detailed[scheme.id] = (*values, _blend_returns(values[1], values[2]))
+        if any(value is not None for value in values):
+            detailed[scheme.id] = (*values, _blend_returns(values[1], values[2]) if values[1] is not None else None)
     return detailed
 
 

@@ -100,7 +100,7 @@ def _tables(wb: Workbook) -> dict[str, Table]:
             )
         )),
         "Pool": (*POOL_KEY, "Fund", "Fund house", "Scheme code", "Option", "Size (₹ crore)", "Size month",
-                 *(f"{period} return" for period in PERIODS), "Counts (3Y floor)", "NAVAll price date",
+                 *(f"{period} return" for period in PERIODS), "Counts (has a return)", "NAVAll price date",
                  "Return end date", "As of", *(
                      f"{label} {period}" for period in PERIODS for label in ("Counts", "Weight", "Contribution")
                  )),
@@ -137,8 +137,8 @@ def _fixed_text(tables: dict[str, Table], today: date, latest_list_price: date |
         ("1. Find the pool", "Use one Growth series per live, active fund in the category and plan. Active pools "
          "exclude index funds and ETFs. Index pools contain only index funds and ETFs."),
         ("Options", "IDCW options are not included. Dividend and bonus options are also excluded."),
-        ("2. Check the history", "Summary counts a fund in the pool if it has a 3Y return. A fund also needs a return "
-         "for the period being averaged. Fewer than five funds with a 3Y return makes the category thin."),
+        ("2. Check the history", "Summary counts a fund in each period when it has a return "
+         "for that period. Fewer than five funds with a 3Y return makes the category thin."),
         ("3. Apply the sizes", "Weight each return by the fund’s latest usable average assets. A fund without a "
          "size still counts in coverage. If none of the funds in a period has a usable size, use equal weights."),
         ("4. Check the arithmetic", "Work on a copy. Filter Pool by category, plan and pool kind. Check the weights and "
@@ -162,7 +162,7 @@ def _fixed_text(tables: dict[str, Table], today: date, latest_list_price: date |
         ("Growth", "An option that keeps the income earned inside the fund."),
         ("IDCW", "Income Distribution cum Capital Withdrawal. It can pay money out of the fund. IDCW options are not included."),
         ("Thin category", "A category and plan with fewer than five funds that have a 3Y return in this pool."),
-        ("Eligibility floor", "The minimum history needed for a fund to count. In this workbook it is a 3Y return."),
+        ("Eligibility floor", "Eligibility is per period: a fund counts in a period’s average when it has that period’s return."),
         ("Crore", "Ten million. The workbook shows fund sizes in crore rupees."),
     ):
         tables["Glossary"].add(*row)
@@ -209,9 +209,11 @@ def _exclusion(source: scheme_universe.UniverseRow, scheme: Scheme | None, today
 
 
 def _excluded(table: Table, key: tuple[str, str, str], source: scheme_universe.UniverseRow,
-              scheme: Scheme | None, today: date, reason: str) -> None:
+              scheme: Scheme | None, today: date, reason: str, period: str | None = None) -> None:
     plan = (scheme.plan_type if scheme is not None else None) or plan_type_for(source)
     effect = "Excluded from size weighting when sizes are used" if reason == "no size" else "Excluded from all periods"
+    if period is not None:
+        effect = f"Excluded from {period}"
     table.add(*key, scheme.name if scheme is not None else source.name, source.amc_name, source.amfi_code,
               plan.value.title() if plan else None, _option(source), source.nav_date, today, reason, effect)
 
@@ -220,9 +222,8 @@ def _weight_rows(pool: PoolRows) -> None:
     table = pool.table
     size_span = pool.span("Size (₹ crore)", local=True)
     for row in range(pool.first, pool.last + 1):
-        floor = table.cell("Counts (3Y floor)", row)
         size = table.cell("Size (₹ crore)", row)
-        table.formula("Counts (3Y floor)", row, f'IF(ISNUMBER({table.cell("3Y return", row)}),"Y","N")')
+        table.formula("Counts (has a return)", row, f'IF(COUNT({table.cell("1Y return", row)},{table.cell("3Y return", row)},{table.cell("5Y return", row)})>0,"Y","N")')
         for period in PERIODS:
             ret = table.cell(f"{period} return", row)
             counts = table.cell(f"Counts {period}", row)
@@ -230,7 +231,7 @@ def _weight_rows(pool: PoolRows) -> None:
             flags = pool.span(f"Counts {period}", local=True)
             total = f'SUMIFS({size_span},{flags},"Y",{size_span},">0")'
             table.format(f"{period} return", row, PERCENT)
-            table.formula(f"Counts {period}", row, f'IF(AND({floor}="Y",ISNUMBER({ret})),"Y","N")')
+            table.formula(f"Counts {period}", row, f'IF(ISNUMBER({ret}),"Y","N")')
             table.formula(f"Weight {period}", row,
                           f'IF({counts}="Y",IF({total}>0,MAX(0,{size})/{total},1/COUNTIF({flags},"Y")),0)', PERCENT)
             table.formula(f"Contribution {period}", row, f'IF({counts}="Y",{weight}*{ret},0)', PERCENT)
@@ -248,9 +249,9 @@ def _difference(recomputed: str, app: str) -> str:
 def _summary(table: Table, key: tuple[str, str, str], today: date, pool: PoolRows,
              app: category_ranking.CategoryRankRow) -> int:
     row = table.add(*key, today)
-    floor = pool.span("Counts (3Y floor)")
+    floor = pool.span("Counts (has a return)")
     table.formula("Funds in pool", row, f'COUNTIFS({floor},"Y")')
-    table.formula("Thin?", row, f'IF({table.cell("Funds in pool", row)}<5,"yes","no")')
+    table.formula("Thin?", row, f'IF({table.cell("Covered 3Y", row)}<5,"yes","no")')
     sizes = pool.span("Size (₹ crore)")
     for period in PERIODS:
         flags = pool.span(f"Counts {period}")
@@ -365,16 +366,21 @@ def _checks(tables: dict[str, Table], key: tuple[str, str, str], today: date, po
     findings.append(f'{table.cell("Options OK?", row)}="PASS"')
 
     end_dates = pool.span("Return end date")
-    covered_3y = summary.linked("Covered 3Y", summary_row)
-    floor = pool.span("Counts (3Y floor)")
-    # AGGREGATE ignores the divide-by-zero entries for funds below the floor.
+    floor = pool.span("Counts (has a return)")
+    # AGGREGATE ignores funds with no usable return or end date.
     date_present = f'COUNTIFS({floor},"Y",{end_dates},">0")'
     as_of = table.cell("As of", row)
-    future = f'COUNTIFS({floor},"Y",{end_dates},">"&{as_of})'
     for label, function_code in (("Oldest return end date", 15), ("Newest return end date", 14)):
         table.formula(label, row, f'IF({date_present}=0,"",_xlfn.AGGREGATE({function_code},6,{end_dates}/'
                       f'(({floor}="Y")*({end_dates}>0)),1))', DATE)
-    table.formula("Dates OK?", row, f'IF({covered_3y}=0,"N/A",IF(AND({date_present}={covered_3y},{future}=0),"PASS","FAIL"))')
+    date_checks = []
+    for period in PERIODS:
+        flags = pool.span(f"Counts {period}")
+        covered = summary.linked(f"Covered {period}", summary_row)
+        present = f'COUNTIFS({flags},"Y",{end_dates},">0")'
+        future_dates = f'COUNTIFS({flags},"Y",{end_dates},">"&{as_of})'
+        date_checks.append(f'AND({present}={covered},{future_dates}=0)')
+    table.formula("Dates OK?", row, f'IF({date_present}=0,"N/A",IF(AND({",".join(date_checks)}),"PASS","FAIL"))')
     findings.append(f'{table.cell("Dates OK?", row)}<>"FAIL"')
     table.formula("Result", row, f'IF(AND({",".join((*checks, *findings))}),"PASS","FAIL")')
 
@@ -408,9 +414,10 @@ async def _write_group(tables: dict[str, Table], db: Session, today: date, categ
                              entry.nav_date, nav_ends.get(code), today)
         pool_table.format("Size (₹ crore)", row, SIZE)
         _size_audit(tables["Sizes"], key, scheme.name, code, size, month, today)
-        if values is None:
-            _excluded(excluded, key, entry, scheme, today, "no 3-year history")
-        else:
+        for period, value in zip(PERIODS, returns, strict=True):
+            if value is None:
+                _excluded(excluded, key, entry, scheme, today, f"No {period} return", period)
+        if values is not None:
             examples.append(row)
             if not category_ranking._has_usable_size(size):
                 _excluded(excluded, key, entry, scheme, today, "no size")
