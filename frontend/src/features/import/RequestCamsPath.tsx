@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Loader2,
   ArrowLeft,
+  ListChecks,
 } from "lucide-react";
 import { staggerContainerVariants, staggerItemVariants } from "@/lib/motion";
 import { TutorialDialog } from "./tutorial/TutorialDialog";
@@ -17,6 +18,7 @@ import { useCamsChecklist } from "./checklist/useCamsChecklist";
 import { getChecklistStore } from "./checklist/checklistStore";
 import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
 import { checklistCopy } from "./checklist/checklistCopy";
+import { CHECKLIST_OFF_BODY, CHECKLIST_OFF_TITLE, CHECKLIST_TURN_ON } from "./pendingCopy";
 import "./checklist/checklist-tokens.css";
 
 export interface RequestCamsPathProps {
@@ -51,7 +53,7 @@ export function RequestCamsPath({
     }
     try {
       const result = await requestCamsStatement(memberId);
-      const mode = withoutChecklist ? "closed" : await checklistStore.settleOpening();
+      const mode = withoutChecklist ? "closed" : checklistStore.getSnapshot().mode;
       setCasResumeStep2(memberId);
       if (!withoutChecklist) checklist.setCamsLink({ state: "ready", error: null, url: result.cams_url });
       if (mode !== "window") {
@@ -202,14 +204,49 @@ export function RequestCamsPath({
         {!checklistHosted && <CamsChecklistHost memberId={memberId} />}
         <div className="space-y-1.5">
         {checklist.supported && !withoutChecklist && (
-          <p className="hidden md:block ccp-s2-note">
-            {checklistCopy.introduction}{" "}
-            <a href="#" data-clickable="" data-effect="close"
-              className="ccp-clink"
-              onClick={(event) => { event.preventDefault(); setWithoutChecklist(true); }}>
-              {checklistCopy.skip}
-            </a>
-          </p>
+          <>
+            <div data-testid="continue-without-row" className="hidden md:flex ccp-cw-row">
+              <span className="ccp-cw-icon" aria-hidden="true">
+                <ListChecks aria-hidden="true" className="h-4 w-4" />
+              </span>
+              <span className="ccp-cw-text">{`${checklistCopy.introduction.split(".")[0]}.`}</span>
+              <button
+                type="button"
+                data-testid="continue-without-button"
+                data-clickable=""
+                data-effect="close"
+                className="ccp-cw-btn"
+                onClick={() => setWithoutChecklist(true)}
+              >
+                {checklistCopy.skip}
+              </button>
+            </div>
+            {checklistCopy.introduction.split(". ").slice(1).join(". ") && (
+              <p className="hidden md:block ccp-cw-more">
+                {checklistCopy.introduction.split(". ").slice(1).join(". ")}
+              </p>
+            )}
+          </>
+        )}
+        {checklist.supported && withoutChecklist && (
+          <div data-testid="checklist-off-row" className="hidden md:flex ccp-cw-row">
+            <span className="ccp-cw-icon" aria-hidden="true">
+              <ListChecks aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="ccp-cw-text">
+              <strong>{CHECKLIST_OFF_TITLE}</strong> {CHECKLIST_OFF_BODY}
+            </span>
+            <button
+              type="button"
+              data-testid="checklist-turn-on"
+              data-clickable=""
+              data-effect="open"
+              className="ccp-cw-btn"
+              onClick={() => setWithoutChecklist(false)}
+            >
+              {CHECKLIST_TURN_ON}
+            </button>
+          </div>
         )}
         <Button
           onClick={handleRequest}
