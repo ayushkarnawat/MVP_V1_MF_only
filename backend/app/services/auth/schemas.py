@@ -358,6 +358,7 @@ class PendingHeadChangeResponse(BaseModel):
 class HeadChangeCompleteResponse(BaseModel):
     status: Literal["completed"]
     logout_required: bool
+    discarded_review: bool = False
 
 
 class ContactChangeReverseBody(BaseModel):

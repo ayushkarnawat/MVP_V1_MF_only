@@ -175,11 +175,49 @@ def test_complete_head_change_route_returns_completed_and_requires_logout(client
     )
 
     assert response.status_code == 200
-    assert response.json() == {"status": "completed", "logout_required": True}
+    assert response.json() == {"status": "completed", "logout_required": True, "discarded_review": False}
     assert (
         client.get("/auth/head-change/pending", headers=household["headers"]).status_code
         == 401
     )
+
+
+@pytest.mark.parametrize("with_review", [False, True])
+def test_complete_route_returns_the_discarded_review_flag(client, with_review):
+    household = _household(client, suffix="f01")
+    request_id = _verify_all_codes(client, household, _start(client, household))
+    if with_review:
+        db = _db(client)
+        db.add(Import(id=uuid.uuid4(), household_member_id=uuid.UUID(household["candidate_id"]),
+                      status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc)))
+        db.commit()
+        db.close()
+
+    response = client.post("/auth/head-change/complete", json={"request_id": request_id},
+                           headers=household["headers"])
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "completed", "logout_required": True,
+                               "discarded_review": with_review}
+
+
+def test_complete_route_409_body_for_a_saving_statement_has_code_and_message(client):
+    household = _household(client, suffix="f02")
+    request_id = _verify_all_codes(client, household, _start(client, household))
+    db = _db(client)
+    db.add(Import(id=uuid.uuid4(), household_member_id=uuid.UUID(household["candidate_id"]),
+                  status=ImportStatus.PROCESSING, uploaded_at=datetime.now(timezone.utc)))
+    db.commit()
+    db.close()
+
+    response = client.post("/auth/head-change/complete", json={"request_id": request_id},
+                           headers=household["headers"])
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "statement_being_saved",
+        "message": "A statement is being saved. Try again in a minute.",
+    }
 
 
 def test_stub_code_present_only_in_stub_mode(client, monkeypatch):
@@ -418,7 +456,7 @@ def _swap_through_the_routes(client, household, monkeypatch) -> tuple[str, Mailb
         headers=household["headers"],
     )
     assert completed.status_code == 200
-    assert completed.json() == {"status": "completed", "logout_required": True}
+    assert completed.json() == {"status": "completed", "logout_required": True, "discarded_review": False}
     link = next(m["body"] for m in mailbox.sent if m["subject"] == "Undo the Head of Family change.")
     token = link.split("/undo-head-change#token=")[1].strip()
     mailbox.sent.clear()
