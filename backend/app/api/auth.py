@@ -1067,6 +1067,7 @@ def complete_head_change_route(
     return HeadChangeCompleteResponse(
         status=result.status,
         logout_required=True,
+        discarded_review=result.discarded_review,
     )
 
 
