@@ -6,6 +6,9 @@ import { sparkPoints, sparkTrend } from "../portfolioCopy";
 import { formatXirr } from "../portfolioFormat";
 import type { PortfolioSummaryResponse, PortfolioValueSeriesResponse } from "../types";
 import { SummaryStrip, type SummaryStripProps } from "./SummaryStrip";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { textInventory } from "@/test/summaryTextInventory";
 
 function setup(overrides: Partial<SummaryStripProps> = {}) {
   const handlers = { onRetry: vi.fn(), onRetrySeries: vi.fn() };
@@ -276,7 +279,7 @@ describe("SummaryStrip: XIRR return basis and price date", () => {
   it("shows the XIRR price date on its own line in the tile", () => {
     const date = "2026-11-18";
     setup({ data: { ...fixture<PortfolioSummaryResponse>("summary_family"), xirr_as_of: date } });
-    expect(within(screen.getByTestId("metric-xirr")).getByTestId("xirr-as-of").textContent).toBe(
+    expect(screen.getByTestId("xirr-as-of").textContent).toBe(
       "Prices as on 18 Nov 2026",
     );
   });
@@ -397,5 +400,131 @@ describe("XIRR and Returns faces", () => {
     expect(figure().textContent).toBe(formatXirr(fixture<PortfolioSummaryResponse>("summary_family").lifetime_xirr));
     expect(screen.queryByTestId("xirr-caution")).toBeNull();
     expect(screen.queryByTestId("measure-flip")).toBeNull();
+  });
+});
+
+describe("summary bar text baseline", () => {
+  const baselines: Record<string, string[]> = JSON.parse(readFileSync(resolve("src/features/portfolio/sections/__baselines__/summaryText.json"), "utf8"));
+  const states = ["default", "young", "loss", "empty", "returns_face", "current_single_transaction", "loading", "trend_failed", "error", "partial_prices"] as const;
+
+  it.each(states)("text_inventory_matches_the_baseline: %s", state => {
+    const data = fixture<PortfolioSummaryResponse>(state === "empty" ? "summary_empty" : state === "partial_prices" ? "summary_partial" : "summary_family");
+    if (["young", "returns_face", "current_single_transaction"].includes(state)) {
+      Object.assign(data, {
+        lifetime_xirr: "0.418", lifetime_since_purchase: "0.065", lifetime_xirr_caution: "young",
+        current_holdings_xirr: "-0.001", current_holdings_since_purchase: "0", current_holdings_xirr_caution: "single_transaction",
+        lifetime_xirr_disclaimer: { alt_xirr: "0.0900", opening_cost_share: "0.9800" },
+      });
+    }
+    if (state === "loss") Object.assign(data, {
+      today_gain: "-41230.40", today_pct: "-0.2900", unrealized_gain: "-1500.60", unrealized_pct: "-2.5000", realized_gain: "-300.00",
+    });
+    const { container } = setup({
+      data: state === "loading" || state === "error" ? null : data,
+      status: state === "loading" ? "loading" : state === "error" ? "error" : "data",
+      seriesStatus: state === "trend_failed" ? "error" : "data",
+      series: state === "trend_failed" ? null : fixture<PortfolioValueSeriesResponse>(state === "empty" ? "series_empty" : "series_family_30d"),
+    });
+    if (state === "returns_face") fireEvent.click(screen.getByTestId("measure-flip"));
+    if (state === "current_single_transaction") fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    expect(textInventory(container)).toEqual(baselines[state]);
+  });
+});
+
+describe("summary bar polish contract", () => {
+  function ready(partial = false) {
+    const data: PortfolioSummaryResponse = {
+      ...fixture<PortfolioSummaryResponse>(partial ? "summary_partial" : "summary_family"),
+      lifetime_xirr: "0.418", lifetime_since_purchase: "0.065", lifetime_xirr_caution: "young",
+      current_holdings_xirr: "-0.001", current_holdings_since_purchase: "0", current_holdings_xirr_caution: "single_transaction",
+      lifetime_xirr_disclaimer: { alt_xirr: "0.0900", opening_cost_share: "0.9800" }, xirr_as_of: "2026-11-18",
+    };
+    return setup({ data });
+  }
+
+  it("basis_switch_sits_in_the_bottom_strip", () => {
+    ready();
+    const bar = screen.getByTestId("summary-bar");
+    const bottom = bar.children[1].lastElementChild as HTMLElement;
+    const basis = within(bottom).getByRole("group", { name: "XIRR basis" });
+    expect(within(bottom).getByTestId("xirr-as-of").textContent).toBe("Prices as on 18 Nov 2026");
+    fireEvent.click(within(basis).getByRole("button", { name: "Current" }));
+    expect(screen.getByTestId("value-xirr").textContent).toBe("-0.1%");
+    fireEvent.click(within(basis).getByRole("button", { name: "Lifetime" }));
+    expect(screen.getByTestId("value-xirr").textContent).toBe("41.8%");
+    expect(bottom.querySelector('[data-row="figure"]')).toBeNull();
+  });
+
+  it("caution_chip_is_beside_the_figure_with_a_status_dot", () => {
+    ready();
+    const figure = screen.getByTestId("value-xirr");
+    const chip = screen.getByTestId("xirr-caution");
+    expect(figure).toHaveAttribute("data-row", "figure");
+    expect(chip.parentElement).toBe(figure.parentElement);
+    expect(chip.textContent).toBe("held under 1 yr");
+    expect(within(chip).getByTestId("caution-dot")).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Current" }));
+    const currentChip = screen.getByTestId("xirr-caution");
+    expect(currentChip.textContent).toBe("one transaction");
+    expect(currentChip.parentElement).toBe(screen.getByTestId("value-xirr").parentElement);
+    expect(within(currentChip).getByTestId("caution-dot")).toBeInTheDocument();
+  });
+
+  it("partial_prices_note_is_in_the_lead_card_footer_with_its_icon", () => {
+    ready(true);
+    const bar = screen.getByTestId("summary-bar");
+    const lead = within(bar).getByTestId("metric-total-value");
+    const footer = lead.lastElementChild as HTMLElement;
+    const note = within(footer).getByText("1 on last known NAV");
+    expect(note.closest('[role="note"]')).toHaveAttribute("title", "Based on the last known NAV for: Dev Gold Fund");
+    expect(footer.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("disclaimer_link_is_the_same_sentence_and_opens_the_same_dialog", () => {
+    ready();
+    const link = screen.getByRole("button", { name: "Since inception \u2014 opening-balance disclaimer may apply ›" });
+    expect(link.className).toMatch(/disclaimer/);
+    const css = readFileSync(resolve("src/components/summary-bar/summaryBar.module.css"), "utf8");
+    expect(css).toMatch(/\.disclaimer[^{}]*\{[^}]*color:\s*var\(--(?:pos-text|ui-accent|ui-brand)\)/s);
+    fireEvent.click(link);
+    const dialog = screen.getByRole("dialog", { name: "Why this return may be misleading" });
+    expect(within(dialog).getByTestId("disclaimer-shown").textContent).toBe("41.8%");
+    expect(within(dialog).getByTestId("disclaimer-alt").textContent).toBe("9.0%");
+    expect(within(dialog).getByTestId("disclaimer-share").textContent).toBe("98%");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("flip_control_has_an_accessible_name_and_a_text_span_that_can_collapse", () => {
+    ready();
+    const flip = screen.getByRole("button", { name: "Show Returns" });
+    const label = within(flip).getByTestId("flip-label");
+    expect(label.tagName).toBe("SPAN");
+    expect(label.textContent).toBe("Show Returns");
+    expect(flip.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    const css = readFileSync(resolve("src/components/MeasureFlip.module.css"), "utf8");
+    expect(css).toMatch(/@container[^{}]*max-width:\s*(?:215px|13\.4375rem)[^{}]*\{/);
+    expect(css).toMatch(/display:\s*none/);
+    fireEvent.click(flip);
+    expect(flip).toHaveAccessibleName("Show XIRR");
+    expect(within(flip).getByTestId("flip-label").textContent).toBe("Show XIRR");
+  });
+
+  it("focus_ring_is_two_pixel_brand_green", () => {
+    const css = readFileSync(resolve("src/components/summary-bar/summaryBar.module.css"), "utf8");
+    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px\s+solid\s+var\(--ui-focus\)/s);
+  });
+
+  it("loading_and_error_states_keep_their_structure", () => {
+    const { unmount } = setup({ status: "loading", data: null });
+    const loading = screen.getByRole("status", { name: "Loading summary" });
+    expect(loading.querySelectorAll('[data-row="figure"]')).toHaveLength(5);
+    expect(screen.queryByTestId("measure-flip")).toBeNull();
+    unmount();
+    const { handlers } = setup({ status: "error", data: null });
+    expect(screen.getByRole("heading", { name: "Couldn't load your portfolio summary" })).toBeInTheDocument();
+    expect(screen.getByText("This section failed to load, but the rest of the page is unaffected.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(handlers.onRetry).toHaveBeenCalledTimes(1);
   });
 });
