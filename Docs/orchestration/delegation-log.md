@@ -907,3 +907,4 @@ fix" rule.
 - 2026-11-25 hbcd-rt-1 done: foundation + 28 red tests (28 fail as expected, 992 pass, types clean), three container tests made to await the first screen; committed da9f970f on batch/hbcd-rt. hbcd-sp-1 done: D-2 link test page committed on batch/h-spike2b (syntax ok, S1 calls requestWindow synchronously, no preventDefault); owner runs it in Chrome and Edge
 - 2026-11-25 es-2 done: look gate + --save-pdf committed c81e3119 on batch/es-be (11 gate tests pass, 76 export-script tests pass; CLI checked: identical PASS exit 0, changed block FAIL 0.3262% exit 1). sb-4 follow-up report received, verifying
 - 2026-11-25 hbcd-fe-3 packet written (dialog quiet line, reuses InfoNotice; clone ag-hbcd3, branch ag/hbcd3-dialog from batch/hbcd-rt)
+- 2026-11-25 sb-4 (G2 fixes) verified (201 files / 2314 tests, types clean, lint 0 errors) and merged into batch/sb. Summary bar complete pending patch-level gates
