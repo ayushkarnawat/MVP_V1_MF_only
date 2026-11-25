@@ -50,6 +50,17 @@ case "$lane" in
   ks) SRC="$WT/unifolio-k-search/frontend" ;;   # Batch K integration (search)
   ed) SRC="$WT/unifolio-e-dates/frontend" ;;   # Batch E (dates)
   fn) SRC="$WT/unifolio-f-nav/frontend" ;;   # Batch F (section index)
+  # QA-round patches (25 Nov 2026): integration worktrees and Codex foundation lanes (see the master plan)
+  vis) SRC="$WT/unifolio-vis/frontend" ;;   # visual pass: integration (batch/vis)
+  vis-rt) SRC="$WT/unifolio-vis-rt/frontend" ;;   # visual pass: Codex shared constants and red tests (batch/vis-rt)
+  hofa) SRC="$WT/unifolio-hofa/frontend" ;;   # Head of Family part A: integration (batch/hofa)
+  hofa-rt) SRC="$WT/unifolio-hofa-rt/frontend" ;;   # Head of Family part A: Codex front-end foundation (batch/hofa-rt)
+  sb) SRC="$WT/unifolio-sb/frontend" ;;   # summary bar: integration (batch/sb)
+  sb-rt) SRC="$WT/unifolio-sb-rt/frontend" ;;   # summary bar: Codex foundation (batch/sb-rt)
+  hbcd) SRC="$WT/unifolio-hbcd/frontend" ;;   # Head of Family B, C, D and D-2: integration (batch/hbcd)
+  hbcd-rt) SRC="$WT/unifolio-hbcd-rt/frontend" ;;   # Head of Family B, C, D: Codex foundation (batch/hbcd-rt)
+  es) SRC="$WT/unifolio-es/frontend" ;;   # PDF export speed: integration (batch/es)
+  es-pr) SRC="$WT/unifolio-es-pr/frontend" ;;   # PDF export speed: print page refactors (batch/es-pr)
   ag-*) SRC="$AG/${lane}/frontend" ;;
   *) echo "unknown lane $lane" >&2; exit 2 ;;
 esac
