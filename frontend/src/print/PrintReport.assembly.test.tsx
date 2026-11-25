@@ -29,6 +29,12 @@ function holdings() {
   return data;
 }
 function entries(container: HTMLElement) { return [...container.querySelectorAll("[data-contents-entry]")]; }
+function contentsOnlyRule() {
+  const css = readFileSync(resolve("src/print/print.css"), "utf8");
+  const rule = css.match(/html\[data-print-contents-only="true"\][^{]*\{[^}]*\}/g);
+  expect(rule).toHaveLength(1);
+  return rule![0];
+}
 beforeEach(() => {
   invalidateApiCache(); analyticsStore.invalidate(); fetchSpy.mockReset();
   for (const [id, entry] of Object.entries(original)) PRINT_SECTIONS[id] = { ...entry, render: () => <PrintPlaceholder id={id} title={entry.title} /> };
@@ -86,6 +92,46 @@ it("uses initial fragment pages and preserves them through the page hook", async
   open({ pages: { [ids[0]]: 3, notes: 8 } }); const view = render(<PrintReport />); await screen.findByRole("region", { name: "Contents" });
   await act(async () => { await window.__unifolioSetPrintPages!({ [ids[1]]: 4 }); });
   expect(entries(view.container).map(node => node.querySelector("[data-contents-page]")?.textContent)).toEqual(["3", "4", "", "8"]);
+});
+it("the_hook_is_declared_and_sets_the_flag", async () => {
+  const view = render(<PrintReport />); await screen.findByRole("region", { name: "Contents" });
+  expect(window.__unifolioShowContentsOnly).toBeTypeOf("function");
+  expect(document.documentElement.dataset.printContentsOnly).toBeUndefined();
+  act(() => { window.__unifolioShowContentsOnly!(); window.__unifolioShowContentsOnly!(); });
+  expect(document.documentElement.dataset.printContentsOnly).toBe("true");
+  view.unmount();
+  expect(window.__unifolioShowContentsOnly).toBeUndefined();
+  expect(window.__unifolioSetPrintPages).toBeUndefined();
+  expect(document.documentElement.dataset.printContentsOnly).toBeUndefined();
+});
+it("contents_only_mode_hides_sections_tab_headings_and_notes", async () => {
+  const rule = contentsOnlyRule();
+  expect(rule.slice(0, rule.indexOf("{")).split(",").map(selector => selector.trim())).toEqual([
+    'html[data-print-contents-only="true"] .print-tab-heading',
+    'html[data-print-contents-only="true"] [data-print-section]',
+    'html[data-print-contents-only="true"] [data-print-notes]',
+  ]);
+  expect(rule).toMatch(/\{\s*display:\s*none\s*!important\s*;\s*\}/);
+  const view = render(<PrintReport />); await screen.findByRole("region", { name: "Contents" });
+  const selectors = [".print-tab-heading", "[data-print-section]", "[data-print-notes]"];
+  const before = selectors.map(selector => [...view.container.querySelectorAll(selector)]);
+  for (const nodes of before) expect(nodes.length).toBeGreaterThan(0);
+  act(() => { window.__unifolioShowContentsOnly!(); });
+  selectors.forEach((selector, index) => {
+    const after = [...view.container.querySelectorAll(selector)];
+    expect(after).toHaveLength(before[index].length);
+    after.forEach((node, position) => expect(node).toBe(before[index][position]));
+  });
+});
+it("contents_only_mode_keeps_cover_and_contents_unchanged", async () => {
+  const view = render(<PrintReport />); await waitFor(() => expect(document.documentElement).toHaveAttribute("data-print-ready", "true"));
+  await act(async () => { await window.__unifolioSetPrintPages!({ [ids[0]]: 3, [ids[1]]: 4, [ids[2]]: 5, notes: 6 }); });
+  const roots = ["Report cover", "Contents"].map(name => screen.getByRole("region", { name }));
+  const before = roots.map(node => node.outerHTML);
+  act(() => { window.__unifolioShowContentsOnly!(); });
+  expect(["Report cover", "Contents"].map(name => screen.getByRole("region", { name }).outerHTML)).toEqual(before);
+  expect(entries(view.container).map(node => node.querySelector("[data-contents-page]")?.textContent)).toEqual(["3", "4", "5", "6"]);
+  expect(contentsOnlyRule()).not.toMatch(/print-cover|print-contents\b(?!-only)/);
 });
 it.each([
   ["family with holder", "family", "Demo Holder", "Your family", "Demo Holder and family"],
