@@ -880,3 +880,4 @@ fix" rule.
 - 2026-11-25 es-1 handoff written (export timing log, Codex, worktree unifolio-es-be on batch/es-be from patch/qa1; baseline 10 failed/99 passed pre-existing on this laptop), relay to Codex
 - 2026-11-25 hofa-be-3 done (NOWAIT fix; 200 service/route tests pass; Postgres race test unrun, staging check); merged into batch/hofa; G1 re-review pending owner
 - 2026-11-25 es-1: Codex wrote 13 red tests (sandbox cannot run them; Claude ran: 13 red right reason); es-1b handoff written (code + two narrow test edits), relay to Codex
+- 2026-11-25 hofa-be G1 review 2: FAIL (High: User/member lock vs confirm member insert); hofa-be-4 handoff written (every swap lock NOWAIT), relay to Codex
