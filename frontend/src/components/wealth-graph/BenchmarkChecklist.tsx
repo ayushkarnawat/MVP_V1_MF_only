@@ -25,6 +25,7 @@ export function BenchmarkChecklist({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
+  const hintId = useId();
 
   const isDisabled = disabled || options.length === 0;
   const panelOpen = open && !isDisabled;
@@ -135,8 +136,18 @@ export function BenchmarkChecklist({
           id={panelId}
           role="group"
           aria-label="Benchmarks"
+          aria-describedby={hintId}
           className="absolute right-0 top-full z-20 mt-1.5 min-w-[240px] rounded-xl border border-[var(--ui-divider)] bg-[var(--ui-elevated)] p-2 shadow-lg"
         >
+          <p
+            id={hintId}
+            data-testid="benchmark-limit-hint"
+            role={showLimitMessage ? "status" : undefined}
+            aria-live={showLimitMessage ? "polite" : undefined}
+            className={`mb-1 rounded-md px-2 py-1 text-xs ${showLimitMessage ? "bg-[var(--warn-bg)] font-medium text-[var(--warn-text)]" : "text-[var(--ui-text-muted)]"}`}
+          >
+            {`Choose up to ${max}`}
+          </p>
           <div className="flex flex-col gap-0.5">
             {options.map((option) => {
               const isChecked = values.includes(option.index);
@@ -187,16 +198,6 @@ export function BenchmarkChecklist({
               );
             })}
           </div>
-
-          {showLimitMessage && (
-            <p
-              role="status"
-              aria-live="polite"
-              className="mt-1.5 rounded-md bg-[var(--warn-bg)] px-2 py-1 text-xs font-medium text-[var(--warn-text)]"
-            >
-              {`Choose up to ${max}`}
-            </p>
-          )}
         </div>
       )}
     </div>

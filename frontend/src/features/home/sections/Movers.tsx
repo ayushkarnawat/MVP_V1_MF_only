@@ -378,7 +378,7 @@ export function Movers({
             ref={viewAllButtonRef}
             type="button"
             onClick={() => setAllOpen(true)}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md font-semibold text-[var(--pos-text)] transition-colors hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)] motion-reduce:transition-none"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md font-semibold text-[var(--pos-text)] underline underline-offset-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)] motion-reduce:transition-none"
           >
             <span>View all by day's change</span>
             <ArrowRight size={14} aria-hidden="true" />
