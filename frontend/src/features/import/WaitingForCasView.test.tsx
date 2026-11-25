@@ -28,6 +28,7 @@ describe("H-8 waiting screen checklist integration", () => {
   };
 
   beforeEach(() => {
+    vi.spyOn(api, "getCamsLink").mockResolvedValue("https://cams.example.test/statement");
     vi.spyOn(api, "getPendingCamsRequest").mockImplementation(async (memberId) => ({
       import_id: "server-waiting", household_member_id: memberId, expires_at: "2099-12-01T12:00:00Z",
     }));
@@ -67,7 +68,7 @@ describe("H-8 waiting screen checklist integration", () => {
     const { within, act } = await import("@testing-library/react");
     const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     await screen.findByText("Waiting for CAMS email");
     expect(floating.close).not.toHaveBeenCalled();
     const checklist = within(floating.document.body);
@@ -109,7 +110,7 @@ describe("H-8 waiting screen checklist integration", () => {
     const { act } = await import("@testing-library/react");
     const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: "Request Statement on CAMS" }));
+    fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     await screen.findByText("Waiting for CAMS email");
     const boxes = await screen.findAllByRole("checkbox");
     expect(boxes).toHaveLength(5);

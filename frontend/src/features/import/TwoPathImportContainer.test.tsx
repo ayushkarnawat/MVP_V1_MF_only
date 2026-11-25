@@ -26,6 +26,7 @@ async function tickDisclaimer() {
 
 describe("TwoPathImportContainer", () => {
   beforeEach(() => {
+    vi.spyOn(api, "getCamsLink").mockResolvedValue("https://cams.example.test/statement");
     localStorage.clear();
     vi.clearAllMocks();
     vi.spyOn(api, "getPendingCamsRequest").mockResolvedValue(null);
@@ -55,7 +56,7 @@ describe("TwoPathImportContainer", () => {
     // Detail view is shown with back button
     expect(screen.getByRole("heading", { name: /^request from cams$/i })).toBeInTheDocument();
     expect(screen.getByText(/back to import options/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /request statement on cams/i })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /request statement on cams/i })).toHaveAttribute("href", "https://cams.example.test/statement");
 
     // Click back to options
     fireEvent.click(screen.getByText(/back to import options/i));
@@ -93,7 +94,7 @@ describe("TwoPathImportContainer", () => {
       import_id: "imp-req-1",
       household_member_id: "m-1",
       status: "waiting_for_user",
-      cams_url: "https://www.camsonline.com/cas",
+      cams_url: "https://cams.example.test/statement",
       expires_at: "2026-08-12T12:00:00Z",
     });
 
@@ -108,13 +109,13 @@ describe("TwoPathImportContainer", () => {
     await screen.findByRole("button", { name: /request from cams/i });
     fireEvent.click(screen.getByRole("button", { name: /request from cams/i }));
 
-    const requestBtn = screen.getByRole("button", { name: /request statement on cams/i });
+    const requestBtn = await screen.findByRole("link", { name: /request statement on cams/i });
     // No PAN consent on a CAMS request (2026-10-07).
     fireEvent.click(requestBtn);
 
     await waitFor(() => {
       expect(api.requestCamsStatement).toHaveBeenCalledWith("m-1");
-      expect(mockOpen).toHaveBeenCalledWith("https://www.camsonline.com/cas", "_blank");
+      expect(mockOpen).not.toHaveBeenCalled();
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
 
@@ -170,7 +171,7 @@ describe("TwoPathImportContainer", () => {
       import_id: "imp-req-1",
       household_member_id: "m-1",
       status: "waiting_for_user",
-      cams_url: "https://www.camsonline.com/cas",
+      cams_url: "https://cams.example.test/statement",
       expires_at: "2026-08-12T12:00:00Z",
     });
     vi.stubGlobal("open", vi.fn());
@@ -178,7 +179,7 @@ describe("TwoPathImportContainer", () => {
 
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={onUploadSubmit} />);
     fireEvent.click(await screen.findByRole("button", { name: /request from cams/i }));
-    fireEvent.click(screen.getByRole("button", { name: /request statement on cams/i }));
+    fireEvent.click(await screen.findByRole("link", { name: /request statement on cams/i }));
     await screen.findByText(/waiting for cams email/i);
     fireEvent.click(screen.getByRole("button", { name: /already got the email\? upload it now/i }));
 
