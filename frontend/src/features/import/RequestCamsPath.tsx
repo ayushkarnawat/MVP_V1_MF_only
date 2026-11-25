@@ -312,6 +312,7 @@ export function RequestCamsPath({
         ) : linkState === "loading" ? (
           <Button
             disabled
+            aria-disabled="true"
             data-clickable=""
             data-effect="open"
             className={requestControlClassName}
