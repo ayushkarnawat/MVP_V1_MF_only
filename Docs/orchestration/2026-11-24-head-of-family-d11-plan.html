@@ -90,236 +90,354 @@ button:focus-visible,.o:focus-within,.menu:focus-visible{outline:2px solid var(-
 .partbar{border-top:4px solid var(--warn);background:var(--surface);border-radius:14px;padding:18px 22px;margin-top:18px;border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 #d11q .copybtn,#d11copy{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
 #d11out{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.plainline{font-size:13px;margin:6px 0 0;color:var(--ink)}
+.banner{background:var(--greenbg);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--green)}
+.banner .lnk,.statuscard .lnk{text-decoration:underline;margin-left:8px}
+.statuscard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.amber{background:var(--warn)}.dot.grey{background:var(--muted)}
+.pbar{height:8px;border-radius:99px;background:var(--code);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--green)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:12.5px;font-weight:600;border-radius:9px;padding:6px 12px;background:var(--green);color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.float{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px;max-width:300px}
+.float .row,.statuscard .row{font-size:12.5px;color:var(--ink)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps .s{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted)}
+.steps .s.on{background:var(--greenbg);color:var(--green);font-weight:600}
+.note{font-size:12px;color:var(--muted);background:var(--code);border-radius:8px;padding:6px 8px}
+.chip{font-size:11px;background:var(--code);color:var(--muted);border-radius:99px;padding:1px 8px}
+
 </style>
 
 <main>
-<header id="d11">
+<header id="top">
   <span class="pill w">Plan only · nothing built</span>
-  <span class="pill b">Version 1 · 24 Nov 2026</span>
+  <span class="pill b">Version 2 · plain-words rewrite · 25 Nov 2026</span>
   <h1>Head of Family change blocked by a waiting import (D-11)</h1>
-  <p class="sub">Found in the owner's QA on staging, stage 9. Nothing is built and no code or test was edited: every finding below comes from reading the code and documents. This is a separate problem from the XIRR plan, with its own page.</p>
-  <nav class="toc" aria-label="Sections"><a href="#d11-summary">What is wrong</a><a href="#d11-facts">What the code says</a><a href="#d11-investigation">Investigation</a><a href="#d11-fix">Fix and options</a><a href="#d11-tests">Tests first</a><a href="#d11-delivery">Files, risks, deploy</a><a href="#d11-acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
+  <p class="sub">Found in the owner's QA on staging, stage 9. This version answers one question first (is the floating checklist the cause?), then maps everything the checklist touches in Add data, lists the other problems found around it, and plans the whole clean-up. Nothing is built and no code or test was edited: every finding comes from reading the code.</p>
+  <nav class="toc" aria-label="Sections"><a href="#plain">In plain words</a><a href="#question">Your question</a><a href="#coupling">What the checklist touches</a><a href="#others">Other problems found</a><a href="#scenarios">Scenarios</a><a href="#fix">The plan</a><a href="#mockups">Mockups</a><a href="#investigation">Investigation</a><a href="#tests">Tests first</a><a href="#delivery">Files, risks, deploy</a><a href="#acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
 </header>
 
-<section id="d11-summary">
-  <h2>D-11 · What is wrong, and what I checked</h2>
-  <p>In Profile, "Choose who will be Head of Family" shows every member greyed out with "Finish or cancel the statement you are importing first." and Next disabled, although all member details were filled in. One CAMS request sat on "Waiting for CAMS email" (0 of 5 done). Because of that the four Head of Family emails (QA rows M1-17, M1-18, M1-19) could not be tested. Sources read: <code>Docs/orchestration/2026-11-24-qa-round-report.md</code> (item D-11) and the <code>decisions.md</code> entry "2026-11-24 - QA finding D-11".</p>
-  <div class="callout ok"><p><b>Owner decision (24 Nov):</b> a pending or abandoned import must not stop a Head of Family change. This section plans exactly that, and finds one place where a naive removal could do harm.</p></div>
-  <h3>Your findings, checked against the code</h3>
+<section id="plain">
+  <h2>In plain words</h2>
+  <div class="callout ok">
+    <p><b>Short answer: no. The unfinished checklist did not cause the block.</b> The block comes from a record on our server, not from anything in your browser.</p>
+  </div>
+  <ol>
+    <li><b>What you saw.</b> In Profile, "Choose who will be Head of Family" showed every member greyed out with "Finish or cancel the statement you are importing first." and Next was disabled, although every detail was filled in.</li>
+    <li><b>What really happened.</b> The moment you press <b>Request from CAMS</b>, our server saves a small record: "a statement was requested for this person, waiting for the CAMS email". It stays for about 2 days. The Head of Family check looks at the whole family, sees any such record, and blocks everyone. It does not care who the record belongs to.</li>
+    <li><b>The checklist is only a note-to-self.</b> Its ticks, its "0 of 5 done" and its open or closed window live only in your own browser. The server never hears about them. So ticking all five boxes, or closing it, changes nothing on the server.</li>
+    <li><b>Finishing everything would not have helped.</b> Even if you had ticked all five, clicked "I have the file", closed the checklist and uploaded the statement, the "waiting" record would still be there. We found that <b>nothing in the code closes it when the file is imported</b>. It ends only when (a) you press "Cancel request" (which stops working after a page reload), (b) about 2 days pass and the nightly clean-up runs, or (c) you request again (that restarts the 2 days).</li>
+    <li><b>What we will do.</b> (A) The Head of Family check must never look at waiting or abandoned requests. (B) A waiting request must be closed when its file is imported, and old stuck ones cleaned up. (C) A waiting request must be visible, with a Cancel that always works. (D) The checklist becomes a pure reading aid, connected to nothing, and easier to see. Each part is its own piece below, with its own tests.</li>
+  </ol>
+</section>
+
+<section id="question">
+  <h2>Your question: did the unfinished checklist cause this?</h2>
+  <p>Here is exactly what happens when you press Request from CAMS, close the checklist, and then try to change the Head of Family. Left column: where each thing is stored.</p>
   <div class="tablewrap"><table>
-    <tr><th>Claim</th><th>Verdict</th><th>Where (verified by reading)</th></tr>
-    <tr><td><code>member_eligibility()</code> adds <code>import_in_progress</code> when <code>_has_open_import_or_pan_claim()</code> is true</td><td><span class="pill g">Confirmed</span></td><td><code>head_eligibility.py</code> lines 124 to 125; the helper at lines 193 to 218</td></tr>
-    <tr><td>The check is household-wide, so every member is greyed</td><td><span class="pill g">Confirmed</span></td><td>The query joins <code>HouseholdMember</code> on the user and ignores <code>member_id</code>; it is not tied to the candidate or to the import's own member</td></tr>
-    <tr><td>Open import = any status not in <code>TERMINAL_STATES</code></td><td><span class="pill g">Confirmed</span></td><td><code>state_machine.py</code>: terminal = import_successful, confirmed, import_failed, failed, expired. <b>Previewing is not terminal</b> (see below)</td></tr>
-    <tr><td>PAN half: any member with <code>pan_pending_until</code> in the future</td><td><span class="pill g">Confirmed</span></td><td><code>head_eligibility.py</code> lines 213 to 218; the claim lasts 65 minutes (<code>PENDING_PAN_TTL</code> in <code>pan_claims.py</code>)</td></tr>
-    <tr><td>Reason is in <code>START_CODE_ELIGIBILITY_REASONS</code> and mapped to 409</td><td><span class="pill g">Confirmed</span></td><td><code>head_change.py</code> line 73; the 409 branch near line 424</td></tr>
-    <tr><td>"Check every place the change re-validates"</td><td><span class="pill w">More than expected</span></td><td>Four places read it, one more than the dialog list: start code, start, the dialog's eligibility list, <b>and the final step</b> (<code>complete_head_change</code> re-runs <code>member_eligibility</code> and keeps every reason except <code>head_change_already_open</code>). <code>verify_head_change_code</code> does not re-check. So an import started after the codes were sent would fail the very last step, after all four codes were used.</td></tr>
-    <tr><td>Dialog text at <code>ChangeHeadDialog.tsx</code> line 63, no import name, no Cancel</td><td><span class="pill g">Confirmed</span></td><td>The reason list sent to the browser carries only the reason code, no import id, no member and no time</td></tr>
-    <tr><td>Rule added in change-requests Run 5, task 5.3 (<code>d6147e07</code>, fixes <code>f03b2cf3</code>)</td><td><span class="pill g">Confirmed</span></td><td>Task 5.3 in <code>2026-10-31-change-requests-implementation-plan.md</code> lists it as one of twelve reasons</td></tr>
+    <tr><th style="width:34px">Step</th><th>What you do</th><th>Where it is stored</th><th>Does the Head of Family check see it?</th></tr>
+    <tr><td>1</td><td>Press <b>Request from CAMS</b></td><td><b>Server:</b> a "waiting" request record (about 2 days). <b>Browser:</b> the floating checklist opens</td><td><span class="pill w">Yes, this is the block</span></td></tr>
+    <tr><td>2</td><td>Tick boxes in the checklist</td><td><b>Browser only</b> (local storage). The server knows nothing</td><td>No</td></tr>
+    <tr><td>3</td><td>Close the checklist, or reload the page</td><td><b>Browser only.</b> The server record stays</td><td>No (the record from step 1 is still there)</td></tr>
+    <tr><td>4</td><td>Open Profile, Change Head of Family</td><td>Server asks: "is any request or import still open for this family?"</td><td><span class="pill w">Yes: everyone is greyed out</span></td></tr>
   </table></div>
-  <h3>Why the rule was added (what the documents say, and what they do not)</h3>
+  <h3>What if you had finished the whole checklist?</h3>
+  <div class="tablewrap"><table>
+    <tr><th>If you had...</th><th>The server's waiting record</th><th>Head of Family</th></tr>
+    <tr><td>ticked all 5 boxes and pressed "I have submitted the form"</td><td>Still waiting (the checklist only changed your browser)</td><td>Still blocked</td></tr>
+    <tr><td>pressed "I have the file" and "Close this checklist"</td><td>Still waiting</td><td>Still blocked</td></tr>
+    <tr><td>uploaded the CAMS statement and finished the import</td><td><b>Still waiting</b> (nothing closes it: it is a separate record from the import itself)</td><td>Still blocked, for up to about 2 to 3 days</td></tr>
+    <tr><td>pressed <b>Cancel request</b> before leaving the page</td><td>Closed</td><td>Free</td></tr>
+  </table></div>
+  <p class="small">How I know: <code>cams_portal.py</code> creates the record (<code>initiate_cams_request</code>) and the only things that close it are <code>cancel_pending_request</code> and the nightly <code>expire_stale_cams_requests</code>. A search of the whole back end found no other place that sets it to expired, and the file upload path never touches it. This is read from the code, not yet reproduced: step R2 below proves it.</p>
+</section>
+
+<section id="coupling">
+  <h2>Is the checklist connected to the rest of Add data? (the full map)</h2>
+  <p>You asked that the checklist be for the user's reference only and hamper nothing. It is <b>not</b> that clean today. These are all the places it touches Add data. Files are under <code>frontend/src/features/import/</code>.</p>
+  <div class="tablewrap"><table>
+    <tr><th style="width:26%">Where</th><th>What it does today</th><th>Problem?</th></tr>
+    <tr><td>Press Request (<code>RequestCamsPath.tsx</code>, <code>handleRequest</code>)</td><td>Opens the floating checklist first, then asks the server for the request, then <b>waits for the checklist window to finish opening</b> before moving on. If the floating window works, CAMS is opened from a button inside it; if not, CAMS opens in a new tab.</td><td><b>Partly by design.</b> Browsers allow only one "pop" per click, so the checklist must open first (see the spike, <code>2026-11-23-checklist-spike.md</code>). But the page should not wait on it, and a checklist that fails to open must never stop the request.</td></tr>
+    <tr><td>Which screen Add data opens first (<code>TwoPathImportContainer.tsx</code>)</td><td>If the browser remembers checklist ticks, Add data opens on the "request" screen; otherwise it opens "upload" or "choice" from a second browser marker.</td><td><span class="pill w">Coupling.</span> The server's truth (is a request waiting?) should choose the screen, not a note in the browser.</td></tr>
+    <tr><td>Coming back to the tab (same file)</td><td>When the browser window regains focus, and the checklist is closed, the page <b>jumps to the upload screen</b>.</td><td><span class="pill w">Coupling.</span> The page changes under the user because of a checklist state.</td></tr>
+    <tr><td>Waiting screen, Cancel request (<code>WaitingForCasView.tsx</code>)</td><td>Cancel works only while the page still remembers the request id in memory. After a reload the id is gone and Cancel is sent with the placeholder text "pending-import".</td><td><span class="pill w">Real bug.</span> The user cannot cancel a request they started earlier.</td></tr>
+    <tr><td>"Start over" (closed-checklist banner)</td><td>Clears the checklist ticks in the browser. <b>Does not cancel the server request.</b></td><td><span class="pill w">Misleading.</span> It sounds like it resets everything; it resets only the note.</td></tr>
+    <tr><td>Upload a file (same file)</td><td>Clears the checklist and the resume marker, then uploads.</td><td>Fine, but it also does not close the server's waiting record (see "Other problems").</td></tr>
+    <tr><td>"Close this checklist" at the last step</td><td>Clears the notes and jumps Add data to the upload screen with a banner "Your checklist is closed...".</td><td>Coupling: the checklist steers the screen.</td></tr>
+    <tr><td>Page reload or leaving the page</td><td>Closes the floating window; on return a banner says "Your checklist closed when this page reloaded" with Reopen and Start over.</td><td>Fine, but the banner is easy to miss (see mockups).</td></tr>
+    <tr><td>Phone (<code>mobile/features/import/*</code>)</td><td>No checklist at all. It still creates the same server request and uses only the browser's resume marker.</td><td>Same server problems apply on the phone.</td></tr>
+  </table></div>
+  <h3>Not connected to the checklist (checked)</h3>
   <ul>
-    <li>The briefing (<code>unifolio-change-briefing.html</code>) lists "An import or a PAN claim is open" with the 409 text and "import in progress" among the reasons. The implementation plan repeats it. <b>No document states what the rule protects.</b> ADR-007 does not mention imports.</li>
-    <li>The Run 5 review note (<code>cr-r5-migration-and-codes-handoff.md</code>) shows the author knew a waiting CAMS request blocks the change for up to 48 hours ("the daily job expires it") and accepted that.</li>
-    <li><b>My inference, not documented:</b> the rule protects the one place where imports read the Head of Family role. The import code finds "the account holder" by the <b>Self label</b> (<code>_self_member</code> in <code>import_/service.py</code> line 442; <code>plan_people</code> in <code>people_resolution.py</code> line 132; the "first upload" test and the "PAN already assigned to the account holder" message). A head change moves the Self label to another member. Decision D3 asks you whether you remember a different reason.</li>
+    <li><b>Head of Family:</b> no file in <code>profile-v2</code>, <code>features/auth</code> or the back end head-change code reads the checklist or its storage. The block is not a checklist feature.</li>
+    <li><b>Import processing, review, confirm, history, analytics, family and profile screens:</b> none read the checklist. (A waiting CAMS request is deliberately hidden from the import history list.)</li>
+    <li>Only <code>RequestCamsPath</code>, <code>TwoPathImportContainer</code>, <code>ImportFlow</code> and <code>useImportOrchestration</code> (clears the resume marker) touch the checklist's browser notes.</li>
   </ul>
 </section>
 
-<section id="d11-facts">
-  <h2>D-11 · What the code says about each part of the problem</h2>
-  <h3>1. Which import rows can be left open, and for how long</h3>
+<section id="others">
+  <h2>Other problems found while checking (not the checklist)</h2>
   <div class="tablewrap"><table>
-    <tr><th>Status</th><th>Who writes it today</th><th>How long it can stay</th><th>What clears it</th></tr>
-    <tr><td><code>waiting_for_user</code> (a CAMS request waiting for its email)</td><td><code>initiate_cams_request</code>, 48-hour window; asking again for the same member resets the window</td><td>48 hours, then until the next daily run: up to about 72 hours. A request that is never expired by the job stays forever.</td><td>"Cancel request" (<code>cancel_pending_request</code>), the user uploading the file, or the daily CAS-file-expiry job (<code>expire_cas_files.py</code> calling <code>expire_stale_cams_requests</code>)</td></tr>
-    <tr><td><code>previewing</code> (file uploaded, not yet confirmed)</td><td>The two-step upload (<code>preview_store.py</code>)</td><td>Its window is 60 minutes, but the row is only removed by a <b>sweep that runs when someone next calls an import endpoint</b>. No job runs it. An abandoned upload can count as "open" for days.</td><td>Confirm, Discard (<code>/imports/sessions/{id}/discard</code>), or the next import call</td></tr>
-    <tr><td><code>processing</code> (confirm is saving)</td><td>Confirm (to verify in step R5)</td><td>Seconds normally. A crash could strand it: unknown until step R3.</td><td>Finishing the confirm</td></tr>
-    <tr><td><code>requesting_cas</code>, <code>not_started</code>, <code>upload_started</code>, <code>password_required</code>, <code>validation_failed</code>, <code>retry_pending</code>, <code>pending</code></td><td><b>Nothing in current code sets these</b> (a search of <code>backend/app</code> found no writer outside the state-machine table). Old rows from earlier versions may exist.</td><td>Forever if they exist</td><td>Nothing. Step R3 counts them on staging.</td></tr>
+    <tr><th style="width:34px">#</th><th>Problem</th><th>What the user sees</th><th>In this plan?</th></tr>
+    <tr><td>P1</td><td><b>A finished import leaves its "waiting" record behind.</b> The upload creates its own import record; the request record is never closed.</td><td>After a successful CAMS import, Head of Family stays blocked for up to about 2 to 3 days (48 hours, then the next nightly run).</td><td><span class="pill g">Yes (part B)</span></td></tr>
+    <tr><td>P2</td><td>Cancel request stops working after a reload or after leaving the page.</td><td>No way to remove a request you started earlier.</td><td><span class="pill g">Yes (part C)</span></td></tr>
+    <tr><td>P3</td><td>"Start over" does not cancel the server request.</td><td>You think you reset, but the request still blocks.</td><td><span class="pill g">Yes (part D)</span></td></tr>
+    <tr><td>P4</td><td>A waiting request is shown nowhere except on that one Add data screen (history hides it on purpose).</td><td>You cannot tell a request is open once you leave.</td><td><span class="pill g">Yes (part C)</span></td></tr>
+    <tr><td>P5</td><td>The checklist's progress is per browser; the request is per account.</td><td>On another computer there is no checklist, but the request is there.</td><td>Explained by part C (server-driven card)</td></tr>
+    <tr><td>P6</td><td>An uploaded-but-not-confirmed statement (a "review") stays counted as open until the next import call cleans it. No job does.</td><td>Can block Head of Family for days if you walk away mid-review.</td><td><span class="pill g">Covered by part A</span></td></tr>
+    <tr><td>P7</td><td>The Head of Family check is family-wide and is repeated at the last step.</td><td>One open request greys out every member; a request started after the codes were sent fails the very last step.</td><td><span class="pill g">Yes (part A)</span></td></tr>
+    <tr><td>P8</td><td>A member whose only item is a waiting record is not auto-removed ("no statement left" check counts it).</td><td>A detected member can linger.</td><td>Fixed by part B</td></tr>
+    <tr><td>P9</td><td>The small "0 of 5 done" line on the page, and the "closed" banner, are easy to miss.</td><td>Users do not notice the checklist is closed or a request is waiting.</td><td><span class="pill g">Yes (part D)</span></td></tr>
   </table></div>
-  <p class="small">Terminal and therefore harmless today: import_successful, confirmed, import_failed, failed, expired.</p>
-
-  <h3>2. Every place the rule or <code>pan_pending_until</code> is read</h3>
-  <div class="tablewrap"><table>
-    <tr><th>Place</th><th>What it does</th><th>Fix action</th></tr>
-    <tr><td><code>head_eligibility.py</code> line 29</td><td>The reason is part of the <code>EligibilityReason</code> type</td><td>Remove (or keep if the narrow guard survives)</td></tr>
-    <tr><td><code>head_eligibility.py</code> 124 to 125, 193 to 218</td><td>Adds the reason; the household-wide check (import half and PAN half)</td><td>Remove or narrow</td></tr>
-    <tr><td><code>head_eligibility.py</code> 188</td><td><code>pan_registered_elsewhere</code>: another account's <b>pending</b> claim on the same PAN counts as registered</td><td>Keep, a different reason; it protects PAN uniqueness across accounts</td></tr>
-    <tr><td><code>head_change.py</code> 73</td><td><code>START_CODE_ELIGIBILITY_REASONS</code> includes it, so it blocks at start code and shows in the dialog list</td><td>Remove from the set</td></tr>
-    <tr><td><code>head_change.py</code> 348 to 355</td><td>Start code refuses with the 409</td><td>Follows automatically</td></tr>
-    <tr><td><code>head_change.py</code> 589 to 593</td><td><code>start_head_change</code>: refuses on <b>any</b> reason, first one wins</td><td>Follows automatically</td></tr>
-    <tr><td><code>head_change.py</code> 787 to 815</td><td><code>list_member_eligibility</code> feeds the dialog</td><td>Follows automatically</td></tr>
-    <tr><td><code>head_change.py</code> 1199 to 1203</td><td><b>Final step</b> re-checks every reason but <code>head_change_already_open</code></td><td>Follows automatically; this is the place a half-fix would miss</td></tr>
-    <tr><td><code>head_change.py</code> 424 to 429</td><td>The 409 text "Finish or cancel the statement you are importing, then try again."</td><td>Remove (or rewrite if the guard survives)</td></tr>
-    <tr><td><code>head_change.py</code> 870 to 883</td><td>Picks a reason after an integrity error</td><td>No change, it only reads contact reasons</td></tr>
-    <tr><td><code>ChangeHeadDialog.tsx</code> line 63</td><td>The sentence for the reason; <code>headEligibility.ts</code> already treats it as "not fixable here"</td><td>Remove the sentence; the lib needs no change</td></tr>
-    <tr><td>Import side: <code>pan_claims.py</code>, <code>member_details.py</code> 169, <code>member_profile.py</code> 186, <code>confirm_people.py</code> 576, <code>people_resolution.py</code> 77, <code>import_/service.py</code> 480</td><td>Writers and readers of the pending claim for the import flow itself</td><td>No change; they are the flow being protected</td></tr>
-    <tr><td>Tests that pin the rule: <code>test_head_eligibility.py</code> (the status test near line 261 and the PAN-claim test near 301), <code>test_head_change_flow.py</code> (near 593), <code>test_head_change_routes.py</code> (near 664), <code>ChangeHeadDialog.fix.test.tsx</code>, <code>headEligibility.test.ts</code></td><td>They assert the old behaviour</td><td>Rewritten first (see tests)</td></tr>
-  </table></div>
-
-  <h3>3. What a head change swaps, and what it leaves alone</h3>
-  <div class="tablewrap"><table>
-    <tr><th>Thing</th><th>Changed by the swap?</th><th>Evidence (<code>complete_head_change</code>)</th></tr>
-    <tr><td>Which member <code>is_head</code></td><td><b>Yes</b></td><td>Old head false, new head true</td></tr>
-    <tr><td>Relationship labels, including the <b>Self</b> label</td><td><b>Yes</b></td><td>New head becomes Self; old head gets the mapped label; other members may be relabelled</td></tr>
-    <tr><td>Old head's member email and phone</td><td><b>Yes</b></td><td>Set to the old account contact</td></tr>
-    <tr><td>Account email and phone, all sign-in identities, all sessions</td><td><b>Yes</b></td><td>Identities deleted and re-recorded for the new head; every session deleted, everyone is signed out; sign-up consents withdrawn</td></tr>
-    <tr><td>Import rows (<code>household_member_id</code>, status, expiry)</td><td>No</td><td>Not touched; they hang on the member id, which never changes</td></tr>
-    <tr><td>PAN fields (<code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until</code>)</td><td>No</td><td>Not touched; they stay on the member row</td></tr>
-    <tr><td>Retained CAS files (<code>file_reference</code>, 30 days)</td><td>No</td><td>Stored per import, not per head</td></tr>
-    <tr><td>Folios, transactions, holdings</td><td>No</td><td>Hang on member ids</td></tr>
-    <tr><td>How the import <b>decides who "Me" is</b></td><td><b>Indirectly yes</b></td><td>Reads the Self label (<code>service.py</code> 442, <code>people_resolution.py</code> 132, <code>deletion.py</code> 158 and 239). After a swap, "Me" is a different member.</td></tr>
-  </table></div>
-  <div class="callout"><p><b>What this means.</b> A CAMS request waiting for its email has no file, no parse and no PAN claim (it is a placeholder row on a member), so a swap cannot corrupt anything there: the later upload is attributed from the file's own PAN against the members as they are then. The only plausible harm is a <b>live review session</b> (an uploaded file that was parsed while the old head was Self and is confirmed after the swap), a window of at most about 65 minutes. It is not proven: steps R4 to R6 settle it.</p></div>
 </section>
 
-<section id="d11-investigation">
-  <h2>D-11 · Investigation, step by step</h2>
-  <p class="small">Everything runs on a local database or on synthetic data from <code>Docs/CAS Files/synthetic/pdfs/</code>. Staging steps are read-only and are run by the manager's Claude or the owner. Stop and report after R6 if any step contradicts the table above.</p>
+<section id="scenarios">
+  <h2>Scenarios where this goes wrong (and what should happen)</h2>
+  <div class="tablewrap"><table>
+    <tr><th style="width:34px">#</th><th>Scenario</th><th>Today</th><th>Should be</th></tr>
+    <tr><td>S1</td><td>Request CAMS, close the checklist, go to Profile, change Head of Family (your case)</td><td>Everyone greyed out</td><td>Change goes through. The waiting request is untouched and still works</td></tr>
+    <tr><td>S2</td><td>Tick all 5, submit, "I have the file", close, then change Head</td><td>Still blocked</td><td>Goes through</td></tr>
+    <tr><td>S3</td><td>Upload and finish the import, then change Head the same day</td><td>Blocked for 2 to 3 days by the old waiting record</td><td>Goes through; the record is closed when the import completes</td></tr>
+    <tr><td>S4</td><td>Request, reload the page, try to cancel</td><td>Cancel fails ("pending-import")</td><td>Cancel works; the waiting request is shown with its own Cancel</td></tr>
+    <tr><td>S5</td><td>Request twice (press Request again)</td><td>Same record reused; 2 days restart</td><td>Same, and the user is told "you already have a request waiting"</td></tr>
+    <tr><td>S6</td><td>Request on one computer, change Head on another</td><td>Blocked; no checklist on the second computer to explain why</td><td>Goes through; the waiting request is visible in Add data on any device</td></tr>
+    <tr><td>S7</td><td>Browser without floating windows (Firefox, Safari): the checklist is an in-page panel</td><td>Same block; panel state kept in the browser</td><td>Same as above; panel is reference only</td></tr>
+    <tr><td>S8</td><td>Request is abandoned for 3 days</td><td>Expires after 2 days plus the nightly run, then the block ends</td><td>Never blocks the change at all</td></tr>
+    <tr><td>S9</td><td>A statement is uploaded and left on the review screen, then Head is changed (under about 65 minutes)</td><td>Blocked (counted as open)</td><td>Decision D1 below: continue, discard the review, or block and name it</td></tr>
+    <tr><td>S10</td><td>Head change is being completed while "Confirm" is saving a statement</td><td>Blocked or failing at the last step</td><td>Decision D2: "try again in a minute"</td></tr>
+    <tr><td>S11</td><td>Codes are sent, then a CAMS request is started before the last step</td><td>The last step fails after all four codes are used</td><td>The last step does not look at requests</td></tr>
+    <tr><td>S12</td><td>Phone: request through the phone (no checklist)</td><td>Same server record, same block</td><td>Same fixes apply</td></tr>
+    <tr><td>S13</td><td>Two members each have a waiting request</td><td>Blocked (family-wide)</td><td>Goes through; each request stays with its own member</td></tr>
+    <tr><td>S14</td><td>Checklist window fails to open (blocked pop-up) during Request</td><td>The page falls back to the panel; the request still goes through (it is sent first)</td><td>Same, and the page never waits on the checklist</td></tr>
+    <tr><td>S15</td><td>Remove a member whose only item is a waiting request</td><td>Auto-removal skipped</td><td>Request counted as nothing; member handled normally</td></tr>
+  </table></div>
+</section>
+
+<section id="fix">
+  <h2>The plan: four parts, each with its own tests</h2>
+  <h3>Part A · Head of Family never looks at requests (the original owner decision)</h3>
+  <p>A waiting, abandoned, failed or old import can never stop a change. The household-wide check is removed from the eligibility list, from the start-code step, from the start step, from the dialog and from the <b>last step</b> (which re-runs the same check). The other eleven reasons stay exactly as they are. For the one narrow case of a live review (an uploaded statement on the review screen, up to about 65 minutes): see decision D1; my recommendation is to discard it inside the swap, with a note, because the swap signs everyone out anyway.</p>
+  <h3>Part B · Close the waiting record when it has done its job</h3>
+  <ul>
+    <li>When a statement for that member is imported (the confirm step finishes), close any waiting request for that member (mark it expired, the same status "Cancel request" uses).</li>
+    <li>When the user presses <b>Cancel request</b> or <b>Start over</b>, close it too (see decision Q3).</li>
+    <li>A one-time clean-up of rows already stuck: any waiting request that has a later confirmed import for the same member, or is past its 48 hours, is closed. This is a data fix with a script, not a schema change (confirm in step R7).</li>
+  </ul>
+  <h3>Part C · A waiting request is visible and cancellable</h3>
+  <ul>
+    <li>Add data shows a small <b>"Your CAMS request is waiting"</b> card driven by the server (not by browser notes): who it is for, how long is left, a Cancel button. It appears on any device and after any reload.</li>
+    <li>Cancel works from that card, so it no longer depends on a request id kept in the page's memory. This needs the server to tell the page "this member has a waiting request, id X, expires at Y" (a small read, or one extra field on an existing response).</li>
+    <li>The Head of Family dialog may add one quiet line when a request is waiting ("a CAMS request for Rohan is still waiting; this does not stop the change"). Not a blocker, not a button. Decision Q4.</li>
+  </ul>
+  <h3>Part D · The checklist becomes a reading aid, and easier to see</h3>
+  <ul>
+    <li><b>Decouple.</b> The checklist is opened by its own button and by Request (still the first thing in the click, because of the browser rule), but: the page never waits for it; its notes never choose the Add data screen; coming back to the tab never changes the screen because of it; "Start over" and "Close" only touch the checklist; its failure shows a message and nothing else breaks.</li>
+    <li><b>The page chooses its screen from the server.</b> If a request is waiting, show the waiting card; if not, show the usual choice. One source of truth.</li>
+    <li><b>Make it visible.</b> Replace the plain "0 of 5 done" line and the quiet "closed" banner with a proper status strip (see mockups): a progress bar, the current step name, and Reopen. The floating checklist gets a clearer header and a progress bar.</li>
+    <li><b>Wording.</b> "Start over" becomes "Reset checklist" so it cannot be mistaken for cancelling the request. Copy stays plain; no advice wording; no em dashes.</li>
+  </ul>
+  <div class="callout"><p><b>Size:</b> this is bigger than the first D-11 plan. Part A is small and independent (back end plus one sentence in the dialog). Parts B and C touch the CAMS request flow (back end plus Add data). Part D is the front-end clean-up. They can ship in that order; each is valuable alone. Decision Q1 asks whether to do all four now.</p></div>
+</section>
+
+<section id="mockups">
+  <h2>Mockups (illustrative)</h2>
+  <h3>1. Today: the small text people miss</h3>
+  <div class="grid2">
+    <div class="mock"><span class="tag bad">Now · floating window open</span>
+      <div class="card"><b>Waiting for CAMS email</b><div class="small" style="margin-top:6px">(the "0 of 5 done" line is a plain, unstyled line of text under the card)</div></div>
+      <p class="plainline">0 of 5 done</p></div>
+    <div class="mock"><span class="tag bad">Now · checklist closed or page reloaded</span>
+      <div class="banner">Your checklist closed when this page reloaded. You were on <b>step 2: Fill the form</b>. <span class="lnk">Reopen checklist</span> <span class="lnk">Start over</span></div>
+      <p class="small" style="margin-top:6px">Small, green-on-green, same weight as the page text; "Start over" does not cancel the request.</p></div>
+  </div>
+  <h3>2. Proposed: one status card for a CAMS request (driven by the server)</h3>
+  <div class="grid2">
+    <div class="mock"><span class="tag good">A · waiting, checklist open</span>
+      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div>
+      <div class="small">We will use the file as soon as you upload it. Expires in 47 h.</div>
+      <div class="pbar"><i style="width:0%"></i></div><div class="small">Form: <b>0 of 5</b> settings ticked</div>
+      <div class="actions"><span class="btn">Show checklist</span><span class="btn ghost">Cancel request</span></div></div></div>
+    <div class="mock"><span class="tag good">B · checklist closed (any browser, any device)</span>
+      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div>
+      <div class="small">Your checklist is closed. You can reopen it, or upload the file when it arrives. Expires in 44 h.</div>
+      <div class="actions"><span class="btn">Reopen checklist</span><span class="btn">Upload the file</span><span class="btn ghost">Cancel request</span></div></div></div>
+    <div class="mock"><span class="tag good">C · browser cannot float the checklist (in-page panel)</span>
+      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b></div>
+      <div class="small">Your browser cannot float the checklist, so it stays on this page.</div>
+      <div class="pbar"><i style="width:60%"></i></div><div class="small">Form: <b>3 of 5</b> settings ticked</div></div></div>
+    <div class="mock"><span class="tag good">D · no request waiting</span>
+      <div class="statuscard"><div class="srow"><span class="dot grey"></span><b>No CAMS request waiting</b></div>
+      <div class="small">Request your statement from CAMS, or add a file you already have.</div></div></div>
+  </div>
+  <h3>3. The floating checklist, refined</h3>
+  <div class="grid2">
+    <div class="mock"><span class="tag bad">Now</span>
+      <div class="float"><b>Fill the CAMS form</b><div class="small">0 of 5 done</div><div class="row">▢ Statement type: Detailed</div><div class="row">▢ Period: Specific Period...</div><div class="row">▢ ...</div></div></div>
+    <div class="mock"><span class="tag good">Proposed</span>
+      <div class="float"><div class="srow"><b>Unifolio checklist</b><span class="chip">Step 1 of 3</span></div>
+      <div class="pbar"><i style="width:0%"></i></div><div class="small"><b>0 of 5</b> form settings ticked</div>
+      <div class="steps"><span class="s on">1 Fill the form</span><span class="s">2 Wait for the email</span><span class="s">3 You have the file</span></div>
+      <div class="row">▢ Statement type: Detailed</div><div class="row">▢ Period: Specific Period...</div><div class="row">▢ ...</div></div></div>
+  </div>
+  <h3>4. Head of Family dialog (only if decision Q4 says yes)</h3>
+  <div class="mock"><span class="tag good">One quiet line, nothing blocked</span>
+    <div class="statuscard"><b>Choose who will be Head of Family</b><div class="row">◉ Rohan Kulkarni · Spouse</div><div class="row">◯ Meera Kulkarni · Child</div>
+    <div class="note">A CAMS request for Rohan is still waiting. It does not stop this change.</div><div class="actions"><span class="btn">Next</span></div></div></div>
+</section>
+
+<section id="investigation">
+  <h2>Investigation, step by step (before anything is built)</h2>
+  <p class="small">Local database and synthetic data only. Staging steps are read-only. Stop and report if a step contradicts this page.</p>
   <div class="tablewrap"><table>
     <tr><th style="width:42px">Step</th><th>Do</th><th>We learn</th></tr>
-    <tr><td>R1</td><td>Build a household on a local database: head plus one member with email, phone, PAN and a real label. Call <code>initiate_cams_request</code> for the member. Then call the eligibility list and the start-code route.</td><td>Reproduces D-11: every member shows <code>import_in_progress</code>; start code returns 409</td></tr>
-    <tr><td>R2</td><td>Call <code>cancel_pending_request</code> (the "Cancel request" button), then the eligibility list again.</td><td>Not a stale-state bug if the household becomes eligible. This is the re-test the QA report asked for.</td></tr>
-    <tr><td>R3</td><td>Read-only census on staging: <code>select status, count(*), min(uploaded_at), max(expires_at) from imports where status not in ('import_successful','confirmed','import_failed','failed','expired') group by status;</code> Also read the VM crontab for the daily CAS-file-expiry line and its run time.</td><td>Whether any dormant or legacy rows exist, how old the oldest open row is, and when the daily job really runs</td></tr>
-    <tr><td>R4</td><td>Local: upload a synthetic CAS for the head through the two-step path (rows sits at previewing). Run a complete head change. Then confirm the review. Compare with the same flow without a swap.</td><td>Whether the swap changes who "Me" is at confirm, or attributes funds or PAN to the wrong member. <b>This decides the guard.</b></td></tr>
-    <tr><td>R5</td><td>Postgres functional test, two connections: a confirm in progress (<code>processing</code>) while <code>complete_head_change</code> runs. Read the lock order (account, members by id, request) and check whether confirm takes member locks too.</td><td>Whether the two can interleave or deadlock; whether confirm needs to be protected at all</td></tr>
-    <tr><td>R6</td><td>PAN claim: a member with <code>pan_pending_until</code> in the future; run the swap; then finalise the claim by confirming.</td><td>Whether the claim stays on the right member and still finalises correctly</td></tr>
-    <tr><td>R7</td><td>Check that retained CAS files and later attribution do not depend on the head role (<code>file_storage.py</code>, <code>deletion.py</code>).</td><td>No file or fund is orphaned by a swap</td></tr>
-    <tr><td>R8</td><td>Open browser tab: with a review open, complete a swap (all sessions are deleted) and sign in as the new head. Does the review still exist and who owns it?</td><td>What the user sees: a lost screen, an orphaned row, or a working review</td></tr>
-    <tr><td>R9</td><td>With a CAMS request waiting, run a full change, then <b>undo</b>.</td><td>That undo is also unaffected (its eligibility is separate)</td></tr>
-    <tr><td>R10</td><td>Write the result of R4 to R6 into this section and into <code>decisions.md</code>; pick option A, B or C below.</td><td>The fix is chosen on evidence, not on my reading</td></tr>
+    <tr><td>R1</td><td>Local: create a household (head plus one member with email, phone, PAN and label), request CAMS for the member, then open the Head of Family list.</td><td>Reproduces D-11 exactly as you saw it</td></tr>
+    <tr><td>R2</td><td>Local: after R1, import a synthetic CAS for that member through the normal upload, then look at the request record.</td><td><b>Proves P1:</b> the waiting record is still open after a finished import</td></tr>
+    <tr><td>R3</td><td>Local: press Request, reload the page, press Cancel on the waiting screen (check what is sent).</td><td>Proves P2: Cancel is sent with "pending-import" and fails</td></tr>
+    <tr><td>R4</td><td>Local: tick all five items and finish the checklist; check the server record after each click.</td><td>Proves the checklist never changes the server</td></tr>
+    <tr><td>R5</td><td>Read-only on staging: count open requests and their age (<code>select status, count(*), min(uploaded_at), max(expires_at) from imports where status not in (...) group by status</code>), and read the daily clean-up's run time in the crontab.</td><td>How many stuck rows exist today; how old</td></tr>
+    <tr><td>R6</td><td>Local: with a live review open (uploaded, not confirmed), complete a head change, then confirm.</td><td>Whether the swap can change who "Me" is mid-review (decides decision D1)</td></tr>
+    <tr><td>R7</td><td>Decide the clean-up of old stuck rows: a script that expires waiting requests with a later confirmed import or past 48 hours. Dry-run first (count only) on staging.</td><td>Whether a data fix is enough or a migration is needed (expected: no migration)</td></tr>
+    <tr><td>R8</td><td>With two browsers: request on one, open Add data on the other.</td><td>What the second browser shows today (S6) and what the server-driven card must show</td></tr>
+    <tr><td>R9</td><td>Run a full head change with a waiting request, then undo it.</td><td>Undo and the four emails are unaffected</td></tr>
+    <tr><td>R10</td><td>Write the results into this page and <code>decisions.md</code>; confirm the options below.</td><td>Decisions are made on evidence</td></tr>
   </table></div>
 </section>
 
-<section id="d11-fix">
-  <h2>D-11 · Proposed fix and alternatives</h2>
-  <h3>Part 1 (certain, whatever the investigation says)</h3>
-  <p>A <b>dormant</b> import (a CAMS request waiting or abandoned, a failed row, a legacy status) can never stop a head change. Remove the household-wide non-terminal-status check from <code>member_eligibility</code>, remove <code>import_in_progress</code> from <code>START_CODE_ELIGIBILITY_REASONS</code>, remove the 409 branch and the dialog sentence. Because the final step re-runs the same function, start code, start, the dialog and the final step all change together. The other eleven eligibility reasons stay exactly as they are.</p>
-  <h3>Part 2 (decided by steps R4 to R6): the live review window</h3>
-  <div class="tablewrap"><table>
-    <tr><th>Option</th><th>What happens</th><th>Trade-off</th></tr>
-    <tr><td><b>A · Nothing blocks, nothing extra</b></td><td>Also drop the PAN-claim half. A live review simply continues after the swap.</td><td>Simplest. Only safe if R4 and R6 show the swap cannot change attribution. Otherwise a rare wrong-member import.</td></tr>
-    <tr><td><b>B · Narrow guard</b></td><td>Block only while a review is <b>live</b>: <code>previewing</code> with <code>expires_at</code> in the future, <code>processing</code>, or <code>pan_pending_until</code> in the future (self-heals within about 65 minutes). The dialog names the member and the time and offers Cancel (the existing discard route).</td><td>Safest for data, but it still blocks sometimes, and needs a new field in the eligibility response and a Cancel button. Against your decision unless R4 shows real harm.</td></tr>
-    <tr><td><b>C · Never block; discard live reviews at the final step</b></td><td>Inside the swap transaction call the existing <code>discard_member_reviews</code> (it releases pending PAN claims and deletes the preview rows). The user is signed out by the swap anyway, so an unfinished review is lost either way; tell them in the completion notice. If a confirm is <code>processing</code> at that very moment, answer the final step with a retryable "try again in a minute" (seconds, not hours).</td><td>Matches your rule (nothing blocks) and removes the only harm path. Cost: a half-finished review must be uploaded again, which is rare and only within an hour.</td></tr>
-  </table></div>
-  <div class="callout ok"><p><b>Recommendation:</b> Part 1 now. For Part 2, <b>C if R4 or R6 show harm, A if they show none</b>. B only if you do not want a review ever discarded. If any import-related blocker survives (option B only), the dialog must name the import and offer Cancel; under A and C no dialog text about imports remains.</p></div>
-  <p class="small">Code comments required by the plan: where a PAN-related check survives, a comment explains it ("a pending claim sits on a member for at most 65 minutes; the swap moves the Self label that the confirm step reads").</p>
+<section id="tests">
+  <h2>Tests first (named; each must fail on today's code before the fix)</h2>
+  <h3>Part A: Head of Family (back end, <code>tests/services/auth/</code> and <code>tests/api/</code>)</h3>
+  <ul>
+    <li><code>test_waiting_cams_request_does_not_block_eligibility</code> (waiting_for_user, requesting_cas, not_started); <code>test_request_past_its_window_but_not_swept_does_not_block</code>; <code>test_dormant_and_legacy_statuses_do_not_block</code></li>
+    <li><code>test_each_of_the_other_eleven_reasons_still_blocks</code>; <code>test_reason_list_has_exactly_the_eleven_values</code></li>
+    <li><code>test_start_code_and_start_succeed_while_a_cams_request_waits</code>; <code>test_full_change_completes_while_a_cams_request_waits</code>; <code>test_change_leaves_import_rows_and_pan_fields_untouched</code>; <code>test_import_started_after_start_does_not_fail_the_final_step</code>; <code>test_start_code_start_dialog_list_and_final_step_agree</code>; <code>test_undo_works_while_a_cams_request_waits</code></li>
+    <li>Live review, depending on D1: <code>test_complete_discards_a_live_review_and_releases_its_pan_claim</code> (C) or <code>test_live_review_blocks_start_and_names_the_import</code> (B); and <code>test_complete_answers_try_again_while_a_confirm_is_processing</code></li>
+    <li>API and Postgres: <code>test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request</code>; <code>test_swap_with_a_waiting_cams_request_on_postgres</code>; <code>test_swap_and_confirm_do_not_interleave_on_postgres</code></li>
+  </ul>
+  <h3>Part B: closing the record (back end, <code>tests/services/import_/</code>)</h3>
+  <ul>
+    <li><code>test_confirming_an_import_closes_the_members_waiting_request</code>; <code>test_confirm_closes_only_that_members_request</code>; <code>test_cancel_and_start_over_close_the_request</code>; <code>test_a_member_with_only_a_waiting_request_is_handled_as_having_no_statement</code></li>
+    <li><code>test_cleanup_script_closes_stuck_requests_and_leaves_live_ones</code> (dry-run count and real run)</li>
+  </ul>
+  <h3>Part C: visible, cancellable (back end and front end)</h3>
+  <ul>
+    <li>Back end: <code>test_waiting_request_is_readable_for_each_member</code> (id, expires at, member); <code>test_cancel_works_with_the_id_the_server_gave</code></li>
+    <li>Front end: <code>shows_a_waiting_request_card_from_the_server_not_from_browser_notes</code>; <code>cancel_works_after_a_reload</code>; <code>shows_the_card_on_a_second_device</code>; <code>no_card_when_nothing_is_waiting</code></li>
+  </ul>
+  <h3>Part D: the checklist as a reading aid (front end)</h3>
+  <ul>
+    <li><code>request_does_not_wait_for_the_checklist_window</code>; <code>a_failing_checklist_window_never_stops_the_request</code>; <code>checklist_state_does_not_choose_the_add_data_screen</code>; <code>coming_back_to_the_tab_does_not_change_the_screen</code>; <code>reset_checklist_does_not_touch_the_request</code>; <code>closing_the_checklist_does_not_touch_the_request</code></li>
+    <li><code>status_strip_shows_progress_and_the_current_step</code>; <code>closed_state_shows_a_visible_reopen_action</code>; <code>panel_mode_shows_the_same_strip</code>; the existing checklist tests keep passing unless they pin the removed coupling (each replaced test is listed)</li>
+  </ul>
+  <h3>Dialog (front end)</h3>
+  <ul><li><code>shows_no_import_sentence_and_lets_every_complete_member_be_chosen</code>; <code>renders_a_generic_sentence_for_an_unknown_reason</code>; if Q4 is yes: <code>shows_one_quiet_line_when_a_request_waits_and_blocks_nothing</code></li></ul>
 </section>
 
-<section id="d11-tests">
-  <h2>D-11 · Tests first (named; each must fail on today's code before the fix)</h2>
-  <h3>Backend: <code>tests/services/auth/test_head_eligibility.py</code></h3>
-  <ul>
-    <li><code>test_waiting_cams_request_does_not_block_eligibility</code> (parametrised: waiting_for_user, requesting_cas, not_started). Replaces the old status test.</li>
-    <li><code>test_cams_request_past_its_window_but_not_yet_swept_does_not_block</code> (waiting_for_user, <code>expires_at</code> in the past)</li>
-    <li><code>test_dormant_and_legacy_statuses_do_not_block</code> (pending, upload_started, password_required, validation_failed, retry_pending)</li>
-    <li><code>test_uploaded_not_confirmed_review_follows_the_chosen_option</code> (A or C: eligible; B: blocks and names the import)</li>
-    <li><code>test_live_pan_claim_follows_the_chosen_option</code> and <code>test_expired_pan_claim_never_blocks</code></li>
-    <li><code>test_each_of_the_other_eleven_reasons_still_blocks</code> (one case per reason: no_email, no_phone, same_email_as_head, same_phone_as_head, email_in_use, phone_in_use, pan_registered_elsewhere, no_pan, label_missing, account_pending_deletion, head_change_already_open) and <code>test_reason_list_has_exactly_the_eleven_values</code></li>
-  </ul>
-  <h3>Backend: <code>tests/services/auth/test_head_change_flow.py</code></h3>
-  <ul>
-    <li><code>test_start_code_and_start_succeed_while_a_cams_request_waits</code></li>
-    <li><code>test_full_change_completes_while_a_cams_request_waits</code> (start, four codes, complete; members swapped)</li>
-    <li><code>test_change_leaves_import_rows_and_pan_fields_untouched</code> (before and after: ids, status, member id, <code>pan_encrypted</code>, <code>pan_lookup_hash</code>, <code>pan_pending_until</code>, <code>file_reference</code>)</li>
-    <li><code>test_import_started_after_start_does_not_fail_the_final_step</code></li>
-    <li><code>test_start_code_start_dialog_list_and_final_step_agree</code> (one parametrised case per import state; all four entry points give the same answer)</li>
-    <li><code>test_undo_works_while_a_cams_request_waits</code></li>
-    <li>Option C: <code>test_complete_discards_a_live_review_and_releases_its_pan_claim</code>, <code>test_complete_answers_try_again_while_a_confirm_is_processing</code></li>
-    <li>Option B: <code>test_live_review_blocks_start_and_names_the_import</code></li>
-  </ul>
-  <h3>Backend: <code>tests/api/test_head_change_routes.py</code> and <code>tests/functional_postgres/</code></h3>
-  <ul>
-    <li><code>test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request</code> and <code>test_start_code_route_returns_200_with_a_waiting_cams_request</code> (the old 409 case near line 664 is replaced)</li>
-    <li><code>test_swap_with_a_waiting_cams_request_on_postgres</code></li>
-    <li><code>test_swap_and_confirm_do_not_interleave_on_postgres</code> (step R5 turned into a test)</li>
-  </ul>
-  <h3>Import side: <code>tests/services/import_/</code></h3>
-  <ul>
-    <li><code>test_confirm_after_a_head_change_attributes_to_the_same_member</code> (pins the result of R4 whichever option wins)</li>
-  </ul>
-  <h3>Frontend: <code>ChangeHeadDialog.fix.test.tsx</code>, <code>headEligibility.test.ts</code></h3>
-  <ul>
-    <li><code>shows_no_import_sentence_and_lets_every_complete_member_be_chosen</code></li>
-    <li><code>renders_a_generic_sentence_for_an_unknown_reason</code> (an old server code never leaves a blank row)</li>
-    <li>Option B only: <code>names_the_blocking_import_and_cancel_reenables_the_member</code></li>
-  </ul>
-</section>
-
-<section id="d11-delivery">
-  <h2>D-11 · Files to touch, risks, rollback, deploy</h2>
+<section id="delivery">
+  <h2>Files, risks, rollback, deploy</h2>
   <div class="grid2">
     <div>
       <h3>Files to touch</h3>
       <ul>
-        <li><code>backend/app/services/auth/head_eligibility.py</code>: remove the reason, the type value and the helper (or narrow it), drop unused imports</li>
-        <li><code>backend/app/services/auth/head_change.py</code>: the set at line 73, the 409 branch, and (option C) the discard and retry step inside the swap</li>
-        <li><code>frontend/src/features/profile-v2/components/ChangeHeadDialog.tsx</code>: remove the sentence (option B adds the import name and Cancel)</li>
-        <li>The tests listed above, rewritten first</li>
-        <li>Docs: <code>decisions.md</code> (result of R4 to R6), <code>session.md</code>, one line added to ADR-007's consequences</li>
+        <li><b>A:</b> <code>backend/app/services/auth/head_eligibility.py</code>, <code>head_change.py</code>, <code>frontend/src/features/profile-v2/components/ChangeHeadDialog.tsx</code></li>
+        <li><b>B:</b> <code>backend/app/services/import_/cams_portal.py</code> (a "close request for member" function), the confirm step in <code>import_/service.py</code> or <code>confirm_people.py</code>, <code>import_/deletion.py</code> (the "statement left" check), a one-off script under <code>backend/scripts/</code></li>
+        <li><b>C:</b> an import read route or one extra field in <code>api/imports.py</code> / <code>api/cas_imports.py</code>, <code>features/import/api.ts</code>, <code>WaitingForCasView.tsx</code>, a new status card component, <code>TwoPathImportContainer.tsx</code></li>
+        <li><b>D:</b> <code>features/import/checklist/*</code> (<code>checklistStore.ts</code>, <code>CamsChecklistHost.tsx</code>, <code>CamsChecklist.tsx</code>, <code>checklistCopy.ts</code>, <code>checklist-tokens.css</code>), <code>RequestCamsPath.tsx</code>, <code>TwoPathImportContainer.tsx</code></li>
+        <li>Docs: <code>decisions.md</code>, <code>session.md</code>, one line in ADR-007; QA rows</li>
       </ul>
-      <p class="small">Option B only: the eligibility route and its schema gain an optional <code>blocking_import</code> object (member, kind, expires at). No migration in any option.</p>
+      <p class="small">Part D touches the same files as Part C (<code>TwoPathImportContainer.tsx</code>): they run one after the other, not in parallel.</p>
     </div>
     <div>
       <h3>Migration check</h3>
-      <p>None expected. No model column changes: the fix reads and, in option C, deletes preview rows through existing functions, and any "your review was discarded" note lives in the request's JSON <code>snapshot</code>. <b>If R4 to R6 reveal a need for a schema change, the plan stops and asks you</b> before building.</p>
+      <p>None expected: the fix reads and closes existing rows and, for a live review, deletes preview rows through existing functions. The one-off clean-up is a script. If R7 shows a schema need, the plan stops and asks before building.</p>
       <h3>Rollback</h3>
-      <p>Revert the patch commit(s) and redeploy backend and frontend. Nothing persistent changes except discarded review sessions (temporary, 60 minutes by design), so there is nothing to restore. Check that an older build ignores an extra key in the request snapshot (part of R9).</p>
+      <p>Revert the patch commits and redeploy. Closed requests cannot be reopened, but a closed request only means "stop waiting"; a user can simply request again. Discarded reviews are temporary by design.</p>
       <h3>Deploy</h3>
-      <p>A patch deploy: backend restart plus a frontend bundle, no stored-results rebuild, no Alembic step (head stays 0054). It touches different files from the XIRR work (<code>auth/</code> and <code>profile-v2/</code>, not <code>dashboard/xirr.py</code> or the holdings screens), so it can ship before, with or after XIRR.</p>
+      <p>Goes into the next combined staging guide (the manager's Claude runs it). The clean-up script runs once after the deploy, dry-run first.</p>
     </div>
   </div>
   <h3>Risks</h3>
   <ul>
-    <li><b>Unproven race (R4):</b> the live-review window above. That is why option C or A is chosen after the evidence.</li>
-    <li><b>Half-fix:</b> forgetting the final-step re-check leaves the failure after all four codes. The test <code>test_import_started_after_start_does_not_fail_the_final_step</code> covers it.</li>
-    <li><b>Lock order:</b> the swap's lock order (account, members by id, request) is a stated contract. Option C touches import rows inside it; R5 checks this before any code is written.</li>
-    <li><b>Old clients:</b> a browser still showing the old bundle may receive no reason it knows; the generic-sentence test covers an unknown code.</li>
-    <li><b>Not verified:</b> I read the code and documents only. I did not run the app, a local database or staging; every "confirmed" above means read in the source.</li>
+    <li><b>Closing a record too early:</b> a user who imported one statement but still waits for a second CAMS email for another person. Part B closes only the member whose statement was imported.</li>
+    <li><b>The unproven live-review race (R6):</b> that is why D1 is a decision after the evidence.</li>
+    <li><b>Half-fix:</b> forgetting the last step leaves the failure after all four codes. A named test covers it.</li>
+    <li><b>The click rule:</b> the checklist must still open first in the Request click or the CAMS tab is blocked as a pop-up. Part D keeps that and removes only the waiting and the screen steering.</li>
+    <li><b>Not verified:</b> I read the code only; I did not run the app, a local database or staging.</li>
   </ul>
 </section>
 
-<section id="d11-acceptance">
-  <h2>D-11 · Acceptance (the owner re-runs stage 9 after the patch)</h2>
+<section id="acceptance">
+  <h2>Acceptance (the owner re-runs stage 9 after the fix)</h2>
   <ol>
-    <li>Start a CAMS request and leave it on "Waiting for CAMS email" (0 of 5 done), as in the failing QA run.</li>
-    <li>Open Profile, "Choose who will be Head of Family": members with complete details are selectable and Next works. No import sentence appears.</li>
-    <li>Run the full change with real codes (four codes, then complete). After it, the waiting CAMS request is still listed, unchanged, for the same member.</li>
-    <li><b>M1-17:</b> open the change emails in <b>Gmail web, Gmail app, Apple Mail and Outlook</b>: branded layout, light and dark, phone width, pictures load, names correct, "their", fonts as in the checklist.</li>
-    <li><b>M1-18:</b> the undo email: date line reads like "10 November 2026, 5:07 PM IST", the button and the copy-and-paste box carry the same full link, and the link works once and only for the previous head.</li>
-    <li><b>M1-19:</b> run the undo; the "changed back" email reads right (the designer's pass on pictures and this email is a separate open item).</li>
-    <li>Repeat step 2 and 3 once with an uploaded-but-not-confirmed statement open (option C: the change completes and the notice says the review was discarded; option B: the dialog names the statement and offers Cancel).</li>
-    <li>The other eleven reasons still grey a member (for example a member with no PAN).</li>
+    <li>Press Request from CAMS and close the checklist without ticking anything. Open Profile, Choose who will be Head of Family: members with complete details are selectable. No import sentence appears.</li>
+    <li>Run the full change; after it, the waiting request is still listed for the same member, unchanged (or, if you cancelled it first, gone).</li>
+    <li><b>M1-17:</b> the change emails in <b>Gmail web, Gmail app, Apple Mail and Outlook</b>. <b>M1-18:</b> the undo email (date line, same full link in the button and the box, works once, only for the previous head). <b>M1-19:</b> run the undo; the "changed back" email reads right.</li>
+    <li>Import a statement for a member, then check Head of Family the same day: no block; the waiting card is gone.</li>
+    <li>Press Request, reload the page, open Add data: the "CAMS request waiting" card is there, with a Cancel that works.</li>
+    <li>Close the checklist: the status strip stays visible with a Reopen button. Reset checklist does not cancel the request.</li>
+    <li>With a live review open: the behaviour chosen in D1.</li>
+    <li>The other eleven reasons still grey a member (for example no PAN).</li>
   </ol>
 </section>
 
 <section id="d11q">
-  <h2>D-11 · What I could not settle: decisions for you</h2>
-  <p class="small">Nothing is preselected. Each question has a recommended option; pick one, copy the block and paste it back, and I will update this page from it.</p>
+  <h2>Decisions for you</h2>
+  <p class="small">Nothing is preselected. Each question has a recommended option; pick one, copy the block and paste it back, and I will update this page from it. D1 to D4 are carried over from the first version (not answered yet); Q1 to Q7 are new.</p>
   <div id="d11list"></div>
   <div class="answers">
-    <h3 style="margin-top:0">Your D-11 answers</h3>
-    <textarea id="d11out" rows="10" readonly aria-label="D-11 answers to copy"></textarea>
-    <div class="row"><button id="d11copy" type="button" class="copybtn">Copy my D-11 answers</button><span id="d11copied" class="small" aria-live="polite"></span></div>
+    <h3 style="margin-top:0">Your answers</h3>
+    <textarea id="d11out" rows="14" readonly aria-label="Answers to copy"></textarea>
+    <div class="row"><button id="d11copy" type="button" class="copybtn">Copy my answers</button><span id="d11copied" class="small" aria-live="polite"></span></div>
   </div>
 </section>
+</main>
 
 <script>
 (function(){
 var Q=[
-{id:"D1",t:"What should happen to an unfinished statement review (uploaded, not confirmed) when the change completes?",why:"Only this one window can cause harm: an upload parsed while the old head was Self and confirmed after the swap, at most about 65 minutes. It is settled for sure only after steps R4 to R6, so this is your preference now and the evidence can overrule it.",o:[
- {k:"C",rec:1,l:"Never block; discard the review inside the swap and say so in the completion notice",d:"Fits your rule that nothing pending stops a change. The swap already signs everyone out, so an open review is lost anyway. The person uploads the file again."},
- {k:"A",l:"Never block and do nothing; let the review continue",d:"Simplest. Safe only if R4 and R6 show the swap cannot change which member the import is attributed to."},
- {k:"B",l:"Block only while a review is live, name it, and offer Cancel",d:"Safest for data, but it contradicts your 'must not stop a change' decision for that hour and needs a new dialog field and button."}]},
-{id:"D2",t:"If a confirm is saving at the exact moment the final step runs, what should the person see?",why:"Seconds-long window. Only matters under option C or B.",o:[
- {k:"a",rec:1,l:"A retryable message: 'A statement is being saved. Try again in a minute.'",d:"Nothing is lost; the codes stay valid for their normal window (the request is still open)."},
- {k:"b",l:"Wait up to a few seconds inside the request, then proceed",d:"Smoother, but holds a database lock and needs the lock-order check (R5) to come out clean."},
- {k:"c",l:"Ignore it",d:"Only if R5 proves confirm and swap cannot interleave."}]},
-{id:"D3",t:"Do you remember why the rule was added?",why:"No document states it. My inference is the Self-label dependency in the import code. If the reason was something else (for example a support case or a legal point), the plan must keep that protection.",o:[
- {k:"a",l:"No known reason beyond caution",d:"Proceed on my inference and the evidence from R4 to R6."},
- {k:"b",l:"Yes: it protects the Self-label attribution during a review",d:"Matches the inference; option C or B is then the intended answer."},
- {k:"c",l:"Yes: something else",d:"Write it in the note box; the plan will be redone around it."}]},
-{id:"D4",t:"Abandoned review rows stay 'previewing' until the next import call (no job cleans them). Fix that in this patch?",why:"It no longer affects the head change under A or C, so it is separate housekeeping. Under B it would keep blocking people for days.",o:[
- {k:"a",rec:1,l:"Leave it out; note it as a follow-up",d:"Keeps this patch small and aimed at D-11."},
- {k:"b",l:"Add a sweep to the daily CAS-file-expiry job in this patch",d:"Cleans old rows and the PAN claims they hold. Touches the import side, so it needs its own tests."}]}
+{id:"Q1",t:"How much do we do now?",why:"Part A (Head of Family) is small and fixes your blocked stage 9. Parts B, C and D fix the causes around it.",o:[
+ {k:"a",rec:1,l:"All four parts, shipped in order A, B, C, D",d:"Each part is tested and valuable alone. Part A can go first so you can run stage 9 soon."},
+ {k:"b",l:"A and B now; C and D later",d:"Fixes the block and the stuck records; the waiting card and the checklist refresh wait."},
+ {k:"c",l:"A only now",d:"Smallest. The stuck records and the checklist problems stay."}]},
+{id:"Q2",t:"Which 'small block of text' do you mean?",why:"I found three: the plain 'N of 5 done' line on the page, the 'Your checklist closed...' banner, and the 'Waiting for CAMS email' heading. The proposed status card replaces all three.",o:[
+ {k:"a",rec:1,l:"All of them: one clear status card or strip",d:"One place that always shows: waiting, progress, Reopen, Cancel."},
+ {k:"b",l:"Only the 'N of 5 done' line",d:"Make just that line more visible; leave the rest."},
+ {k:"c",l:"Only the 'checklist closed' banner",d:"Make just the banner more visible."}]},
+{id:"Q3",t:"What should 'Start over' do?",why:"Today it clears only the checklist, which looks like cancelling the request but is not.",o:[
+ {k:"a",rec:1,l:"Rename it 'Reset checklist'; it only resets the checklist. Cancelling stays a separate 'Cancel request' button",d:"Clear and safe: nothing is cancelled by accident."},
+ {k:"b",l:"Make it cancel the request too, after a confirmation",d:"One button does both, but a user can lose a request they still need."},
+ {k:"c",l:"Remove it",d:"Fewer buttons; the user cannot reset a stuck checklist."}]},
+{id:"Q4",t:"Should the Head of Family dialog mention a waiting request?",why:"The change must never be blocked. A quiet line could still explain what is going on.",o:[
+ {k:"a",rec:1,l:"No. Say nothing; the request is unrelated to the change",d:"Simplest and matches 'the checklist and the request are not connected to this'."},
+ {k:"b",l:"One quiet line, no button",d:"'A CAMS request for Rohan is still waiting. It does not stop this change.'"}]},
+{id:"Q5",t:"How should Cancel find the request after a reload?",why:"Today the page forgets the request id.",o:[
+ {k:"a",rec:1,l:"Ask the server ('is a request waiting for this member?') and cancel by that id",d:"Works on any device and after any reload. Needs one small read on the server."},
+ {k:"b",l:"Keep the id in the browser's storage",d:"No server change, but it does not work on another device or after clearing the browser."}]},
+{id:"Q6",t:"When a statement is imported, which waiting requests close?",why:"The request record and the import are separate records today.",o:[
+ {k:"a",rec:1,l:"Close the waiting request of the member whose statement was imported",d:"Precise: other members' requests stay."},
+ {k:"b",l:"Close every waiting request in the family",d:"Simpler but can cancel a request someone still needs."}]},
+{id:"Q7",t:"Old stuck requests already on staging and production: clean them up?",why:"Records stuck since earlier imports can keep blocking nothing after Part A, but they clutter and confuse the waiting card.",o:[
+ {k:"a",rec:1,l:"Yes: a one-off script, dry run first, closes requests that have a later import or are past 48 hours",d:"Safe and counted before it runs."},
+ {k:"b",l:"No: let them expire on their own",d:"Nothing to run, but old rows may show up as 'waiting' for a day or two."}]},
+{id:"D1",t:"What should happen to an unfinished statement review (uploaded, not confirmed) when the change completes?",why:"Only this window can cause harm: an upload parsed while the old head was 'Me' and confirmed after the swap, at most about 65 minutes. Step R6 proves or disproves it.",o:[
+ {k:"C",rec:1,l:"Never block; discard the review inside the swap and say so in the completion notice",d:"Fits your rule that nothing pending stops a change. The swap signs everyone out anyway. The person uploads the file again."},
+ {k:"A",l:"Never block and do nothing; let the review continue",d:"Simplest. Safe only if R6 shows the swap cannot change which member the import is attributed to."},
+ {k:"B",l:"Block only while a review is live, name it, and offer Cancel",d:"Safest for data, but it blocks for that hour and needs a new dialog field and button."}]},
+{id:"D2",t:"If a confirm is saving at the exact moment the final step runs, what should the person see?",why:"A window of seconds. Only matters under D1 options C or B.",o:[
+ {k:"a",rec:1,l:"'A statement is being saved. Try again in a minute.'",d:"Nothing is lost; the codes stay valid."},
+ {k:"b",l:"Wait a few seconds inside the request, then proceed",d:"Smoother but needs the lock-order check in R6 to be clean."},
+ {k:"c",l:"Ignore it",d:"Only if the check proves they cannot interleave."}]},
+{id:"D3",t:"Do you remember why the original rule (block on a waiting import) was added?",why:"No document says. My guess: it protects the 'Me' label during a review.",o:[
+ {k:"a",l:"No known reason beyond caution",d:"Proceed on the evidence from R6."},
+ {k:"b",l:"Yes: it protects the review's 'Me' attribution",d:"Matches my guess; D1 option C or B is then the intended answer."},
+ {k:"c",l:"Yes: something else",d:"Write it in the note box; the plan is redone around it."}]},
+{id:"D4",t:"Abandoned review rows stay open until the next import call (no job cleans them). Fix in this work?",why:"After Part A this no longer affects the head change under options A or C.",o:[
+ {k:"a",rec:1,l:"Leave it out; note it as a follow-up",d:"Keeps this work aimed at D-11."},
+ {k:"b",l:"Add a sweep to the daily clean-up job",d:"Cleans old rows and their PAN claims; needs its own tests."}]}
 ];
 var list=document.getElementById("d11list");
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
@@ -339,7 +457,7 @@ Q.forEach(function(q){
 });
 var out=document.getElementById("d11out");
 function build(){
- var s="My answers to the D-11 plan (Head of Family blocked by a waiting import) in Docs/orchestration/2026-11-24-head-of-family-d11-plan.html. Update the whole page from these:\n";
+ var s="My answers to the D-11 plan v2 (Head of Family blocked by a waiting import) in Docs/orchestration/2026-11-24-head-of-family-d11-plan.html. Update the whole page from these:\n";
  Q.forEach(function(q){
   var v=document.querySelector('input[name="d11'+q.id+'"]:checked');
   var o=q.o.filter(function(x){return v&&x.k===v.value})[0];
@@ -357,6 +475,3 @@ document.getElementById("d11copy").addEventListener("click",function(){
 });
 })();
 </script>
-
-
-</main>
