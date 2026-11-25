@@ -1151,10 +1151,12 @@ def complete_head_change(
     new_head: HouseholdMember | None = None
 
     try:
-        # The swap takes every lock NOWAIT and never waits: a confirm takes the account,
-        # member and Import locks in several orders, so waiting here can deadlock and
-        # PostgreSQL may abort the confirm (G1 reviews, 25 Nov 2026). The order below
-        # (account, members by id, request, Import rows) stays the same on every database.
+        # The swap takes the account, member, request and Import row locks NOWAIT, so it
+        # never waits on the locks a statement confirm uses: a confirm takes them in several
+        # orders, so waiting here can deadlock and PostgreSQL may abort the confirm (G1
+        # reviews, 25 Nov 2026). Later writes (sessions, identities, OTP rows) still take
+        # ordinary locks; those are not used by a confirm. The order below (account,
+        # members by id, request, Import rows) stays the same on every database.
         try:
             locked_user = (
                 db.query(User)
