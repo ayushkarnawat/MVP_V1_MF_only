@@ -23,16 +23,20 @@ from app.models.consent import ConsentRecord
 from app.models.enums import (
     AuthIdentityProvider,
     ConsentAction,
+    ImportStatus,
     InvestorType,
     PrimaryGoal,
     Relationship,
 )
 from app.models.folio import Folio
+from app.models.imports import Import
 from app.models.reference import Scheme
 from app.models.user import HouseholdMember, User
 from app.services.auth.account_deletion import hard_delete_expired_accounts
 from app.services.auth.head_change import HeadChangeError
 from app.services.legal.consent import ConsentEvidence
+from app.services.import_.pan_claims import PENDING_PAN_TTL, claim_pan_for_member
+from app.services.import_.preview_store import save as save_review
 
 
 NOW = datetime(2026, 11, 2, 10, 0, tzinfo=timezone.utc)
@@ -239,6 +243,182 @@ def _assert_unswapped(db, household: Household) -> None:
     assert new_head.relationship == Relationship.SPOUSE
     assert db.query(AuthIdentity).filter_by(user_id=user.id).count() == 4
     assert db.query(SessionModel).filter_by(user_id=user.id).count() == 2
+
+
+def test_complete_discards_a_live_review_and_releases_its_pan_claim(db_session):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    member = household.other_member
+    pan = "ABCDE1234F"
+    claim_pan_for_member(db_session, member, pan, pending=True)
+    review_id = uuid.uuid4()
+    save_review(db_session, {
+        "session_id": review_id.hex, "household_member_id": member.id,
+        "created_at": datetime.now(timezone.utc), "pending_claims": [(member.id, pan)],
+    })
+    db_session.commit()
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.discarded_review is True
+    assert db_session.get(Import, review_id) is None
+    db_session.refresh(member)
+    assert (member.pan_encrypted, member.pan_lookup_hash, member.pan_pending_until) == (None, None, None)
+
+
+def test_complete_reports_no_discard_when_no_review_existed(db_session):
+    household = _household(db_session)
+    result = _complete(db_session, household, _ready_request(db_session, household))
+    assert result.discarded_review is False
+
+
+def test_complete_discards_reviews_of_two_members_and_reports_one_flag(db_session):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    ids = [uuid.uuid4(), uuid.uuid4()]
+    for member, review_id in zip([household.new_head, household.other_member], ids):
+        db_session.add(Import(id=review_id, household_member_id=member.id,
+                              status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc)))
+    db_session.commit()
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.discarded_review is True
+    assert all(db_session.get(Import, review_id) is None for review_id in ids)
+
+
+def test_complete_answers_statement_being_saved_while_a_confirm_is_processing(db_session):
+    from app.models.auth import OtpRequest
+
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    request = db_session.get(HeadChangeRequest, request_id)
+    before = (request.snapshot, request.current_email_verified_at, request.current_phone_verified_at,
+              request.new_email_verified_at, request.new_phone_verified_at)
+    codes_before = [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()]
+    review = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                    status=ImportStatus.PROCESSING, uploaded_at=datetime.now(timezone.utc))
+    db_session.add(review)
+    db_session.commit()
+
+    with pytest.raises(HeadChangeError) as exc:
+        _complete(db_session, household, request_id)
+
+    assert (exc.value.status_code, exc.value.code, exc.value.message) == (
+        409, "statement_being_saved", "A statement is being saved. Try again in a minute.")
+    _assert_unswapped(db_session, household)
+    request = db_session.get(HeadChangeRequest, request_id)
+    assert request.status == "pending"
+    assert (request.snapshot, request.current_email_verified_at, request.current_phone_verified_at,
+            request.new_email_verified_at, request.new_phone_verified_at) == before
+    assert [(row.id, row.otp_hash, row.attempt_count) for row in db_session.query(OtpRequest).all()] == codes_before
+    assert db_session.get(Import, review.id).status == ImportStatus.PROCESSING
+
+
+def test_retry_after_the_saving_answer_succeeds_once_the_confirm_finished(db_session):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    review = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                    status=ImportStatus.PROCESSING, uploaded_at=datetime.now(timezone.utc))
+    db_session.add(review)
+    db_session.commit()
+    with pytest.raises(HeadChangeError) as exc:
+        _complete(db_session, household, request_id)
+    assert exc.value.code == "statement_being_saved"
+    review.status = ImportStatus.CONFIRMED
+    db_session.commit()
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.request_id == request_id
+    assert result.status == "completed"
+    assert result.discarded_review is False
+    assert db_session.get(Import, review.id).status == ImportStatus.CONFIRMED
+
+
+def test_a_stale_processing_row_is_discarded_not_blocking(db_session):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    member = household.other_member
+    pan = "ABCDE1234F"
+    claim_pan_for_member(db_session, member, pan, pending=True)
+    review_id = uuid.uuid4()
+    save_review(db_session, {
+        "session_id": review_id.hex, "household_member_id": member.id,
+        "created_at": datetime.now(timezone.utc) - PENDING_PAN_TTL - timedelta(minutes=1),
+        "pending_claims": [(member.id, pan)],
+    })
+    db_session.get(Import, review_id).status = ImportStatus.PROCESSING
+    db_session.commit()
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.discarded_review is True
+    assert db_session.get(Import, review_id) is None
+    db_session.refresh(member)
+    assert (member.pan_encrypted, member.pan_lookup_hash, member.pan_pending_until) == (None, None, None)
+
+
+def test_change_leaves_import_rows_and_pan_fields_untouched(db_session):
+    household = _household(db_session)
+    request_id = _ready_request(db_session, household)
+    member = household.other_member
+    member.pan_encrypted = "encrypted-permanent-pan"
+    member.pan_lookup_hash = "permanent-pan-hash"
+    pan_fields = [column.key for column in HouseholdMember.__table__.columns if "pan" in column.key]
+    rows = [Import(id=uuid.uuid4(), household_member_id=member.id, status=status,
+                   source_tab="request" if status == ImportStatus.WAITING_FOR_USER else "upload",
+                   uploaded_at=datetime.now(timezone.utc),
+                   expires_at=datetime.now(timezone.utc) + timedelta(hours=48))
+            for status in (ImportStatus.CONFIRMED, ImportStatus.FAILED, ImportStatus.EXPIRED,
+                           ImportStatus.WAITING_FOR_USER)]
+    db_session.add_all(rows)
+    db_session.commit()
+    before = [{column.key: getattr(row, column.key) for column in Import.__table__.columns} for row in rows]
+    pans_before = {m.id: {field: getattr(m, field) for field in pan_fields}
+                   for m in (household.old_head, household.new_head, member)}
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.discarded_review is False
+    db_session.expire_all()
+    assert [{column.key: getattr(db_session.get(Import, row.id), column.key)
+             for column in Import.__table__.columns} for row in rows] == before
+    assert {mid: {field: getattr(db_session.get(HouseholdMember, mid), field) for field in pan_fields}
+            for mid in pans_before} == pans_before
+
+
+def test_undo_works_while_a_cams_request_waits(db_session, monkeypatch):
+    from tests.services.auth.test_head_change_undo import _swap, _undo
+
+    household = _household(db_session)
+    row = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                 status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+                 uploaded_at=datetime.now(timezone.utc),
+                 expires_at=datetime.now(timezone.utc) + timedelta(hours=48))
+    db_session.add(row)
+    db_session.commit()
+    _, token, _ = _swap(db_session, household, monkeypatch)
+
+    assert _undo(db_session, token).status == "undone"
+    assert db_session.get(Import, row.id).status == ImportStatus.WAITING_FOR_USER
+    assert db_session.get(HouseholdMember, household.old_head.id).is_head is True
+
+
+def test_import_started_after_start_does_not_fail_the_final_step(db_session):
+    household = _household(db_session)
+    started = _start(db_session, household)
+    row = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                 status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc))
+    db_session.add(row)
+    db_session.commit()
+    request_id = _verify_remaining(db_session, household, started)
+
+    result = _complete(db_session, household, request_id)
+
+    assert result.status == "completed"
+    assert result.discarded_review is True
+    assert db_session.get(Import, row.id) is None
 
 
 def test_swap_leaves_user_id_portfolio_and_analytics_rows_untouched(db_session):
@@ -571,6 +751,7 @@ def test_snapshot_and_logs_contain_no_raw_token_and_no_code(db_session, monkeypa
         "from_member_id",
         "to_member_id",
         "status",
+        "discarded_review",
     }
     snapshot_text = json.dumps(db_session.get(HeadChangeRequest, request_id).snapshot)
     assert raw_token not in snapshot_text

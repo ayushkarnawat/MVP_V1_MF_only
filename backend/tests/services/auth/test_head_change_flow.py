@@ -588,12 +588,6 @@ def test_wrong_code_is_counted_even_when_the_surrounding_request_fails():
             "This person's PAN is already on another Unifolio account, so they cannot become head.",
         ),
         (
-            "import",
-            409,
-            "import_in_progress",
-            "Finish or cancel the statement you are importing, then try again.",
-        ),
-        (
             "label",
             409,
             "member_not_eligible",
@@ -624,15 +618,6 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
         candidate.detected_pan_encrypted = "encrypted-conflict"
         candidate.detected_pan_hash = "conflicting-pan"
         candidate.pan_conflict = MemberPanConflict.OTHER_ACCOUNT
-    elif case == "import":
-        db.add(
-            Import(
-                id=uuid.uuid4(),
-                household_member_id=head.id,
-                status=ImportStatus.PREVIEWING,
-                uploaded_at=NOW,
-            )
-        )
     elif case == "label":
         candidate.relationship = None
     db.commit()
@@ -643,6 +628,37 @@ def test_each_error_code_returns_its_own_message(case, status, code, message):
         )
 
     _assert_error(exc, status=status, code=code, message=message)
+
+
+def test_start_code_and_start_succeed_while_a_cams_request_waits():
+    db = _session()
+    user, _, candidate = _household(db)
+    db.add(Import(
+        id=uuid.uuid4(), household_member_id=candidate.id,
+        status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+        uploaded_at=NOW, expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+    ))
+    db.commit()
+
+    result = _start(db, user, candidate)
+
+    assert result.request.to_member_id == candidate.id
+    assert result.request.status == "pending"
+
+
+def test_start_succeeds_with_an_unfinished_review_open():
+    db = _session()
+    user, _, candidate = _household(db)
+    db.add(Import(
+        id=uuid.uuid4(), household_member_id=candidate.id,
+        status=ImportStatus.PREVIEWING, uploaded_at=NOW,
+    ))
+    db.commit()
+
+    result = _start(db, user, candidate)
+
+    assert result.request.to_member_id == candidate.id
+    assert result.request.status == "pending"
 
 
 def test_failed_email_delivery_saves_no_request_or_new_code_and_uses_no_throttle(monkeypatch):

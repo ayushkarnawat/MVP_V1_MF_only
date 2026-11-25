@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.models.user import HouseholdMember, User
-from app.models.enums import Relationship
+from app.models.enums import ImportStatus, Relationship
+from app.models.imports import Import
 
 
 def _signup(client, phone: str) -> tuple[str, str]:
@@ -174,11 +175,49 @@ def test_complete_head_change_route_returns_completed_and_requires_logout(client
     )
 
     assert response.status_code == 200
-    assert response.json() == {"status": "completed", "logout_required": True}
+    assert response.json() == {"status": "completed", "logout_required": True, "discarded_review": False}
     assert (
         client.get("/auth/head-change/pending", headers=household["headers"]).status_code
         == 401
     )
+
+
+@pytest.mark.parametrize("with_review", [False, True])
+def test_complete_route_returns_the_discarded_review_flag(client, with_review):
+    household = _household(client, suffix="f01")
+    request_id = _verify_all_codes(client, household, _start(client, household))
+    if with_review:
+        db = _db(client)
+        db.add(Import(id=uuid.uuid4(), household_member_id=uuid.UUID(household["candidate_id"]),
+                      status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc)))
+        db.commit()
+        db.close()
+
+    response = client.post("/auth/head-change/complete", json={"request_id": request_id},
+                           headers=household["headers"])
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "completed", "logout_required": True,
+                               "discarded_review": with_review}
+
+
+def test_complete_route_409_body_for_a_saving_statement_has_code_and_message(client):
+    household = _household(client, suffix="f02")
+    request_id = _verify_all_codes(client, household, _start(client, household))
+    db = _db(client)
+    db.add(Import(id=uuid.uuid4(), household_member_id=uuid.UUID(household["candidate_id"]),
+                  status=ImportStatus.PROCESSING, uploaded_at=datetime.now(timezone.utc)))
+    db.commit()
+    db.close()
+
+    response = client.post("/auth/head-change/complete", json={"request_id": request_id},
+                           headers=household["headers"])
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "statement_being_saved",
+        "message": "A statement is being saved. Try again in a minute.",
+    }
 
 
 def test_stub_code_present_only_in_stub_mode(client, monkeypatch):
@@ -417,7 +456,7 @@ def _swap_through_the_routes(client, household, monkeypatch) -> tuple[str, Mailb
         headers=household["headers"],
     )
     assert completed.status_code == 200
-    assert completed.json() == {"status": "completed", "logout_required": True}
+    assert completed.json() == {"status": "completed", "logout_required": True, "discarded_review": False}
     link = next(m["body"] for m in mailbox.sent if m["subject"] == "Undo the Head of Family change.")
     token = link.split("/undo-head-change#token=")[1].strip()
     mailbox.sent.clear()
@@ -661,9 +700,27 @@ def test_eligibility_reports_an_open_change_and_an_open_statement_import(client)
     reasons = _reasons(_eligibility(client, household))
 
     assert set(reasons[household["candidate_id"]]) == {
-        "import_in_progress",
         "head_change_already_open",
     }
+
+
+def test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request(client):
+    household = _household(client, suffix="e11")
+    db = _db(client)
+    db.add(Import(
+        id=uuid.uuid4(),
+        household_member_id=uuid.UUID(household["candidate_id"]),
+        status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+        uploaded_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+    ))
+    db.commit()
+    db.close()
+
+    response = _eligibility(client, household)
+
+    assert response.status_code == 200
+    assert _reasons(response)[household["candidate_id"]] == []
 
 
 def test_eligibility_sends_no_code_and_writes_nothing(client):

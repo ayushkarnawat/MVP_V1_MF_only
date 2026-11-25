@@ -22,7 +22,8 @@ from app.models.auth import (
     PendingIdentityVerification,
     Session as SessionModel,
 )
-from app.models.enums import AuthIdentityProvider, ConsentAction, Relationship
+from app.models.enums import AuthIdentityProvider, ConsentAction, ImportStatus, Relationship
+from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.auth.contact_change_events import contact_changed_recently_until
 from app.services.auth.email_provider import EmailSendError, get_email_provider
@@ -48,6 +49,8 @@ from app.services.auth.otp import (
     verify_otp,
 )
 from app.services.dashboard.member_details import MemberNotFoundError
+from app.services.import_.pan_claims import PENDING_PAN_TTL
+from app.services.import_.preview_store import discard_member_reviews
 from app.services.legal.consent import (
     SIGNUP_DOCUMENTS,
     ConsentEvidence,
@@ -59,6 +62,8 @@ from app.services.legal.registry import current_document
 HEAD_CHANGE_TTL_MINUTES = 10
 UNDO_TTL_HOURS = 24
 CHANGE_AGAIN_AFTER_DAYS = 7
+SAVING_CODE = "statement_being_saved"
+SAVING_MESSAGE = "A statement is being saved. Try again in a minute."
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +75,6 @@ START_CODE_ELIGIBILITY_REASONS = {
     "same_email_as_head",
     "same_phone_as_head",
     "head_change_already_open",
-    "import_in_progress",
     "account_pending_deletion",
 }
 
@@ -119,6 +123,7 @@ class HeadChangeResult:
     from_member_id: uuid.UUID
     to_member_id: uuid.UUID
     status: str
+    discarded_review: bool = False
 
 
 @dataclass(frozen=True)
@@ -420,12 +425,6 @@ def _reason_error(reason: EligibilityReason) -> HeadChangeError:
             403,
             "account_pending_deletion",
             "This account is scheduled for deletion. Reactivate it first.",
-        )
-    if reason == "import_in_progress":
-        return _error(
-            409,
-            "import_in_progress",
-            "Finish or cancel the statement you are importing, then try again.",
         )
     return _error(
         409,
@@ -1104,6 +1103,26 @@ def preview_head_change(
     )
 
 
+def _settle_member_imports(
+    db: DbSession, member_ids: list[uuid.UUID], now: datetime
+) -> bool:
+    rows = (
+        db.query(Import)
+        .filter(Import.household_member_id.in_(member_ids))
+        .order_by(Import.id)
+        .populate_existing()
+        .with_for_update()
+        .all()
+    )
+    if any(
+        row.status == ImportStatus.PROCESSING
+        and _aware(row.uploaded_at) >= now - PENDING_PAN_TTL
+        for row in rows
+    ):
+        raise _error(409, SAVING_CODE, SAVING_MESSAGE)
+    return discard_member_reviews(db, member_ids) > 0
+
+
 def complete_head_change(
     db: DbSession,
     user: User,
@@ -1203,6 +1222,7 @@ def complete_head_change(
         if reasons:
             raise _reason_error(reasons[0])
 
+        discarded = _settle_member_imports(db, [m.id for m in members], now)
         label_plan = _build_label_plan(members, old_head.id, new_head)
         if label_plan.old_head_new_label is None:
             raise _reason_error("label_missing")
@@ -1384,6 +1404,7 @@ def complete_head_change(
         from_member_id=old_head.id,
         to_member_id=new_head.id,
         status="completed",
+        discarded_review=discarded,
     )
 
 

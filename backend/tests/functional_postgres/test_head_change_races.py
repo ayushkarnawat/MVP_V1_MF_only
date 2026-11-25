@@ -4,8 +4,12 @@ swap that is completing at the same moment."""
 from __future__ import annotations
 
 import threading
+import uuid
+from datetime import datetime, timedelta, timezone
 
 from app.models.auth import HeadChangeRequest
+from app.models.enums import ImportStatus
+from app.models.imports import Import
 from app.models.user import User
 from app.services.auth.head_change import HeadChangeError
 from tests.functional_postgres.test_head_change_swap import pg_session_factory  # noqa: F401
@@ -56,6 +60,77 @@ def _swap_paused_inside_its_lock(pg_session_factory, monkeypatch, suffix, *, pre
     thread.start()
     assert inside.wait(timeout=15)  # the swap holds the account and request locks
     return head_change, user_id, request_id, release, thread, outcome
+
+
+def test_swap_with_a_waiting_cams_request_on_postgres(pg_session_factory, monkeypatch):
+    extras = {}
+
+    def prepare(db, household):
+        row = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                     status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+                     uploaded_at=datetime.now(timezone.utc),
+                     expires_at=datetime.now(timezone.utc) + timedelta(hours=48))
+        db.add(row)
+        db.commit()
+        return {"import_id": row.id, "before": {c.key: getattr(row, c.key) for c in Import.__table__.columns}}
+
+    _, _, _, release, thread, outcome = _swap_paused_inside_its_lock(
+        pg_session_factory, monkeypatch, "w1", prepare=prepare, extras=extras)
+    release.set()
+    thread.join(timeout=15)
+    assert not thread.is_alive()
+    assert outcome["swap"].status == "completed"
+    assert outcome["swap"].discarded_review is False
+    with pg_session_factory() as check:
+        row = check.get(Import, extras["import_id"])
+        assert {c.key: getattr(row, c.key) for c in Import.__table__.columns} == extras["before"]
+
+
+def test_swap_and_confirm_do_not_interleave_on_postgres(pg_session_factory, monkeypatch):
+    extras = {}
+
+    def prepare(db, household):
+        row = Import(id=uuid.uuid4(), household_member_id=household.new_head.id,
+                     status=ImportStatus.PREVIEWING, uploaded_at=datetime.now(timezone.utc))
+        db.add(row)
+        db.commit()
+        return {"import_id": row.id}
+
+    _, _, request_id, release, swap_thread, outcome = _swap_paused_inside_its_lock(
+        pg_session_factory, monkeypatch, "w2", prepare=prepare, extras=extras)
+    result = {}
+    attempting = threading.Event()
+
+    def claim():
+        try:
+            with pg_session_factory() as db:
+                attempting.set()
+                # The atomic claim used by claim_session_for_confirm; no RAM cache can mask the DB race.
+                result["claimed"] = db.query(Import).filter(
+                    Import.id == extras["import_id"], Import.status == ImportStatus.PREVIEWING
+                ).update({Import.status: ImportStatus.PROCESSING}, synchronize_session=False)
+                db.commit()
+        except Exception as exc:
+            result["error"] = exc
+
+    confirm_thread = threading.Thread(target=claim, daemon=True)
+    confirm_thread.start()
+    try:
+        assert attempting.wait(timeout=5)
+        confirm_thread.join(timeout=1)
+        assert confirm_thread.is_alive(), "confirm claim did not wait for the swap's Import lock"
+    finally:
+        release.set()
+        swap_thread.join(timeout=15)
+        confirm_thread.join(timeout=15)
+    assert not swap_thread.is_alive() and not confirm_thread.is_alive()
+    assert "error" not in result
+    assert outcome["swap"].status == "completed"
+    assert outcome["swap"].discarded_review is True
+    assert result["claimed"] == 0
+    with pg_session_factory() as check:
+        assert check.get(Import, extras["import_id"]) is None
+        assert check.get(HeadChangeRequest, request_id).status == "completed"
 
 
 def test_a_cancel_waiting_behind_the_swap_does_not_overwrite_completed(
