@@ -26,9 +26,9 @@ export function MeasureFlip({
   const [animate, setAnimate] = useState(false);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--ui-text-muted)]">
+    <>
+      <div className={styles.head}>
+        <div className={styles.titleRow}>
           <span data-testid="measure-title">
             {face === "xirr" ? labelXirr : labelReturns}
           </span>
@@ -40,26 +40,31 @@ export function MeasureFlip({
             data-testid="measure-flip"
             data-clickable=""
             data-effect="switch"
+            aria-label={face === "xirr" ? "Show Returns" : "Show XIRR"}
             onClick={() => {
               setAnimate(true);
               onFlip();
             }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--ui-divider)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--ui-text-muted)] hover:text-[var(--ui-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
+            className={styles.flip}
           >
             <RefreshCw className="h-3 w-3" aria-hidden="true" />
-            {face === "xirr" ? "Show Returns" : "Show XIRR"}
+            <span data-testid="flip-label" className={styles.flipLabel}>
+              {face === "xirr" ? "Show Returns" : "Show XIRR"}
+            </span>
           </button>
         )}
       </div>
       {belowTitle}
-      <div aria-live="polite" className="flex flex-col gap-1">
+      <div aria-live="polite" className={styles.live}>
         <div
           key={face}
-          className={`flex flex-col gap-1${animate ? ` ${styles.turn}` : ""}`}
+          className={
+            animate ? `${styles.turnBox} ${styles.turn}` : styles.turnBox
+          }
         >
           {children}
         </div>
       </div>
-    </div>
+    </>
   );
 }

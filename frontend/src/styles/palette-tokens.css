@@ -38,6 +38,7 @@
   --ui-disabled-border: #DFDFDF;
   --ui-tooltip-bg: #2A2A2A;
   --ui-tooltip-text: #FFFFFF;
+  --sb-glow: rgba(34, 197, 94, 0.11);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,6 +75,7 @@
     --ui-disabled-border: #2E2E2E;
     --ui-tooltip-bg: #212121;
     --ui-tooltip-text: #FCFCFC;
+    --sb-glow: rgba(34, 197, 94, 0.14);
   }
 }
 
@@ -110,4 +112,5 @@
   --ui-disabled-border: #2E2E2E;
   --ui-tooltip-bg: #212121;
   --ui-tooltip-text: #FCFCFC;
+  --sb-glow: rgba(34, 197, 94, 0.14);
 }

@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SummaryBar, SummaryCell, SummaryFigure, SummaryLead, SummarySpark } from "@/components/summary-bar";
-import styles from "./summaryBar.module.css";
 
 function setup() {
   render(<SummaryBar ariaLabel="Portfolio summary"
@@ -71,7 +70,8 @@ describe("summary bar primitives", () => {
       if (!text.includes("₹")) return;
       const currency = within(figure).getByText("₹", { exact: true });
       expect(currency).not.toBe(figure);
-      const ruleName = Object.keys(styles).find(name => currency.classList.contains(styles[name]));
+      // Vitest hands back a proxy for CSS modules (no enumerable keys), so read the rule name from the generated class.
+      const ruleName = Array.from(currency.classList).map(cls => /^_(.+)_[0-9a-f]+$/.exec(cls)?.[1]).find(Boolean);
       expect(ruleName).toBeDefined();
       const rule = css.match(new RegExp(`\\.${ruleName}\\s*\\{([^}]+)\\}`))?.[1] ?? "";
       expect(rule).toMatch(/font-size:\s*0?\.\d+em\b/);
