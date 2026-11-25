@@ -874,13 +874,15 @@ def test_a_single_fund_category_is_its_own_average():
     assert category_blended_weighted_average(detailed, {only: Decimal("7")}) == (Decimal("0.12"), 1, "fund_size", 0)
 
 
-def test_weighted_average_keeps_the_three_year_floor():
+def test_weighted_average_uses_each_periods_own_members():
     from app.services.analytics.category_ranking import category_period_weighted_averages
     old, young = uuid.uuid4(), uuid.uuid4()
     detailed = {old: (Decimal("0.10"), Decimal("0.12"), None, Decimal("0.12")),
                 young: (Decimal("9"), None, None, None)}
     result = category_period_weighted_averages(detailed, {old: Decimal("1"), young: Decimal("1000")})
-    assert result["1y"] == (Decimal("0.10"), 1, "fund_size", 0)
+    # 1Y = (0.10 * 1 + 9 * 1000) / (1 + 1000) = 9000.10 / 1001.
+    assert result["1y"] == (Decimal("9000.10") / Decimal("1001"), 2, "fund_size", 0)
+    assert result["3y"] == (Decimal("0.12"), 1, "fund_size", 0)
 
 
 def test_all_without_size_falls_back_end_to_end_and_flags_each_period():
