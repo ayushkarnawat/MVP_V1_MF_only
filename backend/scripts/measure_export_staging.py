@@ -103,8 +103,14 @@ def summarise(values: list[float]) -> dict:
 class Http:
     """The three calls the run needs. Injected so the logic can be tested without a server."""
 
-    def __init__(self, api_base: str, token: str):
+    def __init__(self, api_base: str, token: str, save_pdf: Path | None = None):
         self.api_base, self.token = api_base.rstrip("/"), token
+        self.save_pdf = save_pdf
+        if save_pdf is not None:
+            if save_pdf.exists():
+                raise FileExistsError("refusing to overwrite an existing PDF")
+            if not save_pdf.parent.is_dir():
+                raise FileNotFoundError("the PDF parent directory must exist")
 
     def _call(self, method: str, path: str, body: dict | None = None, timeout: float = 60):
         data = json.dumps(body).encode() if body is not None else None
@@ -130,6 +136,14 @@ class Http:
 
     def get_file(self, job_id: str) -> tuple[int | None, int]:
         status, raw = self._call("GET", f"/export/report/{job_id}/file", timeout=120)
+        if status == 200 and self.save_pdf is not None:
+            try:
+                with self.save_pdf.open("xb") as output:
+                    output.write(raw)
+            except FileExistsError:
+                raise FileExistsError("refusing to overwrite an existing PDF") from None
+            print(f"saved_pdf: {len(raw)} bytes to {self.save_pdf}")
+            self.save_pdf = None  # One capture per invocation; subsequent runs download and discard.
         return status, len(raw)
 
 
@@ -457,7 +471,13 @@ def main() -> int:
     ap.add_argument("--token-env", help="name of an environment variable holding a session token")
     ap.add_argument("--mint-session-for", type=uuid.UUID, help="opt in: one session row is inserted and deleted again")
     ap.add_argument("--mint-session-for-email", help="opt in: look the user up by email (prints only found yes/no), then mint one session")
+    ap.add_argument("--save-pdf", type=Path, help="save the first successful download here; parent must exist; never overwrite")
     args = ap.parse_args()
+    try:
+        http = Http(args.api_base, "", save_pdf=args.save_pdf)
+    except OSError as exc:
+        print(f"stopped: {exc}")
+        return 2
 
     if args.part in ("sections", "all"):
         try:
@@ -484,7 +504,7 @@ def main() -> int:
     if not token:
         print("stopped: no session given (pass --token-env, --mint-session-for or --mint-session-for-email)")
         return 2
-    http = Http(args.api_base, token)
+    http.token = token
     results: list[tuple[str, dict]] = []
     try:
         if args.part == "round1":

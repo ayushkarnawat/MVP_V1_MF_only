@@ -33,9 +33,15 @@ def test_consume_expired_token_returns_none(monkeypatch):
     assert consume_export_payload(token) is None
 
 
-def test_get_shared_browser_raises_before_started():
-    with pytest.raises(RuntimeError, match="not started"):
-        get_shared_browser()
+def test_no_shared_browser_exists_until_first_use():
+    # Lazy start (owner decision QA-21 A, 26 Nov 2026): nothing is launched at start-up; the first
+    # get_shared_browser() call launches it, so the getter is a coroutine and no browser is held before that.
+    import inspect
+
+    from app.services.analytics import pdf_export
+
+    assert pdf_export._browser is None
+    assert inspect.iscoroutinefunction(get_shared_browser)
 
 
 def test_render_analytics_pdf_navigates_and_returns_bytes():
