@@ -8,17 +8,53 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from sqlalchemy import event, exists, or_, text
-from sqlalchemy.orm import Session, aliased, with_loader_criteria
+from sqlalchemy import event, exists, or_, text, update
+from sqlalchemy.orm import Session, aliased
 
 from app.db.session import SessionLocal
 from app.models.enums import ImportStatus
 from app.models.imports import Import
-from app.services.import_.cams_portal import close_member_requests
 
 
 class WriteAttempted(RuntimeError):
     pass
+
+
+def _sql_tokens(statement: str) -> str:
+    tokens: list[str] = []
+    i = 0
+    while i < len(statement):
+        if statement.startswith("--", i):
+            i += 2
+            while i < len(statement) and statement[i] not in "\r\n":
+                i += 1
+            tokens.append(" ")
+        elif statement.startswith("/*", i):
+            i += 2
+            while i < len(statement) and not statement.startswith("*/", i):
+                i += 1
+            if i == len(statement):
+                raise WriteAttempted("Dry run refused an unterminated SQL comment.")
+            i += 2
+            tokens.append(" ")
+        elif statement[i] in "'\"`[":
+            end = "]" if statement[i] == "[" else statement[i]
+            i += 1
+            while i < len(statement):
+                if statement[i] == end:
+                    if end != "]" and i + 1 < len(statement) and statement[i + 1] == end:
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                i += 1
+            else:
+                raise WriteAttempted("Dry run refused an unterminated SQL quote.")
+            tokens.append(" ")
+        else:
+            tokens.append(statement[i])
+            i += 1
+    return "".join(tokens)
 
 
 @contextmanager
@@ -27,10 +63,11 @@ def guard(db: Session):
         raise WriteAttempted("Dry run refused an ORM flush. Nothing was committed.")
 
     def no_write(conn, cursor, statement, parameters, context, executemany):
-        tokens = re.sub(r"'(?:''|[^'])*'|--[^\r\n]*|/\*[\s\S]*?\*/", " ", statement)
+        tokens = _sql_tokens(statement)
         tokens = re.sub(r"\bFOR\s+(?:NO\s+KEY\s+UPDATE|KEY\s+SHARE|UPDATE|SHARE)\b",
                         " ", tokens, flags=re.IGNORECASE)
-        if re.search(r"\b(?:INSERT|UPDATE|DELETE|MERGE|REPLACE|TRUNCATE|DROP|ALTER|CREATE)\b",
+        if re.search(r"\b(?:INSERT|UPDATE|DELETE|MERGE|REPLACE|TRUNCATE|DROP|ALTER|CREATE|"
+                     r"PRAGMA|ATTACH|DETACH|VACUUM|SET)\b",
                      tokens, flags=re.IGNORECASE):
             raise WriteAttempted("Dry run refused a write statement. Nothing was committed.")
 
@@ -87,25 +124,13 @@ def main(argv: list[str] | None = None) -> int:
             if args.apply:
                 for offset in range(0, len(ids), 200):
                     batch = ids[offset:offset + 200]
-                    current = db.query(Import).filter(
+                    # The eligibility check and the write must be one atomic statement.
+                    result = db.execute(update(Import).where(
                         Import.id.in_(batch),
                         Import.status == ImportStatus.WAITING_FOR_USER,
                         or_(Import.expires_at < now, _later_import()),
-                    ).populate_existing().with_for_update().all()
-                    eligible_ids = [row.id for row in current]
-                    members = list({row.household_member_id for row in current})
-
-                    # The member-level helper must not close a newer, live sibling request.
-                    def only_batch(state):
-                        state.statement = state.statement.options(
-                            with_loader_criteria(Import, Import.id.in_(eligible_ids)),
-                        )
-
-                    event.listen(db, "do_orm_execute", only_batch)
-                    try:
-                        closed += close_member_requests(db, members)
-                    finally:
-                        event.remove(db, "do_orm_execute", only_batch)
+                    ).values(status=ImportStatus.EXPIRED).execution_options(synchronize_session=False))
+                    closed += result.rowcount
                     db.commit()
             print(f"past_expiry={past_expiry}")
             print(f"later_import={later_import}")

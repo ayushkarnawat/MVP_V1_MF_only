@@ -60,14 +60,20 @@ def test_apply_closes_expired_and_superseded_requests_and_leaves_live_ones(db_se
                         for _ in range(200)])
     db_session.commit()
     batch_sizes = []
-    def before_commit(db):
-        batch_sizes.append(sum(isinstance(row, Import) and row.status == ImportStatus.EXPIRED
-                               for row in db.dirty))
-    event.listen(db_session, "before_commit", before_commit)
+    changed = []
+    def after_write(conn, cursor, statement, parameters, context, executemany):
+        if context.isupdate:
+            changed.append(cursor.rowcount)
+    def after_commit(db):
+        batch_sizes.append(sum(changed))
+        changed.clear()
+    event.listen(db_session.get_bind(), "after_cursor_execute", after_write)
+    event.listen(db_session, "after_commit", after_commit)
     try:
         _run(db_session, monkeypatch, ["--apply"])
     finally:
-        event.remove(db_session, "before_commit", before_commit)
+        event.remove(db_session.get_bind(), "after_cursor_execute", after_write)
+        event.remove(db_session, "after_commit", after_commit)
     assert capsys.readouterr().out.splitlines() == [
         "past_expiry=201", "later_import=202", "closed=202", "left_open=1",
     ]
@@ -173,9 +179,9 @@ def test_dry_run_runs_in_a_read_only_session_on_sqlite(db_session, monkeypatch, 
     _seed(db_session)
     original = script.find_stuck_requests
     def check_read_only(db, now):
-        assert db.scalar(text("PRAGMA query_only")) == 1
         # Bypass SQLAlchemy's listener to verify the database's own protection.
         raw = db.connection().connection.driver_connection
+        assert raw.execute("PRAGMA query_only").fetchone()[0] == 1
         with pytest.raises(sqlite3.OperationalError, match="readonly"):
             raw.execute("UPDATE imports SET source_tab = 'probe'")
         return original(db, now)
@@ -215,4 +221,115 @@ def test_apply_still_closes_a_row_that_is_still_expired_at_apply_time(db_session
     assert live.status == ImportStatus.WAITING_FOR_USER
     assert capsys.readouterr().out.splitlines() == [
         "past_expiry=1", "later_import=1", "closed=2", "left_open=1",
+    ]
+
+
+def test_dry_run_guard_blocks_pragma_query_only_off(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text("PRAGMA query_only = OFF"))
+
+
+@pytest.mark.parametrize("statement", ["SET TRANSACTION READ WRITE", "ATTACH DATABASE ':memory:' AS probe",
+                                       "DETACH DATABASE probe", "VACUUM"])
+def test_dry_run_guard_blocks_set_and_attach_and_vacuum(db_session, statement):
+    from scripts import close_stuck_cams_requests as script
+
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text(statement))
+
+
+def test_dry_run_guard_is_not_fooled_by_quotes_inside_quoted_identifiers(db_session):
+    from scripts import close_stuck_cams_requests as script
+
+    db_session.execute(text("CREATE TABLE probe (value INTEGER)"))
+    db_session.execute(text("INSERT INTO probe VALUES (1)"))
+    db_session.commit()
+    statement = '''WITH "'" AS (SELECT 1) UPDATE probe SET value = 9 RETURNING value AS "'"'''
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text(statement))
+    assert db_session.scalar(text("SELECT value FROM probe")) == 1
+
+
+@pytest.mark.parametrize("identifier", ['"a""b"', '`a``b`', '[a\'b]'])
+def test_dry_run_guard_handles_escaped_quotes_in_literals_and_identifiers(db_session, identifier):
+    from scripts import close_stuck_cams_requests as script
+
+    with script.guard(db_session):
+        assert db_session.scalar(text(f"SELECT 'it''s' AS {identifier}")) == "it's"
+        for listener in db_session.get_bind().dispatch.before_cursor_execute:
+            with pytest.raises(script.WriteAttempted):
+                listener(None, None, f"SELECT 'it''s' AS {identifier}; UPDATE probe SET value = 2", (), None, False)
+
+
+@pytest.mark.parametrize("statement", ["SELECT 'unfinished", 'SELECT "unfinished', 'SELECT `unfinished',
+                                       "SELECT [unfinished", "SELECT 1 /* unfinished"])
+def test_dry_run_guard_blocks_an_unterminated_quote_or_comment(db_session, statement):
+    from scripts import close_stuck_cams_requests as script
+
+    with pytest.raises(script.WriteAttempted), script.guard(db_session):
+        db_session.execute(text(statement))
+
+
+def test_apply_is_atomic_a_request_renewed_between_selection_and_write_is_not_closed(monkeypatch, capsys):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from sqlalchemy.pool import QueuePool
+    from app.db.base import Base
+
+    engine = create_engine(f"sqlite:///file:cams_{uuid.uuid4().hex}?mode=memory&cache=shared&uri=true",
+                           poolclass=QueuePool)
+    Base.metadata.create_all(engine)
+    try:
+        with Session(engine, autoflush=False) as db:
+            _, _, _, expired, superseded, _ = _seed(db)
+            superseded.status = ImportStatus.EXPIRED
+            db.commit()
+            request_id = expired.id
+            renewed = False
+            def before_write(conn, cursor, statement, parameters, context, executemany):
+                nonlocal renewed
+                if not context.isupdate or renewed:
+                    return
+                renewed = True
+                with Session(engine) as concurrent:
+                    assert concurrent.connection().connection.driver_connection is not conn.connection.driver_connection
+                    row = concurrent.get(Import, request_id)
+                    row.expires_at = datetime.now(timezone.utc) + timedelta(hours=48)
+                    concurrent.commit()
+            event.listen(engine, "before_cursor_execute", before_write)
+            try:
+                _run(db, monkeypatch, ["--apply"])
+            finally:
+                event.remove(engine, "before_cursor_execute", before_write)
+            assert renewed
+            db.refresh(expired)
+            assert expired.status == ImportStatus.WAITING_FOR_USER
+            assert capsys.readouterr().out.splitlines() == [
+                "past_expiry=1", "later_import=0", "closed=0", "left_open=2",
+            ]
+    finally:
+        engine.dispose()
+
+
+def test_apply_reports_closed_as_the_rows_actually_changed(db_session, monkeypatch, capsys):
+    from scripts import close_stuck_cams_requests as script
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    user, head, _, expired, superseded, live = _seed(db_session)
+    original = script.find_stuck_requests
+    def select_then_renew(db, now):
+        selected = original(db, now)
+        initiate_cams_request(db, user.id, head.id)
+        return selected
+    monkeypatch.setattr(script, "find_stuck_requests", select_then_renew)
+    _run(db_session, monkeypatch, ["--apply"])
+    for row in (expired, superseded, live):
+        db_session.refresh(row)
+    assert [row.status for row in (expired, superseded, live)] == [
+        ImportStatus.WAITING_FOR_USER, ImportStatus.EXPIRED, ImportStatus.WAITING_FOR_USER,
+    ]
+    assert capsys.readouterr().out.splitlines() == [
+        "past_expiry=0", "later_import=1", "closed=1", "left_open=2",
     ]
