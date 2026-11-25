@@ -23,13 +23,6 @@ export function CamsChecklist({ api }: { api: CamsChecklistApi }) {
       )}
       {api.step === "form" && (
         <>
-          {api.camsLink.state !== "failed" && (
-            <button type="button" data-clickable="" data-effect="open" className="cc-btn-outline"
-              disabled={api.camsLink.state !== "ready" || !api.camsLink.url}
-              onClick={() => { if (api.camsLink.url) window.open(api.camsLink.url, "_blank"); }}>
-              {api.camsLink.state === "preparing" ? copy.preparing : copy.open}
-            </button>
-          )}
           <p aria-live="polite" className="cc-count">{copy.count(api.ticks.filter(Boolean).length)}</p>
           <div>
             {copy.items.map((label, index) => (

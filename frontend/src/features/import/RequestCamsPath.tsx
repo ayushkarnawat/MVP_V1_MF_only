@@ -1,8 +1,9 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { requestCamsStatement } from "./api";
+import { getCamsLink, requestCamsStatement } from "./api";
 import { setCasResumeStep2 } from "./casResumeState";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   ExternalLink,
   AlertTriangle,
@@ -40,45 +41,87 @@ export function RequestCamsPath({
   const checklistStore = getChecklistStore(memberId);
   const checklistHosted = useContext(CamsChecklistHostedContext);
   const [withoutChecklist, setWithoutChecklist] = useState(false);
+  const [camsUrl, setCamsUrl] = useState<string | null>(null);
+  const [linkState, setLinkState] = useState<"loading" | "ready" | "failed">("loading");
   const requesting = useRef(false);
 
-  const handleRequest = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
+    getCamsLink()
+      .then((url) => {
+        if (!active) return;
+        setCamsUrl(url);
+        setLinkState("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setLinkState("failed");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const sendRequest = useCallback(async (options: { openTab: boolean }) => {
     if (requesting.current) return;
     requesting.current = true;
     setIsLoading(true);
     setError(null);
-    if (!withoutChecklist) {
-      checklist.setCamsLink({ state: "preparing", error: null, url: null });
-      checklist.open();
-    }
+    if (!withoutChecklist) checklist.setCamsLink({ state: "idle", error: null });
     try {
       const result = await requestCamsStatement(memberId);
       const mode = withoutChecklist ? "closed" : checklistStore.getSnapshot().mode;
       setCasResumeStep2(memberId);
-      if (!withoutChecklist) checklist.setCamsLink({ state: "ready", error: null, url: result.cams_url });
-      if (mode !== "window") {
+      if (options.openTab && mode !== "window") {
         try { window.open(result.cams_url, "_blank"); } catch { /* The request still proceeds to the waiting screen. */ }
       }
       onRequestInitiated(result.import_id, result.expires_at);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : checklistCopy.requestFailed;
       setError(message);
-      if (!withoutChecklist) checklist.setCamsLink({ state: "failed", error: message, url: null });
+      if (!withoutChecklist) checklist.setCamsLink({ state: "failed", error: message });
     } finally {
       requesting.current = false;
       setIsLoading(false);
     }
-  }, [memberId, withoutChecklist, checklistStore, checklist.open, checklist.setCamsLink, onRequestInitiated]);
+  }, [memberId, withoutChecklist, checklistStore, checklist.setCamsLink, onRequestInitiated]);
+
+  const handleLinkClick = useCallback(() => {
+    if (requesting.current) return;
+    if (!withoutChecklist) checklist.open();
+    void sendRequest({ openTab: false });
+  }, [withoutChecklist, checklist.open, sendRequest]);
+
+  const handleRequest = useCallback(async () => {
+    if (requesting.current) return;
+    if (!withoutChecklist) checklist.open();
+    await sendRequest({ openTab: true });
+  }, [withoutChecklist, checklist.open, sendRequest]);
 
   useEffect(() => {
-    checklistStore.setRetry(() => { void handleRequest(); });
+    checklistStore.setRetry(() => { void sendRequest({ openTab: false }); });
     return () => checklistStore.setRetry(null);
-  }, [checklistStore, handleRequest]);
+  }, [checklistStore, sendRequest]);
 
   const handleRequestFromTutorial = async () => {
     await handleRequest();
     tutorial.hide();
   };
+
+  const requestControlClassName =
+    "w-full h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[48px]";
+
+  const requestControlContent = isLoading ? (
+    <>
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>Opening CAMS Portal...</span>
+    </>
+  ) : (
+    <>
+      <span>Request Statement on CAMS</span>
+      <ExternalLink className="h-4 w-4" />
+    </>
+  );
 
   return (
     <motion.div
@@ -248,25 +291,46 @@ export function RequestCamsPath({
             </button>
           </div>
         )}
-        <Button
-          onClick={handleRequest}
-          data-clickable="" data-effect="open"
-          disabled={isLoading}
-          className="w-full h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent)]/90 font-semibold text-xs sm:text-sm shadow-xs gap-2 cursor-pointer active:scale-[0.99] transition-all min-h-[48px]"
-          type="button"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Opening CAMS Portal...</span>
-            </>
-          ) : (
-            <>
-              <span>Request Statement on CAMS</span>
-              <ExternalLink className="h-4 w-4" />
-            </>
-          )}
-        </Button>
+        {linkState === "ready" && camsUrl ? (
+          <a
+            href={camsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-clickable=""
+            data-effect="open"
+            aria-disabled={isLoading}
+            onClick={handleLinkClick}
+            className={cn(
+              buttonVariants(),
+              requestControlClassName,
+              "no-underline",
+              isLoading && "pointer-events-none opacity-50",
+            )}
+          >
+            {requestControlContent}
+          </a>
+        ) : linkState === "loading" ? (
+          <Button
+            disabled
+            data-clickable=""
+            data-effect="open"
+            className={requestControlClassName}
+            type="button"
+          >
+            {requestControlContent}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleRequest}
+            data-clickable=""
+            data-effect="open"
+            disabled={isLoading}
+            className={requestControlClassName}
+            type="button"
+          >
+            {requestControlContent}
+          </Button>
+        )}
         </div>
 
         <div className="flex justify-center">

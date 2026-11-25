@@ -23,8 +23,6 @@ export const checklistCopy = {
   panelStepTitles: { waiting: "Step 3: Wait for the email", ready: "Step 4: You have the file" },
   closedStepNames: { form: "step 2: Fill the form", waiting: "step 3: Wait for the email", ready: "step 4: You have the file" },
   closedNote: (stepName: string) => `Your checklist closed when this page reloaded. You were on ${stepName}.`,
-  open: "Open the CAMS form",
-  preparing: "Getting your link ready",
   retry: "Try again",
   submitted: "I have submitted the form",
   fileReady: "I have the file",
