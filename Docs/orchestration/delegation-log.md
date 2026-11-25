@@ -883,3 +883,4 @@ fix" rule.
 - 2026-11-25 hofa-be G1 review 2: FAIL (High: User/member lock vs confirm member insert); hofa-be-4 handoff written (every swap lock NOWAIT), relay to Codex
 - 2026-11-25 summary bar: worktrees unifolio-sb (batch/sb from batch/vis) and unifolio-sb-rt (batch/sb-rt); baseline 8 files/232 passed; sb-rt-1 handoff written (Codex), relay
 - 2026-11-25 hofa-be-4 done (all swap locks NOWAIT; 204 tests pass; Postgres mixed-family race test unrun); merged into batch/hofa. es-1b: tests pass but breaks test_timeout_wait_limit_uses_a_fake_clock (extra _clock reads); es-1c fix pending
+- 2026-11-25 sb-rt-1: Codex blocked on inventory vs split rupee sign; Claude approved value-* figure rule, handoff amended
