@@ -28,7 +28,7 @@ export interface ExportDialogProps {
   onStart: (choice: ExportChoice) => void;
   onCancel: () => void;
   onKeepWorking: () => void;
-  progress: { subtitle: string; percent: number; rows: StageRow[] };
+  progress: { subtitle: string; percent: number; rows: StageRow[]; elapsed?: string; stageLine?: string | null; longNote?: string | null };
   ready: { fileName: string; chips: string[] };
   onDownloadAgain: () => void;
   onExportAnother: () => void;
