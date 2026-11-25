@@ -70,7 +70,6 @@ START_CODE_ELIGIBILITY_REASONS = {
     "same_email_as_head",
     "same_phone_as_head",
     "head_change_already_open",
-    "import_in_progress",
     "account_pending_deletion",
 }
 
@@ -420,12 +419,6 @@ def _reason_error(reason: EligibilityReason) -> HeadChangeError:
             403,
             "account_pending_deletion",
             "This account is scheduled for deletion. Reactivate it first.",
-        )
-    if reason == "import_in_progress":
-        return _error(
-            409,
-            "import_in_progress",
-            "Finish or cancel the statement you are importing, then try again.",
         )
     return _error(
         409,

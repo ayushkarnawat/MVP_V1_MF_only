@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.models.user import HouseholdMember, User
-from app.models.enums import Relationship
+from app.models.enums import ImportStatus, Relationship
+from app.models.imports import Import
 
 
 def _signup(client, phone: str) -> tuple[str, str]:
@@ -661,9 +662,27 @@ def test_eligibility_reports_an_open_change_and_an_open_statement_import(client)
     reasons = _reasons(_eligibility(client, household))
 
     assert set(reasons[household["candidate_id"]]) == {
-        "import_in_progress",
         "head_change_already_open",
     }
+
+
+def test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request(client):
+    household = _household(client, suffix="e11")
+    db = _db(client)
+    db.add(Import(
+        id=uuid.uuid4(),
+        household_member_id=uuid.UUID(household["candidate_id"]),
+        status=ImportStatus.WAITING_FOR_USER, source_tab="request",
+        uploaded_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
+    ))
+    db.commit()
+    db.close()
+
+    response = _eligibility(client, household)
+
+    assert response.status_code == 200
+    assert _reasons(response)[household["candidate_id"]] == []
 
 
 def test_eligibility_sends_no_code_and_writes_nothing(client):

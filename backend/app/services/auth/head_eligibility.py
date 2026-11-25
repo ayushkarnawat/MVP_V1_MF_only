@@ -9,10 +9,8 @@ from sqlalchemy.orm import Session as DbSession
 
 from app.models.auth import AuthIdentity, HeadChangeRequest
 from app.models.enums import Relationship
-from app.models.imports import Import
 from app.models.user import HouseholdMember, User
 from app.services.dashboard.member_details import MemberNotFoundError
-from app.services.import_.state_machine import TERMINAL_STATES
 
 
 EligibilityReason: TypeAlias = Literal[
@@ -26,7 +24,6 @@ EligibilityReason: TypeAlias = Literal[
     "no_pan",
     "label_missing",
     "account_pending_deletion",
-    "import_in_progress",
     "head_change_already_open",
 ]
 
@@ -121,8 +118,8 @@ def member_eligibility(
         reasons.append("label_missing")
     if bool(user.pending_deletion) or user.deletion_scheduled_at is not None:
         reasons.append("account_pending_deletion")
-    if _has_open_import_or_pan_claim(db, user.id):
-        reasons.append("import_in_progress")
+    # A pending or abandoned import never blocks a head change (owner, 24 Nov 2026);
+    # unfinished reviews are settled inside `complete_head_change`.
     if (
         db.query(HeadChangeRequest.id)
         .filter(
@@ -187,32 +184,4 @@ def _pan_is_registered_elsewhere(
     return any(
         (until := _as_aware(holder.pan_pending_until)) is None or until > now
         for holder in holders
-    )
-
-
-def _has_open_import_or_pan_claim(db: DbSession, user_id: uuid.UUID) -> bool:
-    open_import = (
-        db.query(Import.id)
-        .join(
-            HouseholdMember,
-            HouseholdMember.id == Import.household_member_id,
-        )
-        .filter(
-            HouseholdMember.user_id == user_id,
-            Import.status.notin_(tuple(TERMINAL_STATES)),
-        )
-        .first()
-    )
-    if open_import is not None:
-        return True
-
-    now = datetime.now(timezone.utc)
-    members = (
-        db.query(HouseholdMember)
-        .filter(HouseholdMember.user_id == user_id)
-        .all()
-    )
-    return any(
-        (until := _as_aware(member.pan_pending_until)) is not None and until > now
-        for member in members
     )
