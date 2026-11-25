@@ -82,6 +82,12 @@
   padding: 0;
 }
 
+html[data-print-contents-only="true"] .print-tab-heading,
+html[data-print-contents-only="true"] [data-print-section],
+html[data-print-contents-only="true"] [data-print-notes] {
+  display: none !important;
+}
+
 .print-template {
   background: var(--print-white);
   color: var(--print-ink);
