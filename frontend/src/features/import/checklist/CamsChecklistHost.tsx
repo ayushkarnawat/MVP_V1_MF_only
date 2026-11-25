@@ -9,13 +9,17 @@ import "./checklist-tokens.css";
 
 export const CamsChecklistHostedContext = createContext(false);
 
-export function CamsChecklistHost({ memberId }: { memberId: string }) {
-  const api = useCamsChecklist(memberId);
-  const store = getChecklistStore(memberId);
-  const floating = store.getSnapshot().pipWindow;
-  const done = api.ticks.filter(Boolean).length;
+function StatusStrip({
+  done,
+  step,
+  showCount,
+}: {
+  done: number;
+  step: "form" | "waiting" | "ready";
+  showCount: boolean;
+}) {
   const percent = Math.round((done / 5) * 100);
-  const stripContent = (
+  return (
     <>
       <div
         role="progressbar"
@@ -27,21 +31,28 @@ export function CamsChecklistHost({ memberId }: { memberId: string }) {
       >
         <span className="ccp-strip-fill" style={{ width: `${percent}%` }} />
       </div>
-      <span aria-live="polite" className="ccp-strip-count">{copy.count(done)}</span>
-      <span className="ccp-strip-step">{copy[api.step]}</span>
+      {showCount && <span aria-live="polite" className="ccp-strip-count">{copy.count(done)}</span>}
+      <span className="ccp-strip-step">{copy[step]}</span>
     </>
   );
+}
+
+export function CamsChecklistHost({ memberId }: { memberId: string }) {
+  const api = useCamsChecklist(memberId);
+  const store = getChecklistStore(memberId);
+  const floating = store.getSnapshot().pipWindow;
+  const done = api.ticks.filter(Boolean).length;
   const body = <CamsChecklistRetryContext.Provider value={store.retry}><CamsChecklist api={api} /></CamsChecklistRetryContext.Provider>;
   if (api.mode === "window" && floating) {
     return <>
-      <div className="hidden md:block ccp-strip">{stripContent}</div>
+      <div className="hidden md:block ccp-strip"><StatusStrip done={done} step={api.step} showCount={true} /></div>
       {createPortal(body, floating.document.body)}
     </>;
   }
   if (api.mode === "panel") {
     return <>
       <div className="hidden md:block ccp-strip">
-        {stripContent}
+        <StatusStrip done={done} step={api.step} showCount={false} />
         <button type="button" data-clickable="" data-effect="retry" className="ccp-startover-link" onClick={api.startOver}>{copy.startOver}</button>
       </div>
       <div className="hidden md:block ccp-card">{body}</div>
@@ -52,7 +63,7 @@ export function CamsChecklistHost({ memberId }: { memberId: string }) {
     const [before, after] = copy.closedNote(stepName).split(stepName);
     return <section className="hidden md:block">
       <div className="ccp-banner">
-        <div className="hidden md:block ccp-strip">{stripContent}</div>
+        <div className="hidden md:block ccp-strip"><StatusStrip done={done} step={api.step} showCount={true} /></div>
         <p role="status" className="ccp-banner-text">{before}<strong>{stepName}</strong>{after}</p>
         <div className="ccp-banner-actions">
           <button type="button" data-clickable="" data-effect="open" className="ccp-reopen-btn" onClick={api.reopen}>{copy.reopen}</button>
