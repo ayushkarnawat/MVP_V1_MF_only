@@ -107,3 +107,5 @@ Every page item has an owner plan: items 1 to 11 of Part 2 and item 12 (plans 2,
 ## Execution log
 
 *(Claude appends below: per-patch drift notes, gate results, deploy record links.)*
+
+- **2026-11-25 (owner decision): ONE combined deploy.** Patches 1, 2 and 3 are built and gated separately (branches `patch/qa1` to `patch/qa3`, tags `qaN-rc`), but they are deployed to staging **together, once, after everything is done**, from **one** deploy guide written at the end. No per-patch deploy guide, no per-patch deploy. The combined guide carries: the stored-results rebuild (D-12), the Postgres lock-test run on staging (Head of Family), the export acceptance run, and the QA round after it.
