@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FIXABLE_REASONS, fixableHint, isFixable } from "./headEligibility";
 
 const FIXABLE = ["no_email", "no_phone", "no_pan", "label_missing", "same_email_as_head", "same_phone_as_head", "email_in_use", "phone_in_use"];
-const NOT_FIXABLE = ["pan_registered_elsewhere", "account_pending_deletion", "import_in_progress", "head_change_already_open"];
+const NOT_FIXABLE = ["pan_registered_elsewhere", "account_pending_deletion", "head_change_already_open"];
 
 describe("headEligibility (QA fixes, C1)", () => {
   it("knows exactly the eight reasons a person can fix from the Choose head dialog", () => {

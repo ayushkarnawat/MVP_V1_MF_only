@@ -386,6 +386,14 @@ describe("auth api", () => {
     expect(JSON.parse(options.body as string)).toEqual({ accepted_documents: ACCEPTED });
   });
 
+  it("parseHeadChangeError_passes_the_saving_code_through", () => {
+    const detail = {
+      code: "statement_being_saved",
+      message: "A statement is being saved. Try again in a minute.",
+    };
+    expect(parseHeadChangeError(new ApiError(409, detail))).toEqual(detail);
+  });
+
   it("parseHeadChangeError gives a plain sentence for a network failure", () => {
     expect(parseHeadChangeError(new TypeError("Failed to fetch"))).toEqual({
       code: null,
