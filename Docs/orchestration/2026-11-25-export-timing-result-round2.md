@@ -1,7 +1,7 @@
 # Export timing, round 2 on staging (25 Nov 2026 about 14:35 to 15:30 IST, run by the manager's Claude; QA item D-10)
 Script: `backend/scripts/measure_export_staging.py` (`--part idle|nocover|sections|probe`, commit `2836e098`); guide: `2026-11-25-export-timing-round2-guide.md`. Staging VM checkout `942356f4`, the owner's own household. No token was used: the script minted one temporary session per part from the owner's sign-in email and deleted it each time (the email is not recorded anywhere in the repository). **Nothing was changed in the app.** Round 1: `2026-11-25-export-timing-result.md`.
 
-**What this record holds:** the figures the manager's Claude reported in chat (summaries, not the full printed output). The full printed output of every part, the "export finished" log lines and the probe part's result were still to arrive when this was written; the owner decided that this is all the measuring that will be done, so the probe result will be added here only if it is sent. Where a figure was not reported, this record says so and does not guess.
+**What this record holds:** the figures from the manager's Claude's reports in chat (the complete final report is now in). The per-section figures for eight of the first twelve sections were summarised (2.6 to 7.2 s each), not listed.
 
 ## Part idle (nothing exporting, after the browser had closed)
 15 Chromium processes holding 817 MB; container memory 1,679 MB; CPU 1% and flat. The earlier guide's "about three" threshold is far exceeded: the start-up browsers of the old export route (one per backend worker, each with its helper processes) are still running, about 800 MB doing nothing for the new export.
@@ -35,8 +35,12 @@ Reported figures (total ms to ready; where given, how much was building and how 
 | overlap-impact | 3,629 ms | |
 Sections 1 to 12 other than the ones above each took 2.6 to 7.2 s; together the twelve sum to roughly 60 s. Backend memory afterwards about 1.94 to 2.0 GiB.
 
-## Part probe (full report cover ON, then 5 minutes of CPU watching)
-Running when this was written; **not reported**. It answers whether the container stays busy after the job says "ready" (leftover work from the timed-out second print).
+## Part probe (full report cover ON, then 5 minutes of watching the container)
+Report: 214,712 ms in total; building 2,068 ms; finishing 209,454 ms; PDF 4,707,893 bytes; container memory peak 2,525 MB; 21 Chromium processes (1,874 MB); CPU peak 214% of one core; `two_pass=no` again.
+After "ready" (seconds since ready, CPU % of one core, Chromium processes, Chromium MB, container MB): 5 to 65 s: CPU **101%** flat, 20 processes, 1,158 MB, container 1,884 to 1,915 MB; 95 s: CPU 3%; 125 s: CPU 1%, **15 processes, 817 MB**, container 1,751 MB; flat at 1% to 300 s. CPU settled below 25% from second 85. cpu_max 101%, cpu_average 27%.
+
+## Whole round
+27 "export finished" lines, all `status=ready` and all `two_pass=no`: two 24-section no-cover runs (218,841 ms and 196,272 ms), 24 single-section runs (2,570 to 57,537 ms), one 24-section cover-on probe (214,581 ms). Over the 24 single sections: wall time about 394 s, printing time about 265 s. Backend memory 1.537 GiB before, 1.605 GiB after; highest container peak 2,593 MB (nocover cold), under the 3,500 MB stop line.
 
 ## Reading (orchestrator)
 **Measured:**
@@ -45,9 +49,13 @@ Running when this was written; **not reported**. It answers whether the containe
 3. The print cost is concentrated: overlap-common-holdings (56.5 s), holdings-all-stocks (27 s), holdings-top-by-fund (26.6 s) and analytics-cost (26 s) are about 136 s together, roughly 70% of the 195 s. overview-mutual-funds and analytics-category add about 21 s more. Most other sections cost 2 to 7 s.
 4. Three sections wait 17 to 26 s for their data when it is not already cached (holdings-top-by-fund, overlap-top-pairs, transactions-cash-flow). In the full reports of round 1 the whole build stage took 2.6 s cold, so those waits depend on whether the analytics data was already cached.
 
-**Inferred, with the reasoning:**
-- The manager's Claude wrote that the cost is "not additive" because sections 1 to 12 sum to about 60 s while 24 sections take about 195 s. That compares the wrong halves: sections 13 to 24 carry most of the cost. My estimate from the reported numbers is that the printing time of the 24 single sections adds up to about 200 s, which is about what the full report takes, so print cost looks roughly additive (an estimate, because the per-section figures for sections 1 to 12 were summarised, not listed).
-- The warm slowdown of round 1 did not appear here, where no second print ran. That fits the leftover-second-print explanation but does not prove it; the probe would have.
+**Corrected and confirmed by the complete report:**
+- **Printing cost is additive.** The 24 single sections cost about 265 s of printing in total; the full report prints in about 195 s. The roughly 70 s difference is about 3 s of fixed cost that each single export pays once (24 times 3 s). So there is no extra cost for printing together; the full report is the sum of its sections plus one fixed cost. (My first estimate of about 200 s for the singles was low; and the manager's "not additive" reading compared only sections 1 to 12 with the whole.) The four heavy sections are about 125 to 136 s of the 195 s.
+- **Leftover work after a cover-on report is real and short:** one full core busy for about 65 s after "ready", settled below 25% by 85 s, the report browser closing at about 125 s. This is the dropped second print still being drawn. It explains round 1's warm slowdown (the next export started 20 s later); with the cover off (round 2) the warm run was not slower. The contents page numbers failed on all three cover-on reports (`two_pass=no`).
 
-## Differences from the guide
-Reported to the owner by the manager's Claude in chat; none recorded in the summaries available when this was written (no stop condition fired; the temporary session was reported deleted after each part).
+**Inferred:** that the leftover CPU is specifically the second print (the timing and the cover-off comparison fit; nobody looked inside the browser); why the four heavy sections print slowly (not looked at). **Not measured:** the number of cores on the VM.
+
+## Differences from the guide (manager's Claude)
+- The owner's email was passed over ssh stdin (so it appears in that conversation's transcript) and was written to no file; each part ran with `sudo -E` and `sh -c` through the entrypoint with `$EMAIL` set.
+- The log watcher was stopped by its process group id (1549015), with no `pkill`; it has a 2-hour timeout as a backstop.
+- Ssh scripts ran through PowerShell with `wsl.exe bash <script>`, with `MSYS_NO_PATHCONV=1` where Git Bash was involved. The VM checkout (`942356f4`) was not changed. Script removed from the container and the VM. No error or traceback lines in the last 120 minutes. Disk 6.7 GB free, unchanged. Started 14:32 IST, outside all job windows. No stop condition fired; every part reported the temporary session deleted.
