@@ -1,6 +1,6 @@
 # Staging Deploy Guide: the QA-round fixes (patches 1, 2 and 3 together) to `ls-redesign.unifolio.in`
 
-**DRAFT 26 Nov 2026 (not frozen).** Marked `AT FREEZE` items are filled in when the three patches are built and gated: the tag name and hash, the final test numbers, patch 3's section. **The owner decided on 25 Nov 2026 that all three patches deploy together, once, from this one guide** (no per-patch guides). The staging deploy is run by the **manager's Claude** from this guide at the owner's go; the owner's QA round follows (the rows of `2026-11-19-combined-qa-checklist.md`, section "QA-round patches", plus the M1 to M4 and XR rows still open). Predecessors: `2026-11-24-staging-deploy-guide-m4.md` (M4, tag `m4-rc` = `355cc8a1`), the XIRR/Returns guide and the M3 guide; this guide reuses their style and commands.
+**DRAFT 26 Nov 2026 (not frozen).** Marked `AT FREEZE` items are filled in when the patches are built and gated: the tag name and hash and the final test numbers. **Owner decisions: 25 Nov 2026, the patches deploy together from this one guide (no per-patch guides); 26 Nov 2026, option B: patches 1 and 2 and the safe parts of patch 3 deploy now, and the heavy-section speed work (ES-5) and cold-data warming (ES-6) ship later as patch 3b.** The staging deploy is run by the **manager's Claude** from this guide at the owner's go; the owner's QA round follows (the rows of `2026-11-19-combined-qa-checklist.md`, section "QA-round patches", plus the M1 to M4 and XR rows still open). Predecessors: `2026-11-24-staging-deploy-guide-m4.md` (M4, tag `m4-rc` = `355cc8a1`), the XIRR/Returns guide and the M3 guide; this guide reuses their style and commands.
 
 ## What changes
 **Patch 1 (the QA round's fixes).**
@@ -17,9 +17,15 @@
 9. **The Head of Family dialog** shows one quiet line per member who has a waiting CAMS request (no button, nothing blocked).
 10. **Back end (additive):** `GET /cas-imports/pending`, `GET /cas-imports/cams-link`, a per-member `waiting_cams_request` flag on the eligibility list, and the one-off script `backend/scripts/close_stuck_cams_requests.py` (**dry run by default**; run in step 9b).
 
-**Patch 3 (PDF export speed).** `AT FREEZE`: the speed work (a contents-only second print, idle browsers stopped, heavy sections lightened under the look gate, honest progress in the dialog) and its acceptance run (a full 24-section report **under 120 seconds**, the look gate PASS). The look gate itself (`backend/scripts/export_look_gate.py`) and the `--save-pdf` flag of `measure_export_staging.py` are already built.
+**Patch 3, the safe part (PDF export).**
+11. **A cheaper contents step:** the report is printed once, then **only the cover and contents pages** are printed again with the page numbers filled in and spliced in front of the first PDF (replacing the second whole-report print, the slowest and least reliable step); if that step fails or times out the first PDF is kept, the page is closed and the report still succeeds. **The PDF must look exactly as today; the one visible change is that the contents page numbers appear** (QA-19 A), proved by the look gate (steps 3b and 9d).
+12. **Idle browsers stop:** the old Download PDF route launches its browser on first use; start-up no longer launches one in each of the three workers (about 800 MB of memory comes back).
+13. **Honest progress in the export dialog:** the elapsed time counts up, "Finishing the PDF" names the last stage, and a large report shows "A full report with all 24 sections can take a few minutes. You can keep using Unifolio; it will be ready to download here." (the three strings are the owner's to confirm; the built footer sentence stays).
+14. **Tools:** `backend/scripts/export_look_gate.py` (capture and compare PDFs page by page) and a `--save-pdf` flag on `measure_export_staging.py`; neither runs by itself.
 
-**Not in this release:** any migration; any cron change; any new setting; any new dependency; phone screens.
+**Not in this release (patch 3b, later):** speeding up the four heavy sections (ES-5) and warming the data the slow sections wait for (ES-6): both need real-household profiling on staging. A full report is therefore faster only modestly in this release (no second whole-report print); the **under 120 seconds** acceptance belongs to patch 3b.
+
+**Also not in this release:** any migration; any cron change; any new setting; any new dependency; phone screens.
 
 ## Facts that decide this guide
 - **Back end and front end, no migration, no cron change, no new setting, no new dependency.** Alembic stays **0054** (the G3 review confirmed no new version file). Deploy mode `--full`. The image rebuild needs network from the VM.
@@ -35,7 +41,7 @@
 ```
 You are deploying the QA-round fixes (patches 1, 2 and 3 together) to the LeapSwitch staging VM (ls-redesign.unifolio.in). Read Docs/orchestration/2026-11-26-staging-deploy-guide-qa-round.md and follow it step by step.
 Rules: run one command at a time and show its output; at every STOP, stop and report; run the GATE steps only after the owner's yes (the guide marks each); never print .env lines; never run clean-db.sh, restore.sh or rollback.sh on your own initiative; use ssh by hostname from WSL only (write the remote command so the variables are not expanded by the Windows-to-WSL layer: put commands in a script file or write every value out); the one-off script close_stuck_cams_requests.py is run WITHOUT --apply first and --apply only after the owner has seen the counts and said yes.
-At the end fill in step 11 and give the owner the report.
+At the end fill in step 11 and give the owner the report. The look-gate PDFs hold real data: they stay in the container's temporary files and in the VM folder named in step 3b only until step 9d, then are deleted; never commit, print or copy their content.
 ```
 
 ## Section 1: steps
@@ -61,6 +67,13 @@ sudo docker compose -f /opt/unifolio-redesign/deploy/leapswitch/docker-compose.y
 date '+%H:%M IST'
 ```
 Expected: branch `leapswitch-redesign`; HEAD equals the last deployed tag (`m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951` unless a later deploy happened: record whatever it is; **STOP** if the owner did not name it); no status lines; **at least 12 GB free**; `alembic current` ends `0054 (head)`; not in a job window. Record the `latest` image id.
+
+### Step 3b (VM): the look-gate baseline, BEFORE deploying. Read-only. GATE (the owner's yes)
+The look gate compares two PDFs page by page, so the "before" PDFs must come from **the code running today**. The candidate's scripts are copied into the running container's temporary files; **nothing is deployed and nothing is written outside `/tmp`** (the repository checkout is not touched; the PDFs are **never committed or copied to the laptop**: they contain the owner's real data).
+1. Fetch `backend/scripts/export_look_gate.py` and `backend/scripts/measure_export_staging.py` from the `qa-rc` tag **into a temporary folder** (for example `git show qa-rc:backend/scripts/<file>` on the laptop and `docker cp` into `/tmp/qa-gate/` of the backend container, or the same pattern the M4 and XIRR guides used for their measuring scripts; copy the file text, never print any secret).
+2. As the owner's test user (the earlier guides' pattern: a session minted for the owner's sign-in email on the VM, never written to a file, passed by environment variable name only), run **two exports from today's code**: a **full 24-section report with the cover on** and a **report with the cover off**, saving each with `measure_export_staging.py ... --save-pdf /tmp/qa-gate/base-full.pdf` (then `base-nocover.pdf`); the script refuses to overwrite and prints only the size and the path.
+3. Capture each: `python /tmp/qa-gate/export_look_gate.py capture --pdf /tmp/qa-gate/base-full.pdf --out /tmp/qa-gate/base-full` (and the same for `base-nocover`). Record **only the manifest numbers** (page count and section start pages) in the deploy record.
+4. **`deploy-redesign.sh --full` recreates the container and deletes `/tmp`.** So **copy `/tmp/qa-gate/` to the VM's disk first** (`docker cp` to `/home/deploy/qa-gate/`, mode 700, owner `deploy`) and delete that folder after step 9d. **STOP** if an export fails or the page counts look wrong; report the numbers.
 
 ### Step 4 (VM): rollback safety. GATE (the owner's yes)
 ```bash
@@ -119,6 +132,13 @@ cd /opt/unifolio-redesign/deploy/leapswitch && sudo docker compose exec -T -e PY
 ```
 It prints `closed=<n>` and `left_open=<n>`. Then re-run the dry run: `would_close` should be `0`.
 
+**9d (the PDF look gate). GATE (the owner's yes to the export).** With the release running, take **the same two exports** (full with cover, and cover off) from the new code, saving them the same way (`--save-pdf /tmp/qa-gate/new-full.pdf`, `new-nocover.pdf`), capture them (`export_look_gate.py capture`), copy the baseline captures from `/home/deploy/qa-gate/` into the container's `/tmp/qa-gate/`, then compare:
+```bash
+python /tmp/qa-gate/export_look_gate.py compare --baseline /tmp/qa-gate/base-full --candidate /tmp/qa-gate/new-full --allow-pages "<the cover and contents pages: 1 to n, where n = the first section's page minus 1, from the baseline manifest>"
+python /tmp/qa-gate/export_look_gate.py compare --baseline /tmp/qa-gate/base-nocover --candidate /tmp/qa-gate/new-nocover
+```
+**Expected:** the cover-off report is a plain **PASS** with no allowed pages (nothing changed); the full report is **PASS** with only the allowed cover and contents pages differing (the contents page numbers appear). The same page count and the same section start pages are part of PASS. A date on the cover can differ: use `--mask` (a JSON file `{"pages": {"1": [[x0,y0,x1,y1]]}}`) only if the cover alone fails on a date. **STOP and report** on any FAIL: the failing page numbers are printed, never content. Then delete `/tmp/qa-gate/` and `/home/deploy/qa-gate/` (the PDFs hold real data). Record the full report's time in the deploy record.
+
 **9c (the D-12 number gate). GATE (the owner approves the numbers).** The read-only before-and-after script shows the old and new category averages for the owner's own household. The owner's user id is looked up **by the owner's sign-in email on the VM, never written into a file or this guide**; the manager's Claude runs, copying the helper pattern of the M4 and XIRR guides (fetch the script into the container's temporary files without touching the checkout, run it through the entrypoint, read-only, print exactly what it prints):
 ```bash
 docker compose exec -T -e PYTHONPATH=/app backend /app/docker-entrypoint.sh python scripts/category_pool_before_after.py --user-id <the owner's user id, from the lookup>
@@ -126,7 +146,7 @@ docker compose exec -T -e PYTHONPATH=/app backend /app/docker-entrypoint.sh pyth
 Expected: one block per held fund and period; **`funds_3y_or_5y_value_changed=0`**; `funds_1y_count_changed` equal to the number of funds whose category has a newer fund (the plan expected five); no names, amounts or ids in the output. **STOP and report** if the 3Y or 5Y value changed for any fund. Claude shows the owner the table of old and new 1-year averages and records the owner's approval in `decisions.md` and in `Docs/orchestration/2026-11-25-d12-before-after.md` (fund codes and public names only). **The release is not accepted until the owner approves these numbers.**
 
 ### Step 10: the owner's QA round
-The owner runs the rows of `2026-11-19-combined-qa-checklist.md`: section "QA-round patches" (VP-01 to VP-08, D12-01 to D12-04, HA-01 to HA-07, ES-01, and the rows added for patch 2 and patch 3), then the open M1 to M4 and XR rows. **The real click in Chrome and in Edge (D-2: M4-12 and M4-13) is checked here**, together with the real export of a full report (patch 3's acceptance: under 120 seconds and the look gate).
+The owner runs the rows of `2026-11-19-combined-qa-checklist.md`: section "QA-round patches" (VP-01 to VP-08, D12-01 to D12-04, HA-01 to HA-07, **HB-01 to HB-11 (patch 2)**, **ES-01 to ES-05 (patch 3, the safe part)**), then the open M1 to M4 and XR rows. **The real click in Chrome and in Edge (D-2: HB-08, M4-12 and M4-13) is checked here**, together with a real export of a full report (the dialog's elapsed time and the contents page numbers; the speed target of **under 120 seconds** is patch 3b's acceptance, not this release's).
 
 ### Step 11: record (Claude fills this in)
 Deployed commit, last deployed commit, image ids before and after, build time, backup result, health codes, the two `401`s, the front-end text counts, free disk before and after, the step 8 recompute log tail, the results of 9a, 9b (the counts, whether `--apply` ran) and 9c (the approved table), the owner's QA round result, anything that surprised. Write it as `Docs/orchestration/2026-11-2x-staging-deploy-record-qa-round.md` in the M4 record's shape, with an honest list of what is not as hoped.
