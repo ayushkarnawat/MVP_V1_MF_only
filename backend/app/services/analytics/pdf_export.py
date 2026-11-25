@@ -1,5 +1,7 @@
+import asyncio
 import secrets
 import time
+from contextlib import suppress
 from typing import Any
 
 from playwright.async_api import Browser, Playwright, async_playwright
@@ -32,32 +34,50 @@ def consume_export_payload(token: str) -> dict[str, Any] | None:
 
 _playwright: Playwright | None = None
 _browser: Browser | None = None
+_browser_lock = asyncio.Lock()
 
 
 async def start_browser() -> None:
+    await get_shared_browser()
+
+
+async def _stop_browser_unlocked() -> None:
     global _playwright, _browser
-    _playwright = await async_playwright().start()
-    _browser = await _playwright.chromium.launch()
+    browser, playwright = _browser, _playwright
+    _browser, _playwright = None, None
+    try:
+        if browser is not None:
+            await browser.close()
+    finally:
+        if playwright is not None:
+            await playwright.stop()
 
 
 async def stop_browser() -> None:
+    async with _browser_lock:
+        await _stop_browser_unlocked()
+
+
+async def get_shared_browser() -> Browser:
     global _playwright, _browser
-    if _browser is not None:
-        await _browser.close()
-        _browser = None
-    if _playwright is not None:
-        await _playwright.stop()
-        _playwright = None
-
-
-def get_shared_browser() -> Browser:
-    if _browser is None:
-        raise RuntimeError("Playwright browser not started")
-    return _browser
+    async with _browser_lock:
+        if _browser is not None and _browser.is_connected():
+            return _browser
+        with suppress(Exception):
+            await _stop_browser_unlocked()
+        playwright = await async_playwright().start()
+        try:
+            browser = await playwright.chromium.launch()
+        except BaseException:
+            with suppress(Exception):
+                await playwright.stop()
+            raise
+        _playwright, _browser = playwright, browser
+        return browser
 
 
 async def render_analytics_pdf(token: str) -> bytes:
-    browser = get_shared_browser()
+    browser = await get_shared_browser()
     page = await browser.new_page()
     try:
         await page.goto(f"{settings.frontend_base_url}/print/analytics?token={token}")

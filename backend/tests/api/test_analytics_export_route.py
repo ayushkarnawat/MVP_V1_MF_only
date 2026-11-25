@@ -158,3 +158,38 @@ def test_get_export_payload_404_for_unknown_token():
     client = _client()
     response = client.get("/analytics/export/payload/does-not-exist")
     assert response.status_code == 404
+
+
+def test_the_old_route_launches_its_browser_on_first_use(monkeypatch):
+    from types import SimpleNamespace
+    from app.services.analytics import pdf_export
+
+    page = AsyncMock()
+    page.wait_for_selector.return_value.get_attribute.return_value = None
+    page.pdf.return_value = b"%PDF-1.4 invented lazy export"
+    browser = SimpleNamespace(is_connected=lambda: True, new_page=AsyncMock(return_value=page), close=AsyncMock())
+    launch = AsyncMock(return_value=browser)
+    driver = SimpleNamespace(chromium=SimpleNamespace(launch=launch), stop=AsyncMock())
+    start = AsyncMock(return_value=driver)
+    monkeypatch.setattr(pdf_export, "_browser", None)
+    monkeypatch.setattr(pdf_export, "_playwright", None)
+    monkeypatch.setattr(pdf_export, "_browser_lock", asyncio.Lock(), raising=False)
+    monkeypatch.setattr(pdf_export, "async_playwright", lambda: SimpleNamespace(start=start))
+
+    async def run():
+        launch.assert_not_awaited()
+        try:
+            for _ in range(2):
+                response = await export_analytics_pdf(
+                    AnalyticsExportRequest(scope="aggregate", member_id=None, payload={"allocation": {}}),
+                    user=type("U", (), {"id": uuid.UUID(int=1)})(), db=object(),
+                )
+                assert response.media_type == "application/pdf"
+                assert response.body == b"%PDF-1.4 invented lazy export"
+            start.assert_awaited_once()
+            launch.assert_awaited_once()
+            assert page.close.await_count == 2
+        finally:
+            await pdf_export.stop_browser()
+
+    asyncio.run(run())
