@@ -1,0 +1,75 @@
+# Handoff: hbcd-rt-1 (Head of Family Parts B, C, D: front-end foundation and every red test; Codex, lane RT, FE-1a; Task 5)
+**Status:** READY TO RELAY (written 2026-11-25). **Approved:** the owner approved the plans on 25 Nov 2026 (decisions Q1 A, Q2 mockup 5, Q3 A, Q4 B, Q5 A, Q6 A, Q7 A, QA-2 A).
+**Parent plan:** `Docs/superpowers/plans/2026-11-25-hof-bcd-adddata-plan.md` (**Task 5: read it first, its Interfaces block and its named tests are the contract**; also "Global Constraints" and "Review Focus"), master plan `Docs/superpowers/plans/2026-11-25-qa-patches-master-plan.md`. **Spec:** `Docs/orchestration/2026-11-24-head-of-family-d11-plan.html` (page version 16, Parts B, C, D, mockups 2 to 5, scenarios S1 to S15). If the spec, the plan and the code disagree, stop and say so.
+**Worker:** Codex, front-end foundation only: types, one copy file, the api functions, one small hook, the one copy value change, and **every red test of patch 2's front end**. It does **not** build `CamsWaitingCard.tsx` or edit `TwoPathImportContainer.tsx`, `WaitingForCasView.tsx`, `RequestCamsPath.tsx`, `CamsChecklist.tsx`, `CamsChecklistHost.tsx`, `checklistStore.ts`, `ChangeHeadDialog.tsx` (Antigravity lanes do, from packets). **It cannot run WSL or Vitest here: write the tests, report BLOCKED on running; Claude runs them through `wave-fe-check.sh` (lane `hbcd-rt`).** **Reviewer and committer:** Claude.
+**Work in:** `C:\Users\Dell\lanes\unifolio-hbcd-rt` (worktree, branch `batch/hbcd-rt`; it holds patch 1's front end and the visual pass). Never in the main checkout.
+Read first: `Docs/orchestration/ui-common-rules-codex.md`, `Docs/orchestration/wave-common-rules.md` (wins where they differ), then this file.
+
+## What and why
+The back end (committed on `batch/hbcd-be`) now closes a waiting CAMS request when its member's statement is imported and offers `GET /cas-imports/pending?member_id=` (response `{ "pending": { import_id, household_member_id, expires_at } | null }`) and `GET /cas-imports/cams-link` (`{ "cams_url": "..." }`), and the head-change eligibility list carries `waiting_cams_request: boolean` per member. The front end must: choose the Add data screen from the server (not from browser notes), show a waiting card, make the checklist a pure reading aid, make "Continue without it" a visible, reversible row, rename "Start over" to "Reset checklist", and show a quiet line in the Head of Family dialog. You write the foundation and the failing tests; Antigravity builds the UI to make them green.
+
+## Wave-start check (Claude ran the baseline on 25 Nov; report drift, do not fix drift)
+Baseline on this worktree: `src/features/import`, `src/features/profile-v2` and `features/mutual-funds/guards.test.ts`: **78 files, 994 tests, all passing.** Confirm in `frontend/src/features/import/`: `TwoPathImportContainer.tsx` (222 lines) chooses its view from `defaultTab`, a mount effect and a window-focus handler that read the browser notes `casResumeState` and the checklist state, and passes `"pending-import"` to `WaitingForCasView` when it has no id; `RequestCamsPath.tsx` (251 lines; props `{memberId, onBack?, onRequestInitiated(importId, expiresAt)}`) awaits `settleOpening()` of the checklist store in its request handler and renders "Continue without it" as a small link; `WaitingForCasView.tsx` (154 lines) has the Start over action; `api.ts` has `requestCamsStatement` and `cancelImportRequest`; `checklist/checklistCopy.ts` has `startOver` (the old "Start over"), `introduction`, `skip`, `panelTitle`, `panelStepTitles`; `checklist/checklistLook.guard.test.ts` lists the files it scans; `features/profile-v2/components/ChangeHeadDialog.tsx` renders the eligibility list from `features/profile-v2/lib/headEligibility.ts` and `features/auth/types.ts`. Open each test file the plan names (the line numbers in the plan are approximate: find the tests by name) and report any difference.
+
+## The contract (fixed in the plan, Task 5; do not rename or reshape)
+```ts
+// features/import/api.ts (add)
+export interface PendingCamsRequest { import_id: string; household_member_id: string; expires_at: string }
+export function getPendingCamsRequest(memberId: string): Promise<PendingCamsRequest | null>   // GET /cas-imports/pending?member_id=<memberId>; returns body.pending
+export function getCamsLink(): Promise<string>                                                  // GET /cas-imports/cams-link; returns body.cams_url
+// features/import/usePendingCamsRequest.ts (new)
+export function usePendingCamsRequest(memberId: string): { status: "loading" | "none" | "waiting" | "error"; request: PendingCamsRequest | null; refresh: () => Promise<void> }
+// features/import/pendingCopy.ts (new; the words marked * need the owner's confirmation before merge; use them exactly)
+export const WAITING_CARD_TITLE = "CAMS request waiting";
+export const waitingCardFor = (name: string) => `for ${name}`;                    // *
+export const WAITING_CARD_BODY = "We will use the file as soon as you upload it.";   // *
+export const waitingCardExpires = (hours: number) => `Expires in ${hours} h`;     // *
+export const WAITING_CARD_SHOW = "Show checklist";                                 // *
+export const WAITING_CARD_UPLOAD = "Upload the file";                              // *
+export const CHECKLIST_OFF_TITLE = "Checklist off for this request.";              // *
+export const CHECKLIST_OFF_BODY = "CAMS will open on its own.";                    // *
+export const CHECKLIST_TURN_ON = "Turn it back on";                                // *
+export const HEAD_CHANGE_WAITING_LINE = (name: string) => `A CAMS request for ${name} is still waiting. It does not stop this change.`;
+// features/import/checklist/checklistCopy.ts: startOver value becomes "Reset checklist" (the key name may stay `startOver`; the VALUE changes)
+// features/auth/types.ts or the file that types the eligibility member entry: add the optional field  waiting_cams_request?: boolean
+// components the Antigravity lanes build to this contract:
+//   CamsWaitingCard({ request, memberName?, checklistMode, onShowChecklist, onUpload, onCancel })   data-testid="cams-waiting-card"
+```
+**Test ids fixed:** waiting card `cams-waiting-card`, its Cancel `cams-waiting-cancel`; Request page row `continue-without-row`, its button `continue-without-button`, the off state `checklist-off-row`, its button `checklist-turn-on`; dialog quiet line `head-change-waiting-line`. `usePendingCamsRequest` status semantics: `loading` until the first answer; `waiting` when `request !== null`; `none` when the answer is `pending: null`; `error` on a failed read (and `request` null). Hours in the expiry text come from `expires_at` rounded **up** to whole hours, never below 1.
+
+## Tests first (written before the foundation code; each red for the stated reason; the plan's Task 5 Step 1 lists the names, they are fixed)
+Follow the plan's Task 5 Step 1 list **exactly** (names, files, which existing tests to replace and which to update): `usePendingCamsRequest.test.ts` (3), `api.test.ts` (2), `TwoPathImportContainer.test.tsx` (**replace** the four tests that pin the coupling, by name: "automatically resumes at upload view when resume state is present", "resumes upload view on window focus when resume state is set", the checklist-state initial-view test, and the resume-driven parts of the two neighbouring tests, with the seven new tests of the plan; a replaced test must be removed, not weakened: report each one with what it pinned), `RequestCamsPath.test.tsx` (8 new, 3 updated), `WaitingForCasView.test.tsx` (1 updated, 2 new), `checklist/*` (4 new), `ChangeHeadDialog.test.tsx` (2 new). `useCamsChecklist.test.tsx` and `casResumeState.test.ts` stay green **unchanged** (the markers stay for the phone). Use the same mocking style as the neighbouring tests (mock `@/features/import/api` or the api module path the neighbours mock; fake timers where the neighbours use them). Add the new files you create (`usePendingCamsRequest.ts`, `pendingCopy.ts`) to the scan list of `checklist/checklistLook.guard.test.ts` **only if** the guard's rules apply to them (they contain no JSX and no hex, so they pass; if the guard cannot take them, report instead of editing the guard's rules). `features/mutual-funds/guards.test.ts` is untouched.
+**New strings are exactly those of `pendingCopy.ts`; the existing strings of the checklist and the Request page do not change** (`checklistCopy.introduction` split at its first full stop is the row's sentence; `checklistCopy.skip` is the button).
+**Report, for each existing test you replaced or updated, what it pinned and what you changed.**
+
+## Amendment (Claude, 25 Nov, answering your blocker: APPROVED; resume the task)
+Your drift note is right: more existing tests pin the checklist driving the screen than the plan names. **Ruling, from the spec (Part D: the checklist "becomes a pure reading aid, connected to nothing"; the page lists "coming back to the tab jumps to the upload screen" as a coupling defect to remove) and the plan ("the checklist loses every tie to the screen and to the request"):**
+1. **No checklist state or window event may change the Add data screen**: not the window `focus` event, not "ready", not "I have the file", not "Close this checklist", not closing the floating window, not the saved checklist state. The jump to the upload view (`finishedFromChecklist`, the focus handler) and the `uploadBanner` flow that follows it are **removed behaviour**. (The string `uploadBanner` may stay in `checklistCopy.ts` unused: do not delete it; the lanes decide.)
+2. **Tests that pin that behaviour are rewritten, not deleted silently**: in `WaitingForCasView.test.tsx` the three tests you named (L53 "request completion keeps the window; ready allows focus to show upload and Close this checklist finishes", L93 "panel mode holds early return, keeps ready until Close this checklist, and shows the upload banner", L168 "closing the floating window on ready finishes and shows the upload banner"), and the two that pin the banner flow ("finish clears the saved state and the banner disappears after Import", "leaving the upload screen clears the checklist banner before returning"). For each: **keep every assertion about the checklist itself** (ticks, steps, headings, the floating window and Close behaviour, the saved state being cleared by Close) and **replace each assertion that the screen changed (the CAS PDF field appearing after focus or finish, the banner text) with its negative** (the waiting screen is still shown, "Waiting for CAMS email" visible, the upload field is **not** shown until the person opens "Already got the email? Upload it now"; the banner text is not shown). Rename each so the name states the new rule, and **report what each pinned and what you changed**.
+3. **Reaching the waiting screen:** every test (in `WaitingForCasView.test.tsx`, `TwoPathImportContainer.test.tsx`, `RequestCamsPath.test.tsx`) that reaches the waiting screen only through the browser note `setCasResumeStep2` or the checklist state must now reach it through **the mocked server answer** (`getPendingCamsRequest` resolving a pending request for the member; mock it the same way the neighbours mock `@/features/import/api`). `casResumeState` markers stay for the phone and its own tests stay unchanged.
+4. **Unchanged on purpose:** the closed-card and reload tests ("reload on ready shows the closed card naming step 4 and reopens W3 on a click", the L193 reload test beyond its `Reset checklist` rename) keep their checklist-internal assertions; only how they reach the waiting screen changes (point 3).
+5. The tests named in the plan that "do not exist by that name" (the "checklist-state initial-view" test): **write `the_checklist_state_does_not_choose_the_screen` anyway** as the plan lists it. No other name changes. Everything else in the handoff and the plan's Task 5 stays.
+Resume now; if another conflict between a test and this ruling appears, stop and report it with the test name.
+
+## Run these only (Claude runs them; you report BLOCKED on running)
+Through `wave-fe-check.sh` lane `hbcd-rt`: `wsl.exe -d Ubuntu -- env UNIFOLIO_WT_ROOT=/mnt/c/Users/Dell/lanes UNIFOLIO_AG_ROOT=/mnt/c/Users/Dell bash <script> hbcd-rt test <paths under src/>` for the test files above plus `features/import/api.test.ts`. Expected after your work: the new and rewritten tests fail for the stated reasons (the hook test and the api tests go green once the foundation code is written; the UI tests stay red until the lanes build the components); everything else still passes.
+
+## Files you may touch
+Create: `frontend/src/features/import/usePendingCamsRequest.ts` (+ `usePendingCamsRequest.test.ts`), `frontend/src/features/import/pendingCopy.ts`. Modify: `frontend/src/features/import/api.ts` (only the two functions and the interface), `frontend/src/features/import/checklist/checklistCopy.ts` (only the `startOver` value), the `types.ts` that types the eligibility entry (only the optional field), `checklist/checklistLook.guard.test.ts` (only its file list), and the test files named above (only the tests named above).
+**Do not touch:** `backend/**`, `frontend/src/mobile/**`, any component, hook or CSS file other than the two you create and the one value above, `ChangeHeadDialog.tsx`, `headEligibility.ts`.
+
+## Constraints
+No new dependency; no `package.json` change; no hex colours outside token CSS; no `parseFloat`, `toFixed`, `Intl.`, `console.`, `any`; **no em dashes in new strings; no emojis**; invented data only; git read-only; no deletion flags or recursive deletes. Tests first; red test files are fixed once written. `features/mutual-funds/guards.test.ts` counts exactly 70 files in that folder: you add none there.
+
+## Report format
+One fenced block `CODEX REPORT: hbcd-rt-1`: status (DONE, PARTIAL or BLOCKED); baseline HEAD; drift; which tests you expect red and why (you cannot run them); each existing test replaced or updated and what it pinned; files created or changed with a one-line reason each; commands you tried and their exact errors; `git status --short`; Deviations; Open questions.
+
+## Paste-ready prompt
+```
+Front-end foundation worker for Unifolio (Codex). Read, in order:
+1. Docs/orchestration/ui-common-rules-codex.md
+2. Docs/orchestration/wave-common-rules.md (wins where they differ)
+3. Docs/orchestration/2026-11-25-hbcd-rt-1-handoff.md (your task: hbcd-rt-1, owner-approved)
+Open Docs/superpowers/plans/2026-11-25-hof-bcd-adddata-plan.md (Task 5) for the contract and the named tests. Work only in C:\Users\Dell\lanes\unifolio-hbcd-rt on branch batch/hbcd-rt. Git is read-only. No deletion flags or recursive deletes. You write the api functions, one hook, one copy file, one copy value and every red test; you build no component and edit no component, CSS or token file. You cannot run WSL or Vitest: write carefully and reply BLOCKED on running them (Claude runs them). Change only the files the handoff lists.
+Reply with the CODEX REPORT block from the handoff, nothing else.
+```
