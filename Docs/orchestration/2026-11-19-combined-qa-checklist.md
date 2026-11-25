@@ -217,7 +217,7 @@ All visual checks are the owner's, in this round (decision 25 Nov 2026): look at
 | ID | Where and how | What you should see | Result |
 |---|---|---|---|
 | ES-02 | Export a full report (all 24 sections) and watch the dialog; close it and reopen it while it runs | The elapsed time counts up ("N min N s so far"), "Finishing the PDF" shows at the last stage, the "can take a few minutes" note shows for a large report, and the time keeps counting after you reopen the dialog | |
-| ES-03 | Open a **new** export next to an **old** one (the staging look-gate baseline, if kept) | The pages look the same; **only the contents page now has page numbers** (the owner decision QA-19 A) | |
+| ES-03 | Open a **new** export next to an **old** one (the staging look-gate baseline, if kept) | **The pages look exactly the same** (this release does not change the PDF: the contents-only print was held for patch 3b); the look gate in the deploy guide (step 9d) is a plain PASS | |
 | ES-04 | (Claude, after the first export) the backend log and the container memory | The `export timing:` line shows the stages; memory at idle is about 800 MB lower (the old Download PDF route no longer launches a browser at start-up) | |
 | ES-05 | The old analytics page's Download PDF button | It still returns a PDF (it launches its browser on first use) | |
 
