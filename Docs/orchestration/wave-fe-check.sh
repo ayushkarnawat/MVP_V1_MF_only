@@ -53,6 +53,8 @@ case "$lane" in
   # QA-round patches (25 Nov 2026): integration worktrees and Codex foundation lanes (see the master plan)
   vis) SRC="$WT/unifolio-vis/frontend" ;;   # visual pass: integration (batch/vis)
   vis-rt) SRC="$WT/unifolio-vis-rt/frontend" ;;   # visual pass: Codex shared constants and red tests (batch/vis-rt)
+  sb) SRC="$WT/unifolio-sb/frontend" ;;   # summary bar: integration (batch/sb)
+  sb-rt) SRC="$WT/unifolio-sb-rt/frontend" ;;   # summary bar: Codex foundation and red tests (batch/sb-rt)
   hofa) SRC="$WT/unifolio-hofa/frontend" ;;   # Head of Family part A: integration (batch/hofa)
   hofa-rt) SRC="$WT/unifolio-hofa-rt/frontend" ;;   # Head of Family part A: Codex front-end foundation (batch/hofa-rt)
   sb) SRC="$WT/unifolio-sb/frontend" ;;   # summary bar: integration (batch/sb)
