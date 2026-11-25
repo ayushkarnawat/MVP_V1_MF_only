@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { INFO_GLYPH_CLASS } from "@/components/info/infoGlyph";
 
 export interface BenchmarkInfoNoteProps {
   /** The backend's explanatory note text. Never written by the frontend. */
@@ -62,7 +63,7 @@ export function BenchmarkInfoNote({ note, className }: BenchmarkInfoNoteProps) {
             e.stopPropagation();
           }
         }}
-        className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] font-semibold text-[var(--ui-text-muted)] hover:border-[var(--ui-text-muted)] hover:text-[var(--ui-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ui-focus)]"
+        className={INFO_GLYPH_CLASS}
       >
         <span aria-hidden="true">i</span>
       </button>

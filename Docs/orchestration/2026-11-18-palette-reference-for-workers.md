@@ -51,4 +51,4 @@ Headings and sub-headings: DM Sans. Body, accents, taglines, sub-text: Manrope. 
 The plan's `#22C55E` for actions and `#15803D` for the deeper green are **both in the palette** (button default, and button pressed / positive text). So the Q25 check is closed: no change to those two values. Mapping for `auth-tokens.css` on all ten auth screens:
 - `--auth-green` (today `#09B158`) becomes `#22C55E`; hover `#16A34A`; pressed `#15803D`; disabled `#DFDFDF`; focus ring `#22C55E` 2 px; selected-row fill `#E9F9EF`.
 - `--auth-green-ink` (today `#067A3D`, the green second half of a headline and small green text) becomes `#15803D` (palette: AA-safe text on white).
-- Text on a green button is dark: `#111111` (palette: primary text). The packet states each state; any value not in this file is a defect.
+- Text on a green button is **white** `#FFFFFF` in every state except disabled (owner decision, 25 Nov 2026, QA-1 B; white on `#22C55E` is about 2.3 to 1 and the owner accepted it). This overrides the PDF's dark-text rule.

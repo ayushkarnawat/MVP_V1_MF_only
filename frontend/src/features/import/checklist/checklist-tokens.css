@@ -21,7 +21,7 @@
   --ccp-green-border: #BAEFCC;
   --ccp-link-border: #BAEFCC;
   --ccp-ring-track: #BAEFCC;
-  --ccp-btn-ink: #111111;
+  --ccp-btn-ink: #FFFFFF;
   --ccp-btn-pressed-ink: #FFFFFF;
   --ccp-disabled-bg: #DFDFDF;
   --ccp-disabled-ink: #C4C4C4;
@@ -52,7 +52,7 @@
     --ccp-green-border: color-mix(in srgb, #22C55E 35%, #1A1A1A);
     --ccp-link-border: color-mix(in srgb, #34D399 45%, transparent);
     --ccp-ring-track: color-mix(in srgb, #22C55E 28%, #1A1A1A);
-    --ccp-btn-ink: #111111;
+    --ccp-btn-ink: #FFFFFF;
     --ccp-btn-pressed-ink: #FFFFFF;
     --ccp-disabled-bg: #2E2E2E;
     --ccp-disabled-ink: #717171;
@@ -83,7 +83,7 @@
   --ccp-green-border: color-mix(in srgb, #22C55E 35%, #1A1A1A);
   --ccp-link-border: color-mix(in srgb, #34D399 45%, transparent);
   --ccp-ring-track: color-mix(in srgb, #22C55E 28%, #1A1A1A);
-  --ccp-btn-ink: #111111;
+  --ccp-btn-ink: #FFFFFF;
   --ccp-btn-pressed-ink: #FFFFFF;
   --ccp-disabled-bg: #2E2E2E;
   --ccp-disabled-ink: #717171;
@@ -110,7 +110,7 @@
   --ccw-green-pressed: #15803D;
   --ccw-green-ink: #15803D;
   --ccw-ring-track: #BAEFCC;
-  --ccw-btn-ink: #111111;
+  --ccw-btn-ink: #FFFFFF;
   --ccw-btn-pressed-ink: #FFFFFF;
   --ccw-disabled-bg: #DFDFDF;
   --ccw-disabled-ink: #C4C4C4;
