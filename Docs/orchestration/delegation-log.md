@@ -877,3 +877,4 @@ fix" rule.
 - 2026-11-25 d12-be-1b done: 4 analytics files 115 passed; committed 837575e2 on batch/d12-be
 - 2026-11-25 vis V2, V3 and hofa-fe-1 built by Antigravity (no tools), Claude ran checks all green, merged into batch/vis and batch/hofa
 - 2026-11-25 hofa-be G1 review: FAIL (High: confirm/swap lock-order deadlock); hofa-be-3 handoff written (NOWAIT fix), relay to Codex
+- 2026-11-25 es-1 handoff written (export timing log, Codex, worktree unifolio-es-be on batch/es-be from patch/qa1; baseline 10 failed/99 passed pre-existing on this laptop), relay to Codex
