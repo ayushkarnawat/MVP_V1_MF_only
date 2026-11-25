@@ -181,8 +181,8 @@ describe("OnboardingFlow", () => {
     setToken("t"); // AuthProvider only loads /auth/me when a token is stored
     renderFlow({ ...BASE_ME, onboarding_step: "q2_investing", self_name: "Asha", investor_type: "self_directed" });
     await waitFor(() => screen.getByText(/how are you investing right now/i));
-    expect(screen.getByRole("button", { name: /mostly on my own/i })).toHaveClass("bg-[#22C55E]/[0.08]");
-    expect(screen.getByRole("button", { name: /^through an advisor/i })).not.toHaveClass("bg-[#22C55E]/[0.08]");
+    expect(screen.getByRole("button", { name: /mostly on my own/i })).toHaveClass("bg-[color-mix(in_srgb,var(--pos)_8%,transparent)]");
+    expect(screen.getByRole("button", { name: /^through an advisor/i })).not.toHaveClass("bg-[color-mix(in_srgb,var(--pos)_8%,transparent)]");
   });
 });
 
