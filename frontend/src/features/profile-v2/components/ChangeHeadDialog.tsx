@@ -30,8 +30,10 @@ import type {
 } from "@/features/auth/types";
 import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
 import { FIXABLE_REASONS, fixableHint, isFixable } from "../lib/headEligibility";
+import { REVIEW_DISCARDED_NOTE, STATEMENT_SAVING_CODE } from "../lib/headChangeCopy";
 import { cleanName, relationshipText } from "../lib/memberLabels";
 import { InfoNotice } from "./InfoNotice";
+import { StatementSavingNotice } from "./StatementSavingNotice";
 
 export interface ChangeHeadDialogProps {
   members: readonly HouseholdMember[];
@@ -60,7 +62,6 @@ const REASON_SENTENCES: Record<string, string> = {
   same_email_as_head: "Their email is the same as yours. Use a different one.",
   same_phone_as_head: "Their phone number is the same as yours. Use a different one.",
   head_change_already_open: "A change is already waiting for codes.",
-  import_in_progress: "Finish or cancel the statement you are importing first.",
   account_pending_deletion: "This account is scheduled for deletion. Reactivate it first.",
 };
 
@@ -175,6 +176,7 @@ export function ChangeHeadDialog({
   const [previewFailed, setPreviewFailed] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [step3Error, setStep3Error] = useState<string | null>(null);
+  const [savingNotice, setSavingNotice] = useState(false);
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -421,6 +423,7 @@ export function ChangeHeadDialog({
   // Confirm stays disabled until this has succeeded, so a person never confirms a change they have not seen.
   const loadPreview = async (requestId: string) => {
     setStep3Error(null);
+    setSavingNotice(false);
     setPreviewFailed(false);
     setPreview(null);
     setPreviewLoading(true);
@@ -451,6 +454,7 @@ export function ChangeHeadDialog({
   const handleGoToStep3 = async () => {
     if (!status || !status.ready) return;
     setStep2Error(null);
+    setSavingNotice(false);
     setStep(3);
     await loadPreview(status.request_id);
   };
@@ -459,6 +463,7 @@ export function ChangeHeadDialog({
     if (cancelling || completing) return;
     setCancelling(true);
     setStep2Error(null);
+    setSavingNotice(false);
     try {
       await cancelHeadChange();
       if (!mountedRef.current) return;
@@ -477,11 +482,12 @@ export function ChangeHeadDialog({
     }
   };
 
-  const finishSignedOut = () => {
+  const finishSignedOut = (discarded = false) => {
     if (preview) {
       setSignInNotice({
         title: "Head of Family changed",
         body: `Sign in with ${maskEmail(preview.new_head.email)} or ${maskPhone(preview.new_head.phone_number)}. ${cleanName(preview.old_head.name)} can no longer sign in.`,
+        ...(discarded ? { extra: REVIEW_DISCARDED_NOTE } : {}),
       });
     } else {
       setSignInNotice(SIGN_IN_NOTICE);
@@ -506,11 +512,18 @@ export function ChangeHeadDialog({
     if (!status || completing) return;
     setCompleting(true);
     setStep3Error(null);
+    setSavingNotice(false);
     try {
-      await completeHeadChange(status.request_id);
-      finishSignedOut();
+      const res = await completeHeadChange(status.request_id);
+      finishSignedOut(res.discarded_review === true);
     } catch (err) {
       const parsed = parseHeadChangeError(err);
+      if (parsed.code === STATEMENT_SAVING_CODE) {
+        if (!mountedRef.current) return;
+        setSavingNotice(true);
+        setCompleting(false);
+        return;
+      }
       if (
         parsed.code === "request_expired" ||
         parsed.code === "request_changed" ||
@@ -934,7 +947,14 @@ export function ChangeHeadDialog({
             </div>
           ) : null}
 
-          {step3Error ? (
+          {savingNotice ? (
+            <StatementSavingNotice
+              onRetry={() => {
+                setSavingNotice(false);
+                void handleComplete();
+              }}
+            />
+          ) : step3Error ? (
             <p role="alert" className="text-sm text-[var(--neg-text)]">
               {step3Error}
             </p>
@@ -962,14 +982,17 @@ export function ChangeHeadDialog({
               <button
                 type="button"
                 disabled={completing || cancelling}
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  setSavingNotice(false);
+                  setStep(2);
+                }}
                 className="rounded-lg border border-[var(--ui-divider)] bg-[var(--ui-card)] px-4 py-2 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-row-hover)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ui-focus)]"
               >
                 Back
               </button>
               <Button
                 type="button"
-                disabled={!preview || completing || previewLoading || cancelling}
+                disabled={!preview || completing || previewLoading || cancelling || savingNotice}
                 onClick={() => void handleComplete()}
               >
                 Confirm the change
