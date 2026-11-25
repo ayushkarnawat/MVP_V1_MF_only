@@ -1,6 +1,6 @@
-<title>Head of Family Change Plan</title>
+<title>Head of Family and QA Fixes</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600&display=swap">
 <style>
 :root{--bg:#f6f7f5;--surface:#fff;--ink:#16201a;--muted:#5d6a62;--line:#dfe4e0;--green:#16a34a;--greenbg:#e6f5ec;--warn:#b45309;--warnbg:#fdf1de;--neg:#b42318;--blue:#1d4ed8;--bluebg:#e8eefc;--code:#eef1ee;--mark:#fff3c4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202b23;--mark:#4a3f12;color-scheme:dark}}
@@ -111,15 +111,56 @@ button:focus-visible,.o:focus-within,.menu:focus-visible{outline:2px solid var(-
 .note{font-size:12px;color:var(--muted);background:var(--code);border-radius:8px;padding:6px 8px}
 .chip{font-size:11px;background:var(--code);color:var(--muted);border-radius:99px;padding:1px 8px}
 
+h2.part{font-size:22px;border-top:3px solid var(--green);padding-top:18px;margin-top:40px}
+code{overflow-wrap:anywhere}.kv>div{min-width:0}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;border-top:1px solid var(--line);padding:12px 0}
+.kv>b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+@media(max-width:700px){.kv{grid-template-columns:1fr}}
+.ui{font-family:'Manrope',Inter,sans-serif;color:#111;background:#FCFCFC;border:1px solid #ECECEC;border-radius:12px;padding:14px;font-size:13px;line-height:1.4;margin-bottom:10px;min-width:0}
+.ui *{box-sizing:border-box}
+.ui .h{font-family:'DM Sans',Inter,sans-serif;font-weight:600;font-size:13px}
+.ui .mut{color:#717171;font-size:12px}
+.ui .card{background:#F5F5F5;border:1px solid #ECECEC;border-radius:12px;padding:12px}
+.ui .big{font-family:'DM Sans',Inter,sans-serif;font-weight:700;font-size:26px}
+.ui .big2{font-size:18px;margin-bottom:8px}
+.ui .rule{height:1px;background:#ECECEC;margin:10px 0}
+.ui .row{font-size:12.5px;padding:3px 0}.ui .row.dim{color:#C4C4C4}.ui .row.link{color:#15803D;font-weight:600;text-decoration:underline}
+.ui .uitag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;color:#717171}
+.ui .uitag.bad{color:#C1272D}.ui .uitag.good{color:#15803D}
+.ui .bg{display:inline-block;padding:8px 14px;border-radius:10px;font-weight:600;font-size:13px;font-family:'DM Sans',Inter,sans-serif}
+.ui .bg.sm{padding:4px 10px;font-size:12px}.ui .bg.wide{display:block;text-align:center;margin-top:10px}
+.ui .bright-white{background:#22C55E;color:#fff}.ui .deep-white{background:#15803D;color:#fff}.ui .bright-dark{background:#22C55E;color:#111}.ui .sec{background:#FCFCFC;border:1px solid #DFDFDF;color:#111}
+.ui .btnrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.ui .swrow{display:flex;gap:22px;flex-wrap:wrap}
+.ui .field{border:1px solid #DFDFDF;background:#fff;border-radius:10px;padding:8px 10px;color:#9B9B9B;margin:6px 0}
+.ui .chip{font-size:11px;background:#E9F9EF;color:#15803D;border-radius:99px;padding:1px 8px;font-weight:600;margin-left:6px}
+.win{border:1px solid #cfd4d0;border-radius:10px;overflow:hidden;background:#fff}
+.wbar{background:#e9ecea;padding:6px 8px 0;display:flex;gap:4px}
+.wtab{font-size:11px;padding:4px 12px;background:#fff;border-radius:8px 8px 0 0;color:#111}.wtab.off{background:#dde1de;color:#717171}
+.wbody{position:relative;padding:10px;background:#fff}
+.fl{position:absolute;right:10px;bottom:10px;width:200px;background:#FCFCFC;border:1px solid #DFDFDF;border-radius:12px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);font-size:12px}
+.statuscard2{display:flex;gap:10px;align-items:center;background:#F5F5F5;border:1px solid #ECECEC;border-radius:10px;padding:8px 10px;font-size:12px}
+.sbox{border:1px solid #DFDFDF;border-radius:10px;padding:8px 10px;background:#fff}.sbox.on{border-color:#22C55E;box-shadow:0 0 0 2px #E9F9EF}
+.drop{border:1px solid #DFDFDF;border-radius:10px;background:#fff;margin-top:6px;padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.08);min-height:20px}.drop.empty{height:34px}
+.res{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 8px;border-radius:8px;font-weight:600}.res.on{background:#F5F5F5}
+.res .hint{color:#717171;font-weight:500;font-size:12px;margin-left:auto}
+.lnk0{font-size:12px;color:#15803D;font-weight:600;margin-top:6px}.lnk1{font-size:12px;color:#15803D;font-weight:600;margin-top:6px;text-decoration:underline;text-underline-offset:2px}
+.iold,.inew{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-family:'DM Sans',Inter,sans-serif;font-weight:600}
+.iold{width:32px;height:32px;font-size:18px;border:1px solid #ECECEC;color:#9B9B9B}
+.inew{width:40px;height:40px;font-size:24px;border:1.5px solid #717171;color:#4B4B4B}.inew.hov{background:#111;color:#fff;border-color:#111}
+.orow{display:flex;gap:10px;align-items:center;padding:6px 0;font-weight:600;font-size:13px}
+.ibadge{width:44px;height:44px;border-radius:50%;background:#E9F9EF;display:inline-flex;align-items:center;justify-content:center;font-size:22px;color:#15803D}.ibadge.sm{font-size:16px;color:#4ade80;font-weight:300}
+.pbar{height:8px;border-radius:99px;background:#ECECEC;overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;background:#22C55E}
+.steps2{display:flex;flex-direction:column;gap:5px}.s2{font-size:12.5px;padding:6px 10px;border-radius:8px;background:#F5F5F5;border-left:4px solid #DFDFDF}.s2.hot{background:#FDECEC;border-left-color:#E5484D}
 </style>
 
 <main>
 <header id="top">
   <span class="pill w">Plan only · nothing built</span>
-  <span class="pill b">Version 2 · plain-words rewrite · 25 Nov 2026</span>
-  <h1>Head of Family change blocked by a waiting import (D-11)</h1>
+  <span class="pill b">Version 3 · adds D-12, D-2, D-1, D-3 to D-10 and the not-run rows · 25 Nov 2026</span>
+  <h1>Head of Family change (D-11) and the other QA round findings</h1>
   <p class="sub">Found in the owner's QA on staging, stage 9. This version answers one question first (is the floating checklist the cause?), then maps everything the checklist touches in Add data, lists the other problems found around it, and plans the whole clean-up. Nothing is built and no code or test was edited: every finding comes from reading the code.</p>
-  <nav class="toc" aria-label="Sections"><a href="#plain">In plain words</a><a href="#question">Your question</a><a href="#coupling">What the checklist touches</a><a href="#others">Other problems found</a><a href="#scenarios">Scenarios</a><a href="#fix">The plan</a><a href="#mockups">Mockups</a><a href="#investigation">Investigation</a><a href="#tests">Tests first</a><a href="#delivery">Files, risks, deploy</a><a href="#acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
+  <nav class="toc" aria-label="Sections"><a href="#qa-intro">Part 2: other QA findings</a><a href="#plain">In plain words</a><a href="#question">Your question</a><a href="#coupling">What the checklist touches</a><a href="#others">Other problems found</a><a href="#scenarios">Scenarios</a><a href="#fix">The plan</a><a href="#mockups">Mockups</a><a href="#investigation">Investigation</a><a href="#tests">Tests first</a><a href="#delivery">Files, risks, deploy</a><a href="#acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
 </header>
 
 <section id="plain">
@@ -384,9 +425,268 @@ button:focus-visible,.o:focus-within,.menu:focus-visible{outline:2px solid var(-
   </ol>
 </section>
 
+<section id="qa-intro">
+<h2 class="part">Part 2 · The other findings from the M1 to M4 QA round</h2>
+<p>Source: <code>Docs/orchestration/2026-11-24-qa-round-report.md</code>. Below, each problem is its own item, in the order you asked. For every item: what the user sees, why it happens (what I checked in the code and what I could not confirm), the fix with options and a recommendation, the tests to write first, the files, how you re-check it, and whether it needs your decision. I did not trust the report's reading; where the code disagreed or added something, it says so. <b>Nothing was built or run.</b> The mockups are drawn from the code and the colour palette, not screenshots of the live app, so treat them as accurate in layout and wording and approximate in pixel detail.</p>
+<div class="callout"><p><b>How I checked:</b> three read-only passes over the code (number pools; checklist, greens and export; the visual items). "Confirmed" below means read in the code or in the spike doc. "Inferred" means a reasonable guess I could not prove without running the app. "Web knowledge" means how Chrome is documented to behave, from memory, with no search run.</p></div>
+<nav class="toc" aria-label="Items"><a href="#d12">D-12 numbers</a><a href="#d2">D-2 checklist</a><a href="#d1">D-1 greens</a><a href="#d3">D-3 search strip</a><a href="#d4">D-4 double badge</a><a href="#d5">D-5 choose 3</a><a href="#d6">D-6 link</a><a href="#d7">D-7 info icon</a><a href="#d8">D-8 onboarding icons</a><a href="#d9">D-9 and D-10 export</a><a href="#notrun">Not-run rows</a><a href="#order">Order and patch</a></nav>
+</section>
+
+<section id="d12">
+<h2>1 · D-12 · The category average and the rank use different funds at 1 year</h2>
+<span class="pill w">Number defect</span> <span class="pill b">Needs your decision</span>
+<div class="kv"><b>What the user sees</b><div>On the Performance page a fund can say "rank 19 of 42" at 1 year while the card below says "Category average covers 37 funds". At 3 and 5 years the two counts match. All five funds you checked showed it (42 vs 37, 30 vs 28, 32 vs 30, 30 vs 25, 42 vs 37).</div></div>
+<div class="kv"><b>Why it happens</b><div>
+<p><b>Confirmed in the code.</b> Two separate pieces of code pick the funds. The ranking side asks for the category's funds <i>including those with less than 3 years of history</i> (<code>performance_ranking.py:65</code>, <code>include_short_history=True</code>). The average side asks <i>without</i> that flag (<code>category_ranking.py:327</code>), and then applies a second rule that drops any fund without a 3-year figure from <b>every</b> period (<code>category_ranking.py:289</code>). So a fund that is 1 to 3 years old is ranked at 1 year but left out of the 1-year average. That is why the average's 1Y count always equals its 3Y count. At 3 years the pools are the same by construction; at 5 years a fund needs 3 years anyway, so they match.</p>
+<p><b>Why no test caught it.</b> The test that says "same funds" (<code>test_category_average_checks.py:264</code>) only uses funds with full history, so both sides agree. The tests that check the 3-year rule look at the average only; the one that checks a 1-year-only fund looks at the rank only. Nothing compares the two with a short-history fund.</p>
+<p><b>Conflict in our own documents (you decide).</b> The 3-year rule was a <b>deliberate</b> earlier choice (change-requests plan, 2026-10-31, line ~262, and tests that assert it). The M2 promise was the opposite: "the average uses exactly the same funds as the ranking". Both cannot hold at 1 year. Per our working rules I am stopping here and asking, not picking.</p>
+<p><b>Not confirmed:</b> I did not run anything, so the real 1-year average values are unchanged on paper and the "after" numbers below are not computed. Stored results could in theory be out of sync, but the pattern (1 year only, always equal to the 3-year count) points at the code, not stale data.</p></div></div>
+<div class="kv"><b>Before and after on real examples</b><div>
+<div class="tablewrap"><table>
+<tr><th>Fund (your screenshots)</th><th>1Y rank pool (today)</th><th>1Y average pool (today)</th><th>After option A: average pool</th><th>Funds added to the average</th></tr>
+<tr><td>HDFC Flexi Cap</td><td>42</td><td>37</td><td><b>42</b></td><td>5 (1 to 3 years old)</td></tr>
+<tr><td>Axis Midcap</td><td>30</td><td>28</td><td><b>30</b></td><td>2</td></tr>
+<tr><td>ICICI Large Cap</td><td>32</td><td>30</td><td><b>32</b></td><td>2</td></tr>
+<tr><td>Nippon Small Cap</td><td>30</td><td>25</td><td><b>30</b></td><td>5</td></tr>
+<tr><td>Kotak Flexi Cap</td><td>42</td><td>37</td><td><b>42</b></td><td>5</td></tr>
+</table></div>
+<p class="small">3Y and 5Y counts do not change (37, 28, 30, 25, 37 and 27, 21, 27, 21, 27). The 1-year average <b>percentage</b> will move, because newer funds join it; I cannot give the new figure without running the code. The read-only way: call the two pool functions for the held fund and compare, or run <code>backend/scripts/category_average_diff_report.py --user-id &lt;uuid&gt;</code> and <code>rk4_reconcile_real_pools.py</code> (both read-only), on the staging VM or a local copy. The result goes into this page before anything is built. <b>The before and after of the percentage is a gate: you see it before the fix is deployed.</b></p></div></div>
+<div class="kv"><b>Mockup (Performance, desktop)</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today</div><div class="card"><div class="h">Rank in category · 1 year</div><div class="big">19 <span class="mut">of 42</span></div><div class="rule"></div><div class="h">Category average · 1 year</div><div class="big">11.2%</div><div class="mut">Category average covers <b>37</b> funds (1Y), 37 (3Y), 27 (5Y)</div></div></div>
+<div class="ui"><div class="uitag good">After option A</div><div class="card"><div class="h">Rank in category · 1 year</div><div class="big">19 <span class="mut">of 42</span></div><div class="rule"></div><div class="h">Category average · 1 year</div><div class="big">value changes</div><div class="mut">Category average covers <b>42</b> funds (1Y), 37 (3Y), 27 (5Y)</div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol>
+<li><b>A (recommended): the average follows the rank pool, one period at a time.</b> The 1-year average then covers every fund that has a 1-year return, the same funds the rank uses. Built as one shared "who is in the pool for this period" function that both sides call (so they can never drift again). The old blended single figure keeps its 3-year rule. Changes the 1-year average on screen; 3Y and 5Y do not change. Needs the stored results rebuilt after deploy.</li>
+<li><b>B: the rank follows the average.</b> Rank becomes "19 of 37". Funds under 3 years lose a 1-year rank, which contradicts a test that deliberately gives a 1-year-only fund a rank. Fewer funds ranked.</li>
+<li><b>C: change nothing in the numbers; explain it in words</b> ("average covers funds with 3 years of history"). Cheapest, but it breaks the M2 promise and the two counts still disagree on screen.</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><ul>
+<li><code>test_average_pool_includes_one_year_only_funds_in_the_1y_period</code> (a 14-month-old peer; the 1Y average members equal the 1Y rank pool)</li>
+<li><code>test_rank_total_equals_average_peers_for_every_period_with_short_history_peer</code></li>
+<li><code>test_legacy_blended_average_still_uses_the_3y_floor</code></li>
+<li>Rewrite the tests that assert the old rule: <code>test_three_year_floor_excludes_short_history_from_all_periods</code>, <code>test_fund_under_3_years_is_left_out_of_every_period</code>, and the Excel export test (each is listed in the handoff, none deleted silently)</li></ul></div></div>
+<div class="kv"><b>Files</b><div><code>backend/app/services/analytics/category_ranking.py</code> (pool loader and both average functions), a shared pool function (new or in <code>performance_ranking.py</code>), the tests above; the two Excel/diff scripts assume the old rule and need a look. The front end changes only if the wording does. No migration expected.</div></div>
+<div class="kv"><b>Re-check</b><div>M2-01 (N identical in rank and average, now at 1 year too, for all five funds) and M2-02. <b>M2-04 changes:</b> its expected 1-year averages (0.27 and 2.13) were computed with the old rule, so they must be recomputed after this fix before that row is run.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-12 below: A, B or C. This touches numbers, so it also goes through the batch's own number review.</div></div>
+</section>
+
+<section id="d2">
+<h2>2 · D-2 · The floating checklist: go straight to CAMS, no "Open the CAMS form" button</h2>
+<span class="pill w">Browser limit</span> <span class="pill b">Needs your decision</span>
+<div class="kv"><b>What the user sees</b><div>Press Request from CAMS and a small floating checklist opens, with its own "Open the CAMS form" button. You want the click to take the user straight to the CAMS site, with the checklist already floating above that tab.</div></div>
+<div class="kv"><b>Why it happens</b><div>
+<p><b>Confirmed (spike doc, 23 Nov, Chrome 157, your own test).</b> Opening the floating window worked at 0.3 s. Opening a new tab <i>after</i> it in the same click was blocked. Opening the floating window <i>after</i> a new tab was refused. Opening the tab from a button <i>inside</i> the floating window worked, because that is a fresh click. <b>Web knowledge, not re-tested:</b> both actions need a fresh user click ("user activation") and each one uses it up, so one click buys only one of them. I re-read the spike and the current code: the code does exactly what the spike recommended (<code>RequestCamsPath.tsx:48-58</code>, <code>CamsChecklist.tsx:26-31</code>).</p>
+<p><b>What was never tested</b> (the spike's own list): other delays, Edge and Firefox, whether the CAMS tab comes to the front when opened from the floating window, small laptop sizes, calling the window's own open from the main click, a pop-up window with a size string, same-tab navigation, and an extension.</p>
+<p><b>A risk I found, inferred and untested:</b> on browsers with no floating window (or when it is refused) the page waits for the server's answer and <i>then</i> opens CAMS. If the server is slow, the browser may block that new tab, because the click's permission only lasts a few seconds. This is today's behaviour. A synthetic slow-server test would show it.</p></div></div>
+<div class="kv"><b>Mockup (desktop): today, and the three real options</b><div>
+<div class="grid2">
+<div class="ui"><div class="uitag bad">Today: floating window first, then a button inside it</div>
+<div class="win"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
+<div class="wbody" style="height:190px"><div class="mut">Unifolio, Add data. Click "Request from CAMS".</div>
+<div class="fl"><b>Fill the CAMS form</b><div class="mut">0 of 5 done</div><div class="btnrow"><span class="bg bright-dark">Open the CAMS form</span></div><div class="mut">then 5 ticks</div></div></div></div></div>
+<div class="ui"><div class="uitag good">Option A: the CAMS link is step 1 of the list</div>
+<div class="win"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
+<div class="wbody" style="height:190px"><div class="mut">Same click. The window opens first.</div>
+<div class="fl"><b>Fill the CAMS form</b><div class="mut">Step 1 of 3 · 0 of 5 ticked</div><div class="row link">1. Open CAMS in a new tab ↗</div><div class="row">▢ Statement type: Detailed</div><div class="row">▢ Period: Specific Period</div></div></div></div></div>
+<div class="ui"><div class="uitag good">Option B: CAMS opens as before; float it from Unifolio</div>
+<div class="win"><div class="wbar"><span class="wtab off">Unifolio</span><span class="wtab">CAMS</span></div>
+<div class="wbody" style="height:190px"><div class="mut">CAMS site opens at once. No window yet.</div></div></div>
+<div class="win" style="margin-top:8px"><div class="wbar"><span class="wtab">Unifolio</span><span class="wtab off">CAMS</span></div>
+<div class="wbody" style="height:70px"><div class="statuscard2"><b>CAMS request waiting</b> <span class="bg deep-white sm">Float the checklist</span></div></div></div></div>
+<div class="ui"><div class="uitag bad">Not recommended: a browser extension</div><div class="card"><div class="mut">A small add-on that draws the checklist on the CAMS page itself. The only true one-click flow, but the user must install it, it needs store review and permission to read the CAMS site, which is heavy for a household-finance product.</div></div>
+<div class="uitag bad" style="margin-top:10px">Not viable: CAMS inside the floating window; same tab</div><div class="card"><div class="mut">The floating window has no address bar and CAMS probably refuses to be framed (inferred). Going to CAMS in the same tab closes the floating window with the page and loses the Unifolio tab the upload step needs.</div></div></div>
+</div></div></div>
+<div class="kv"><b>Options</b><div><ol>
+<li><b>A (recommended): keep the current design, but make the CAMS link the first step of the checklist instead of a separate button</b>, and run a short spike (about half a day) on the untested ideas before giving up on one click. It looks like the CAMS step is part of the list, not an extra button. It is still one extra click, which I will say plainly. If the spike finds an order that works in Chrome and Edge, we switch.</li>
+<li><b>B: CAMS opens straight away as before; the checklist appears as the in-page panel, with a "Float the checklist" button the user presses when back on Unifolio.</b> The click does what you want, but the floating window then starts later and needs a second click.</li>
+<li><b>C: a browser extension.</b> The only way to get exactly what you describe. Heavy; I do not recommend it for this MVP.</li></ol>
+<p class="small">The honest answer to "can one click open both?": not with what Chrome allows today, as tested. Option A makes the extra step feel like part of the checklist rather than a separate button.</p></div></div>
+<div class="kv"><b>Tests first</b><div><ul>
+<li><code>request_still_opens_the_floating_window_first_in_the_click</code> (keeps the spike's rule)</li>
+<li><code>cams_link_is_the_first_checklist_step_and_opens_in_a_new_tab</code>; <code>the_separate_open_the_cams_form_button_is_gone</code> (option A)</li>
+<li><code>fallback_opens_cams_even_when_the_request_is_slow</code> (the risk above; prefetch or open a blank tab in the click, then set its address)</li>
+<li>Option B instead: <code>cams_opens_in_the_click</code>; <code>float_button_opens_the_window_from_its_own_click</code></li></ul></div></div>
+<div class="kv"><b>Files</b><div><code>features/import/checklist/CamsChecklist.tsx</code>, <code>checklistCopy.ts</code>, <code>checklist-tokens.css</code>, <code>RequestCamsPath.tsx</code>; the spike branch <code>batch/h-spike</code> for the extra test page. Part D of the Head of Family plan (above) touches the same files, so the two are done together, one after the other.</div></div>
+<div class="kv"><b>Re-check</b><div>M4-12 (the click flow) and M4-13 (Chrome, Edge, Firefox, Safari).</div></div>
+<div class="kv"><b>Your decision</b><div>QA-2 below. Your earlier "yes" to the current design is still marked open in the spike doc, so I am asking, not assuming.</div></div>
+</section>
+
+<section id="d1">
+<h2>3 · D-1 · White text on every green button, app-wide</h2>
+<span class="pill w">Design, whole app</span> <span class="pill b">Needs your decision</span>
+<div class="kv"><b>What the user sees</b><div>Some green buttons (sign-up, log-in, onboarding) have black text. You want white on every green button.</div></div>
+<div class="kv"><b>Why it happens</b><div>
+<p><b>Confirmed.</b> The app is split. The palette PDF says dark text (<code>#111111</code>) on the brand green <code>#22C55E</code>, so the sign-up, log-in and onboarding screens, the export dialog, the checklist buttons and the XIRR disclaimer all use dark text. The shared button (<code>components/ui/button.tsx</code>, about 68 uses), <code>Button.module.css</code>, the import screens, the analytics buttons, the mobile screens and several dialogs use <b>white</b> on the same bright green. Roughly 34 places use the accent token and about 17 files hard-code the green.</p>
+<p><b>The contrast (my own arithmetic, standard accessibility formula; the target for button text is 4.5 to 1):</b></p>
+<div class="tablewrap"><table>
+<tr><th>Green</th><th>White text</th><th>Dark text #111</th><th>Where it is used</th></tr>
+<tr><td><b>#22C55E</b> bright (brand, button default in the palette)</td><td><b>2.3 to 1</b> (fails)</td><td>8.3 to 1 (passes)</td><td>almost every button</td></tr>
+<tr><td>#16A34A (hover)</td><td>3.3 to 1 (fails)</td><td>5.7 to 1</td><td>hover</td></tr>
+<tr><td><b>#15803D</b> deep (the palette's pressed and "safe text" green)</td><td><b>5.0 to 1</b> (passes)</td><td>3.8 to 1</td><td>pressed, green text</td></tr>
+<tr><td>#166534 darker</td><td>7.1 to 1</td><td>2.7 to 1</td><td>not used today</td></tr>
+</table></div>
+<p><b>The tension:</b> your wish (white everywhere) conflicts with the palette PDF's rule (dark text on the bright green). I am flagging it, not resolving it. White text on the bright green is only 2.3 to 1, which is hard to read. White works only on a darker green.</p></div></div>
+<div class="kv"><b>Mockup: the same button three ways (real palette values)</b><div class="ui"><div class="swrow">
+<div><span class="bg bright-white">Continue</span><div class="mut">White on #22C55E<br><b>2.3 : 1</b> · low contrast, today's shared button</div></div>
+<div><span class="bg deep-white">Continue</span><div class="mut">White on #15803D<br><b>5.0 : 1</b> · passes · <b>recommended</b></div></div>
+<div><span class="bg bright-dark">Continue</span><div class="mut">#111 on #22C55E<br><b>8.3 : 1</b> · the palette rule · what auth screens do today</div></div>
+</div>
+<div class="uitag good" style="margin-top:14px">Recommended look: Sign-up screen, desktop</div>
+<div class="card" style="max-width:360px"><div class="h big2">Create your account</div><div class="field">name@email.com</div><span class="bg deep-white wide">Continue</span><div class="mut" style="text-align:center;margin-top:6px">Hover: darker #166534 · pressed: darker still</div></div></div></div>
+<div class="kv"><b>Options</b><div><ol>
+<li><b>A (recommended): white text, on a deeper green fill for buttons only.</b> Add one "button green" token, <code>#15803D</code> (already in the palette), hover a step darker. The bright <code>#22C55E</code> stays for charts, dots, progress bars, focus rings and the logo. One switch point, so all ~68 shared-button uses and the legacy files change together. This needs your OK because it moves the palette's "primary button" off the bright green.</li>
+<li><b>B: white text on the bright green as is.</b> Does what you literally asked, but 2.3 to 1 fails accessibility.</li>
+<li><b>C: dark text on the bright green everywhere</b> (the palette rule; fixes the split the other way). Contradicts your wish.</li></ol>
+<p class="small">Also found: small green text on a faint green tint (the "/10" chips) is about 2.3 to 1 on white; using <code>#15803D</code> for that text would pass. The white checkmark in the tick boxes is a graphic (needs 3 to 1) and also fails on the bright green; option A fixes it too.</p></div></div>
+<div class="kv"><b>Tests first</b><div><ul>
+<li><code>button_green_with_white_text_meets_4_5_to_1</code> (computes the ratio from the token values; fails today)</li>
+<li><code>no_green_button_uses_dark_text</code> (a scan of the shared button and the listed files)</li>
+<li>One visual check per screen group: auth, onboarding, import, analytics, dialogs, mobile, export, checklist</li></ul></div></div>
+<div class="kv"><b>Files</b><div>Tokens: <code>styles/tokens.css</code>, <code>palette-tokens.css</code>, <code>auth-tokens.css</code>, <code>export-tokens.css</code>, <code>checklist-tokens.css</code>, <code>shell-tokens.css</code>, <code>print-tokens.css</code>. Components: <code>components/ui/button.tsx</code>, <code>Button.module.css</code>, the auth screens (<code>AuthEntryFlow</code>, <code>EmailEntry</code>, <code>Landing</code>, <code>OtpVerify</code>, <code>PhoneEntry</code>), the mobile import and landing views, <code>ExportDialog.tsx</code>, <code>XirrDisclaimerModal.module.css</code>, <code>onboarding.module.css</code>, the import dialogs. Also <code>Docs/orchestration/2026-11-18-palette-reference-for-workers.md</code> and <code>decisions.md</code> (a palette change is a recorded decision).</div></div>
+<div class="kv"><b>Re-check</b><div>M1-12 (white on the deep green) and M2-10 (the dark label that is now white), plus a walk through every screen group.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-1 below.</div></div>
+</section>
+
+<section id="d-visual">
+<h2>Items 4 to 9 · The visual group</h2>
+<div class="callout ok"><p><b>These can be fixed together</b> by one front-end worker in one pass. Natural groups: <b>V1</b> shared styles (D-1 greens and D-7 the "i" icon; both change shared tokens or components, so first); <b>V2</b> the search box (D-3 and D-4, same file); <b>V3</b> Home (D-5 and D-6, two files, one QA pass); <b>V4</b> onboarding icons (D-8); <b>V5</b> the export button wording (D-9, with D-10 below). No file in V2 to V5 is shared with the phone app, except D-8 whose phone flow is a separate file. Rule kept: <b>built wording never changes</b> except where you asked for new text (the D-3 hint, the D-5 hint, the D-9 button).</p></div>
+</section>
+
+<section id="d3">
+<h2>4 · D-3 · The search box opens as an empty white strip the first time</h2>
+<span class="pill w">Design</span>
+<div class="kv"><b>What the user sees</b><div>The first time the search box opens, only an empty white strip drops below it.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> The drop-down shell (<code>components/search/PageSearch.tsx:387</code>) is drawn whenever the box is open. With nothing typed, <code>buildResults.ts:319-326</code> returns an empty list unless there are recent funds, and "Recent searches" appears only if there are some. On first use there are none, so you get the padded, empty panel. The search list also loads on first open (<code>:80-83</code>) and there is no loading line.</div></div>
+<div class="kv"><b>Mockup (desktop)</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today</div><div class="sbox"><span class="mut">🔍 Search funds, members, pages</span></div><div class="drop empty"></div></div>
+<div class="ui"><div class="uitag good">Option A (recommended)</div><div class="sbox on"><span class="mut">🔍 Search funds, members, pages</span></div><div class="drop"><div class="mut" style="padding:6px 8px">Try a fund, a member or a page</div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): a muted hint line inside the panel</b> when nothing is typed and there are no recents: "Try a fund, a member or a page". Gone as soon as recents exist or you type. The hint is not a result (not announced as one).</li><li>B: do not show the panel at all when empty. Simplest, but the box then gives no clue what to type.</li><li>C: A plus a short "Loading" line while the search list loads.</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>shows_a_hint_when_the_box_is_empty_and_there_are_no_recents</code>; <code>hides_the_hint_once_recents_exist</code>; <code>hides_the_hint_when_typing</code>; <code>hint_is_not_an_option</code> (result count stays 0). Files: <code>PageSearch.tsx</code>, <code>PageSearch.test.tsx</code>. Not on the phone. <b>Re-check:</b> M3-2.</div></div>
+<div class="kv"><b>Your decision</b><div>The hint wording (QA-3 below; my suggestion is the line in the mockup).</div></div>
+</section>
+
+<section id="d4">
+<h2>5 · D-4 · "Switches to Priya" shows twice on hover</h2>
+<span class="pill w">Bug (look)</span>
+<div class="kv"><b>What the user sees</b><div>On a member in the search results, hovering shows "Switches to PRIYA ROHAN KULKARNI" twice.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> Two things draw the same words. The row's own tag (<code>PageSearch.tsx:458-462</code>, text set in <code>buildResults.ts:186</code>) says "Switches to NAME" at all times. The hover and selected hint (<code>getRowHint</code>, <code>:30-42</code>, shown at <code>:463-470</code>) says the same sentence again. Fund rows that switch member do the same. Existing tests lock both texts.</div></div>
+<div class="kv"><b>Mockup</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today (hover)</div><div class="drop"><div class="res on"><span>PRIYA ROHAN KULKARNI</span><span class="chip">Switches to PRIYA ROHAN KULKARNI</span><span class="hint">Switches to PRIYA ROHAN KULKARNI</span></div></div></div>
+<div class="ui"><div class="uitag good">After option A (hover)</div><div class="drop"><div class="res on"><span>PRIYA ROHAN KULKARNI</span><span class="chip">Switches to PRIYA ROHAN KULKARNI</span></div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): hide the hover hint when it equals the tag.</b> One line, wording unchanged, the other hints (Filter, Go, Coming soon) stay.</li><li>B: change the tag to a plain "Member". Changes built wording and breaks other tests.</li><li>C: make the hint empty for such rows. Same result as A, more code.</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>does_not_repeat_the_tag_as_the_hover_hint_on_a_member_row</code>; <code>does_not_repeat_the_tag_on_a_fund_row_with_switchTo</code>; <code>still_shows_filter_go_and_coming_soon_hints</code>. Update the two assertions at <code>PageSearch.test.tsx:352-354</code> and <code>:380</code>. Same file as D-3. <b>Re-check:</b> M3-2. No decision needed unless you prefer B.</div></div>
+</section>
+
+<section id="d5">
+<h2>6 · D-5 · The Home graph benchmark control never says "choose up to 3"</h2>
+<span class="pill w">Design (new text you asked for)</span>
+<div class="kv"><b>What the user sees</b><div>Nothing tells you the limit is 3, or why a fourth box greys out, until you hit the limit.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> <code>components/wealth-graph/BenchmarkChecklist.tsx:217-225</code> builds "Choose up to 3" but shows it only after a fourth tick is attempted (<code>:30</code>, <code>:88-90</code>). Boxes beyond the limit just grey out with no reason. The same control is on Home and on the Mutual Funds Overview (<code>WealthGraph.tsx:620</code>). Not on the phone.</div></div>
+<div class="kv"><b>Mockup (desktop)</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today (3 ticked; fourth greyed, no reason)</div><div class="card"><div class="h">Compare with</div><div class="row">☑ Nifty 50 (recommended)</div><div class="row">☑ Nifty Midcap 150</div><div class="row">☑ Nifty 500</div><div class="row dim">▢ Nifty Smallcap 250</div></div></div>
+<div class="ui"><div class="uitag good">After option A (always visible)</div><div class="card"><div class="h">Compare with <span class="chip">Choose up to 3</span></div><div class="row">☑ Nifty 50 (recommended)</div><div class="row">☑ Nifty Midcap 150</div><div class="row">☑ Nifty 500</div><div class="row dim">▢ Nifty Smallcap 250</div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): a muted standing line "Choose up to 3" inside the panel from the moment it opens</b>, linked to the group for screen readers; the existing warm warning still appears on a blocked fourth tick.</li><li>B: the same line with a count ("2 of 3 chosen"). More useful, but you asked for the shorter text.</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>shows_choose_up_to_3_as_soon_as_the_panel_opens</code>; <code>still_warns_when_a_fourth_is_ticked</code>; <code>hint_is_linked_with_aria_describedby</code>. The existing test <code>BenchmarkChecklist.test.tsx:33</code> asserts the line is <b>not</b> there before the limit and must be rewritten. <b>Re-check:</b> M2-15.</div></div>
+</section>
+
+<section id="d6">
+<h2>7 · D-6 · "View all by day's change" does not look clickable</h2>
+<span class="pill w">Design</span>
+<div class="kv"><b>What the user sees</b><div>The link at the foot of the movers list reads like plain text.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> <code>features/home/sections/Movers.tsx:376-387</code>: it is green and semi-bold with an arrow, but small (12px), with no underline or border until hover. Its disabled twin (a "Coming soon" tooltip) sits right beside it in the same code.</div></div>
+<div class="kv"><b>Mockup</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today</div><div class="card"><div class="row">Top movers · today</div><div class="row mut">…</div><div class="lnk0">View all by day's change →</div></div></div>
+<div class="ui"><div class="uitag good">After option A</div><div class="card"><div class="row">Top movers · today</div><div class="row mut">…</div><div class="lnk1">View all by day's change →</div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): underline at rest (offset 2px)</b>, keeping the green and the arrow.</li><li>B: a bordered pill button. Louder.</li><li>C: A plus a slightly larger size (14px).</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>view_all_link_is_underlined_at_rest</code>; <code>view_all_link_keeps_its_accessible_name</code>; <code>disabled_variant_stays_non_interactive</code>. Files: <code>Movers.tsx</code>, <code>Movers.test.tsx</code>. Not on the phone. <b>Re-check:</b> M2-21. No decision needed.</div></div>
+</section>
+
+<section id="d7">
+<h2>8 · D-7 · The small "i" info icon is hard to see</h2>
+<span class="pill w">Design</span> <span class="pill b">One thing to confirm</span>
+<div class="kv"><b>What the user sees</b><div>The small icon (you wrote "eye", the report read it as the "i") is hard to see.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed look, contrast not measured.</b> There are two copies of the same tiny "i" circle: the default trigger in <code>components/info/InfoPopover.tsx:111-117</code> (used once, per fund row in the valuation card) and <code>InfoMark</code> in <code>features/mutual-funds/common/SectionCard.tsx:19-30</code> (12 uses on Overview, Performance and the summary strips; about 13 places in all). Both are 16px with a 10px letter, a border in the faintest "divider" colour and muted text. The hover change is small. <b>Eyes elsewhere</b> (hide-values button, the folio number, the upload forms) are different icons.</div></div>
+<div class="kv"><b>Mockup (desktop, enlarged for reading)</b><div class="ui"><div class="swrow">
+<div><div class="iold">i</div><div class="mut">Today · 16px, 10px letter, faint border</div></div>
+<div><div class="inew">i</div><div class="mut">Option A · 20px, 12px letter, darker border</div></div>
+<div><div class="inew hov">i</div><div class="mut">Option A · hover or focus: filled</div></div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): one shared style for both copies</b> (so they cannot drift), about 20px, 12px letter, a darker border, a clear filled hover.</li><li>B: swap to a standard "Info" icon from the icon set (more visible, but a bigger visual change).</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>default_trigger_and_infomark_share_the_same_visible_size_and_classes</code>; the existing hover, pin on click and Escape tests keep passing. Files: <code>InfoPopover.tsx</code>, <code>SectionCard.tsx</code>. Not on the phone. <b>Re-check:</b> M3-12, in light and dark.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-7: did you mean the "i", or the eye on the hide-values button? (If it is the hide-values eye, that is a different, one-file fix.)</div></div>
+</section>
+
+<section id="d8">
+<h2>9 · D-8 · Onboarding icons look plain</h2>
+<span class="pill w">Design</span> <span class="pill b">Designer's pass</span>
+<div class="kv"><b>What the user sees</b><div>On "How do you usually invest?" the icons look plain and generated.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> The sign-up screen 4 (<code>features/auth/redesign/InvestorProfile.tsx</code>) uses stock line icons from the icon library inside a mint circle (<code>IconBadge.tsx</code>, 44px at desktop, thin stroke). The "growth" bar-chart icon appears twice (as an investor type and as the wealth goal). The left panel's hand-drawn sketches are separate and fine. <b>The phone and older onboarding flows use other files</b> (<code>Q2Investing.tsx</code> with four inline drawings, <code>Q3Purpose.tsx</code>, <code>MobileOnboardingScreen.tsx</code>), so changing <code>InvestorProfile</code> alone does not fix the phone.</div></div>
+<div class="kv"><b>Mockup (desktop)</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today</div><div class="card"><div class="orow"><span class="ibadge sm">▥</span> I'm just getting started</div><div class="orow"><span class="ibadge sm">▥</span> I invest regularly (SIP)</div><div class="orow"><span class="ibadge sm">◔</span> Fund my children's education</div></div></div>
+<div class="ui"><div class="uitag good">Quick pass (option A)</div><div class="card"><div class="orow"><span class="ibadge">🌱</span> I'm just getting started</div><div class="orow"><span class="ibadge">🔁</span> I invest regularly (SIP)</div><div class="orow"><span class="ibadge">🎓</span> Fund my children's education</div></div><div class="mut" style="margin-top:6px">Illustrative: real icons are distinct, larger (24px), no repeats. Final art comes from the designer.</div></div></div></div>
+<div class="kv"><b>Options</b><div><ol><li><b>A (recommended): a quick pass now</b> (distinct icons, no repeat, 24px, a little more weight), then the designer's set replaces them later.</li><li>B: wait for the designer's set only.</li><li>C: leave as is.</li></ol></div></div>
+<div class="kv"><b>Tests first</b><div><code>every_option_row_renders_a_decorative_icon_badge</code>; <code>investor_type_icons_are_distinct_from_goal_icons</code>; <code>badge_is_aria_hidden</code>. Files: <code>InvestorProfile.tsx</code>, <code>IconBadge.tsx</code>, <code>authRowIcons.tsx</code>. <b>Re-check:</b> M1-02 at all five screen sizes.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-8 below. This item also needs your eye: I cannot judge "looks plain" from code, so the first build goes to you before it is merged.</div></div>
+</section>
+
+<section id="d9">
+<h2>10 · D-9 and D-10 · Export: the "Keep working" button and the long wait</h2>
+<span class="pill w">Wording</span> <span class="pill w">Speed (measure first)</span> <span class="pill b">Needs your decision and your timings</span>
+<h3>D-9 · The wording</h3>
+<div class="kv"><b>What the user sees</b><div>While the PDF prepares there are two buttons, "Cancel" and "Keep working". It is unclear what "Keep working" does.</div></div>
+<div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> It only <b>hides</b> the dialog (<code>ExportHost.tsx:46</code>, <code>() =&gt; setOpen(false)</code>); the PDF keeps preparing in the background, and a message under it says "You can keep using Unifolio." The same hide also happens on Esc or clicking outside while preparing (<code>ExportDialog.tsx:267-284</code>). The button is at <code>:581-589</code>, next to Cancel at <code>:572-580</code>.</div></div>
+<div class="kv"><b>Mockup (desktop)</b><div class="grid2">
+<div class="ui"><div class="uitag bad">Today</div><div class="card"><div class="h">Preparing your report</div><div class="pbar"><i style="width:55%"></i></div><div class="mut">Building the pages · You can keep using Unifolio.</div><div class="btnrow"><span class="bg sec">Cancel</span><span class="bg sec">Keep working</span></div></div></div>
+<div class="ui"><div class="uitag good">Proposed</div><div class="card"><div class="h">Preparing your report</div><div class="pbar"><i style="width:55%"></i></div><div class="mut">Building the pages · You can keep using Unifolio.</div><div class="btnrow"><span class="bg sec">Cancel</span><span class="bg sec">Run in background</span></div></div></div></div></div>
+<div class="kv"><b>Wording options (2 to 3 words)</b><div><ol><li><b>"Run in background"</b> (recommended; says exactly what happens, fits next to Cancel)</li><li>"Continue browsing"</li><li>"Hide this window"</li></ol><p class="small">Tests first: <code>shows_the_new_label_and_not_keep_working</code>; <code>the_button_still_hides_the_dialog_and_the_job_continues</code>. File: <code>ExportDialog.tsx</code>. <b>Re-check:</b> M4-3.</p></div></div>
+<h3>D-10 · The long export: measure first, change nothing yet</h3>
+<div class="kv"><b>What the user sees</b><div>The export takes very long, especially from "building the pages" onward. I do not have your real times, so <b>no speed change is proposed</b>.</div></div>
+<div class="kv"><b>How the export works (confirmed)</b><div class="ui"><div class="steps2">
+<span class="s2">1 Request accepted</span><span class="s2">2 Wait for a browser slot (2 slots; up to 60 s)</span><span class="s2">3 Start or reuse the headless browser</span><span class="s2">4 "Collecting": open the print page</span><span class="s2 hot">5 "Building": every section loads its own data, up to 90 s</span><span class="s2 hot">6 Print pass 1 (the full PDF)</span><span class="s2 hot">7 Print pass 2 for the contents page numbers (limit 10 s)</span><span class="s2">8 Save and download</span></div>
+<div class="mut" style="margin-top:6px">Red steps are my guesses for the slow parts (inferred). The code mounts all sections at once, not one after another as the report suspected; any slowness there comes from the data fetches (a limit of 6 at a time per browser, and each one passes through our Python proxy).</div></div></div>
+<div class="kv"><b>What is logged today</b><div><b>Confirmed.</b> One line at the very end of <code>render.py:288-289</code>: status, scope, sections, total <code>duration_ms</code>, <code>pdf_bytes</code>, blocked requests and whether two passes ran. The job record stores <code>stage</code> and <code>updated_at</code>, overwritten at each step, so no per-step time exists. <b>Nothing</b> logs the slot wait, the browser start, the build wait, either print pass, or per-section times.</div></div>
+<div class="kv"><b>Measuring plan (before any change)</b><div><ol>
+<li><b>Free, no code:</b> run one export on the staging VM and poll the job status every half-second from a script, writing each stage change with its time. Gives stage-level times (steps 4 to 8).</li>
+<li><b>One small patch (the timing log):</b> add stopwatch marks and ONE extra log line: <code>slot_wait_ms</code>, <code>browser_launch_ms</code> (cold or warm), <code>goto_ms</code>, <code>build_wait_ms</code>, <code>pdf1_ms</code>, <code>pass2_ms</code> and whether it timed out, <code>store_ms</code>, <code>pdf_bytes</code>, proxied-request count; plus per-section settle times from the print page. This changes no behaviour.</li>
+<li><b>Two runs on the staging VM with a real household, in a private window:</b> one full (all sections, cover on) and one small (2 sections, cover off); each cold (first after 2 minutes idle) and warm. Watch the log and <code>docker stats</code> for CPU and memory while it builds.</li>
+<li>Send me the numbers; <b>then</b> a speed plan is written, with options (for example: fewer proxied requests, cached data, a longer second-pass limit, a warm browser).</li></ol>
+<p class="small">The plan's own measuring script (<code>measure_export.py</code>, item I-13) was planned; I did not verify that it exists.</p></div></div>
+<div class="kv"><b>One thing I found that may matter</b><div>If the contents-page second pass takes longer than 10 s, the report silently falls back to the first pass <b>without</b> contents page numbers (<code>render.py</code>, 10 s limit). A heavily loaded server could therefore produce a report with missing numbers, quietly. The timing log will show how often.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-9 (the wording) and QA-10 (agree to the measure-first plan; and please send the real minutes you saw, for which household and sections).</div></div>
+</section>
+
+<section id="notrun">
+<h2>11 · The rows not run, and what each one needs</h2>
+<div class="tablewrap"><table>
+<tr><th style="width:90px">Row</th><th>What it checks</th><th>What is needed</th><th>Note</th></tr>
+<tr><td>M1-17, M1-18, M1-19</td><td>The four Head of Family emails, the undo email, the undo itself</td><td>The Head of Family fix (part A above) on staging</td><td>Blocked by D-11</td></tr>
+<tr><td>M1-11</td><td>The 11th code request from one network in 10 minutes shows "Too many attempts from this network"</td><td><b>11 different addresses, one network, within 10 minutes</b>, then a 10-minute wait. You do not need 11 mailboxes: the code only trims and lowercases an address (<code>normalize_email</code>), so <code>name+1@</code> to <code>name+11@</code> style addresses count as 11 different addresses and land in one inbox (read from the code, <b>not tested</b>; works only if your mail provider supports plus-addresses). Or the manager's Claude sends 11 scripted requests from the VM.</td><td>The rule itself is covered by a test (<code>test_eleventh_different_address...</code>); this row is only the live check. Real code emails are sent, so use addresses you own.</td></tr>
+<tr><td>M2-03</td><td>A held IDCW or Bonus plan is ranked as its Growth plan; a fund with no Growth series says so</td><td>A test account holding (a) an IDCW or Bonus plan whose fund has a Growth plan, and (b) one with no Growth series. Source: a statement file with them. I did not check whether the synthetic statement set in <code>Docs/CAS Files/synthetic/</code> already has these.</td><td>Needs data</td></tr>
+<tr><td>M2-04</td><td>Category averages for Sectoral/Thematic (Direct) and Liquid (Direct): about 0.27 and 13.80, 2.13 and 4.28</td><td>A held Sectoral/Thematic (Direct) fund and a held Liquid (Direct) fund</td><td><b>The expected 1-year figures change if D-12 option A is chosen</b>: recompute them (the M2 guide's before and after table) after that fix, then run this row</td></tr>
+<tr><td>M2-02, Corporate Bond</td><td>"out of 21"</td><td>A held Corporate Bond (Direct) fund</td><td>The rank pool does not change under D-12 option A, so 21 stays the expected number</td></tr>
+<tr><td>M4-13, Firefox and Safari</td><td>The checklist as an in-page panel in browsers without the floating window</td><td>A Firefox and a Safari (a Mac) and someone to run it. Web knowledge, not tested: the floating window exists only in Chrome-family browsers, so both should show the panel.</td><td>A tester and a Mac</td></tr>
+</table></div>
+</section>
+
+<section id="order">
+<h2>Suggested order, what needs you first, and the patch deploy</h2>
+<h3>Suggested order</h3>
+<ol>
+<li><b>Now, no code:</b> you decide the six items marked "Needs your decision" (QA-12, QA-2, QA-1, QA-7, QA-9, QA-10) and the Head of Family ones (Q1 to Q7, D1 to D4). Run the read-only D-12 before and after, and the free export timing.</li>
+<li><b>First build, in parallel (different files):</b> Head of Family part A (unblocks the four emails) and D-12 (the only wrong-number item). D-12 goes through its number review before it is merged.</li>
+<li><b>Second build, one front-end worker, one pass:</b> V1 (D-1 greens, D-7 info icon), then V2 (D-3, D-4), V3 (D-5, D-6), V4 (D-8), V5 (D-9 wording). D-2 joins here only if you pick a simple option (A or B); it touches the same checklist files as Head of Family part D, so those two are done together.</li>
+<li><b>Measuring patch:</b> the D-10 timing log rides with the second build, so the next export gives real numbers. <b>Speed changes only after those numbers.</b></li>
+<li><b>Later:</b> Head of Family parts B, C and D, the D-8 designer's icons, any D-10 speed work.</li></ol>
+<h3>What needs your decision before anything is built</h3>
+<ul><li><b>D-12</b>: which rule is right at 1 year (our own documents disagree).</li><li><b>D-2</b>: A, B or C, or the half-day spike first.</li><li><b>D-1</b>: white on a deeper green (moves the palette), white on the bright green, or dark on bright.</li><li><b>D-9</b>: the button wording.</li><li><b>D-10</b>: OK to measure first, and the real minutes.</li><li>Also: D-7 (which icon), the D-3 and D-5 hint words, D-8 (quick pass or wait).</li></ul>
+<h3>One patch deploy (the manager's Claude runs it, after the XIRR deploy)</h3>
+<div class="tablewrap"><table>
+<tr><th>Goes in the patch</th><th>Stays out</th></tr>
+<tr><td>Head of Family part A; D-12 (and a rebuild of the stored results, as in the XIRR guide's step 8); D-1, D-3, D-4, D-5, D-6, D-7, D-9; the D-10 timing log (no behaviour change); D-8 quick pass if chosen; D-2 only if option A or B</td><td>Head of Family parts B, C, D; the D-10 speed changes; the designer's D-8 icons; D-2 option C (extension)</td></tr>
+</table></div>
+<p class="small">Expected: no migration (Alembic stays 0054) and no new settings; one new tag (for example <code>qa-patch-rc</code>) cut after a full gate; a stakeholder note only if you want one. The QA rows to re-run are listed per item above, with M1-17 to M1-19 and M2-04 re-run last.</p>
+</section>
+
 <section id="d11q">
   <h2>Decisions for you</h2>
-  <p class="small">Nothing is preselected. Each question has a recommended option; pick one, copy the block and paste it back, and I will update this page from it. D1 to D4 are carried over from the first version (not answered yet); Q1 to Q7 are new.</p>
+  <p class="small">Nothing is preselected. Each question has a recommended option; pick one, copy the block and paste it back, and I will update this page from it. Q1 to Q7 and D1 to D4 are the Head of Family decisions; QA-1 to QA-12 (shown after them) are for the other QA findings in Part 2.</p>
   <div id="d11list"></div>
   <div class="answers">
     <h3 style="margin-top:0">Your answers</h3>
@@ -437,7 +737,44 @@ var Q=[
  {k:"c",l:"Yes: something else",d:"Write it in the note box; the plan is redone around it."}]},
 {id:"D4",t:"Abandoned review rows stay open until the next import call (no job cleans them). Fix in this work?",why:"After Part A this no longer affects the head change under options A or C.",o:[
  {k:"a",rec:1,l:"Leave it out; note it as a follow-up",d:"Keeps this work aimed at D-11."},
- {k:"b",l:"Add a sweep to the daily clean-up job",d:"Cleans old rows and their PAN claims; needs its own tests."}]}
+ {k:"b",l:"Add a sweep to the daily clean-up job",d:"Cleans old rows and their PAN claims; needs its own tests."}]},
+{id:"QA-12",t:"D-12: which rule is right for the 1-year category average?",why:"Our own documents disagree: the earlier change-requests plan deliberately dropped funds without 3 years of history from the average; the M2 promise was that average and rank use the same funds. At 1 year both cannot hold.",o:[
+ {k:"a",rec:1,l:"The average follows the rank pool, built as one shared pool function",d:"1Y average then covers 42, 30, 32, 30, 42 funds (same as the rank). 3Y and 5Y unchanged. The 1Y average percentage moves; you see the before and after first."},
+ {k:"b",l:"The rank follows the average",d:"Rank becomes 'of 37' etc. Funds under 3 years lose a 1-year rank; contradicts a test that gives a 1-year-only fund a rank."},
+ {k:"c",l:"Change nothing in the numbers; explain it in words",d:"Cheapest; the two counts still disagree on screen and the M2 promise stays broken."}]},
+{id:"QA-2",t:"D-2: what do we do about 'one click to CAMS with the checklist floating'?",why:"The spike found one click opens the floating window or the CAMS tab, not both. I re-read it and the code; the untested ideas are listed in item 2.",o:[
+ {k:"a",rec:1,l:"Keep the design; the CAMS link becomes step 1 of the list (no separate button); run a half-day spike on the untested ideas",d:"Still one extra click, said plainly. If the spike finds a working order in Chrome and Edge we switch."},
+ {k:"b",l:"CAMS opens at once; the checklist is the in-page panel with a 'Float the checklist' button",d:"The click does what you want; the floating window needs a second click later."},
+ {k:"c",l:"A browser extension",d:"The only true one-click flow; heavy (install, store review, permission on the CAMS site)."}]},
+{id:"QA-1",t:"D-1: how do green buttons get white text?",why:"White on the bright green #22C55E is 2.3 to 1 (fails). The palette PDF says dark text on it. White works on the deep green #15803D (5.0 to 1).",o:[
+ {k:"a",rec:1,l:"White text on a deeper button green (#15803D, hover darker); bright green stays for charts, dots, focus rings",d:"Does what you asked and passes. Moves the palette's 'primary button' off the bright green: a recorded decision."},
+ {k:"b",l:"White text on the bright green as it is",d:"Literal, but 2.3 to 1 is hard to read."},
+ {k:"c",l:"Dark text on the bright green everywhere",d:"The palette rule; ends the split the other way; contradicts your wish."}]},
+{id:"QA-7",t:"D-7: which icon is hard to see?",why:"You wrote 'eye'; the report read it as the small 'i'. The eye on the hide-values button is a different icon.",o:[
+ {k:"a",rec:1,l:"The small 'i' info icon (about 13 places)",d:"One shared, larger, darker style with a clearer hover."},
+ {k:"b",l:"The eye on the hide-values button",d:"A separate, one-file fix."},
+ {k:"c",l:"Both",d:"Both fixes in the visual pass."}]},
+{id:"QA-9",t:"D-9: what should the 'Keep working' button say?",why:"It only hides the dialog while the PDF keeps preparing.",o:[
+ {k:"a",rec:1,l:"Run in background",d:"Says exactly what happens; fits beside Cancel."},
+ {k:"b",l:"Continue browsing",d:"Friendlier, less exact."},
+ {k:"c",l:"Hide this window",d:"Exact about the dialog, says nothing about the PDF."}]},
+{id:"QA-10",t:"D-10: do we measure the export first, before changing anything?",why:"No per-step times exist today; only a total at the end.",o:[
+ {k:"a",rec:1,l:"Yes: free stage polling now, a timing-log patch, then two measured runs on staging; then a speed plan",d:"No speed change until real numbers exist. Please also send the minutes you saw."},
+ {k:"b",l:"Skip measuring and tune the likely hot spots",d:"Faster to start, but a guess; could change the output (page numbers) without helping."}]},
+{id:"QA-3",t:"D-3: what should the empty search panel say?",why:"Today it is an empty white strip on first use.",o:[
+ {k:"a",rec:1,l:"Show 'Try a fund, a member or a page' while there are no recents and nothing typed",d:"Gone as soon as recents exist or you type."},
+ {k:"b",l:"Show no panel at all when empty",d:"Simplest, but gives no clue what to type."}]},
+{id:"QA-5",t:"D-5: what should the standing benchmark hint say?",why:"It never says the limit until a fourth tick is blocked.",o:[
+ {k:"a",rec:1,l:"'Choose up to 3', always visible",d:"The words you asked for; the warning still shows on a blocked tick."},
+ {k:"b",l:"'Choose up to 3' with a count, e.g. '2 of 3 chosen'",d:"More useful, longer."}]},
+{id:"QA-8",t:"D-8: onboarding icons: when?",why:"Looks 'plain' is a judgment I cannot make from code; the first build comes to you before merging.",o:[
+ {k:"a",rec:1,l:"A quick pass now (distinct, larger icons, no repeats), the designer's set later",d:"Visible improvement in the patch."},
+ {k:"b",l:"Wait for the designer's set only",d:"Nothing changes in the patch."},
+ {k:"c",l:"Leave as is",d:"No work."}]},
+{id:"QA-11",t:"M1-11: how do we run the 11-requests row?",why:"The code only trims and lowercases an address, so plus-addresses count as different (read, not tested).",o:[
+ {k:"a",rec:1,l:"You send 11 requests using plus-addresses of one mailbox you own",d:"Real emails reach your inbox; needs plus-address support."},
+ {k:"b",l:"The manager's Claude sends 11 scripted requests from the VM",d:"No mailbox needed; a bit more setup."}]}
+
 ];
 var list=document.getElementById("d11list");
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
@@ -457,7 +794,7 @@ Q.forEach(function(q){
 });
 var out=document.getElementById("d11out");
 function build(){
- var s="My answers to the D-11 plan v2 (Head of Family blocked by a waiting import) in Docs/orchestration/2026-11-24-head-of-family-d11-plan.html. Update the whole page from these:\n";
+ var s="My answers to the Head of Family and QA fixes plan (Docs/orchestration/2026-11-24-head-of-family-d11-plan.html, v3). Update the whole page from these:\n";
  Q.forEach(function(q){
   var v=document.querySelector('input[name="d11'+q.id+'"]:checked');
   var o=q.o.filter(function(x){return v&&x.k===v.value})[0];
