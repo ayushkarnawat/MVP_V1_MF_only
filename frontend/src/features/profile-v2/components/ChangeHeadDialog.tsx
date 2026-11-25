@@ -29,9 +29,12 @@ import type {
   Relationship,
 } from "@/features/auth/types";
 import { CompleteProfileDialog } from "@/features/dashboard/members/CompleteProfileDialog";
-import { HEAD_CHANGE_WAITING_LINE } from "@/features/import/pendingCopy";
 import { FIXABLE_REASONS, fixableHint, isFixable } from "../lib/headEligibility";
-import { REVIEW_DISCARDED_NOTE, STATEMENT_SAVING_CODE } from "../lib/headChangeCopy";
+import {
+  REVIEW_DISCARDED_NOTE,
+  STATEMENT_SAVING_CODE,
+  WAITING_CAMS_REQUEST_LINE,
+} from "../lib/headChangeCopy";
 import { cleanName, relationshipText } from "../lib/memberLabels";
 import { InfoNotice } from "./InfoNotice";
 import { StatementSavingNotice } from "./StatementSavingNotice";
@@ -689,7 +692,7 @@ export function ChangeHeadDialog({
                       const name = cleanName(member?.name) || "Family member";
                       return (
                         <InfoNotice key={item.member_id} testId="head-change-waiting-line">
-                          {HEAD_CHANGE_WAITING_LINE(name)}
+                          {WAITING_CAMS_REQUEST_LINE(name)}
                         </InfoNotice>
                       );
                     })}
