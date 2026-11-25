@@ -93,9 +93,9 @@ No migration and no price job.
 ### Step 8 (VM): rebuild the stored results, straight after step 6
 Outside the job windows:
 ```bash
-cd /opt/unifolio-redesign/deploy/leapswitch && sudo sh /opt/unifolio/deploy/leapswitch/scripts/run-job.sh analytics-recompute-qa analytics-recompute-qa scripts/run_analytics_recompute.py --all > /home/deploy/recompute-qa.log 2>&1; echo exit=$?; tail -5 /home/deploy/recompute-qa.log
+cd /opt/unifolio-redesign/deploy/leapswitch && sudo sh /opt/unifolio/deploy/leapswitch/scripts/run-job.sh analytics-recompute-qa scripts/run_analytics_recompute.py --all > /home/deploy/recompute-qa.log 2>&1; echo exit=$?; tail -5 /home/deploy/recompute-qa.log
 ```
-(Use the **same invocation shape as the XIRR guide's step 8**, `run-job.sh analytics-recompute-xr scripts/run_analytics_recompute.py --all`, with the job name changed only if the XIRR guide's form differs: copy it exactly from that guide's step 8 and report any difference.) Expected `exit=0` and the script's own counts, no error lines. **STOP** on a nonzero exit (`run-job.sh` emails the failure). **The owner starts the QA only after this step.**
+(This is the **same invocation as the XIRR guide's step 8** (`run-job.sh analytics-recompute-xr scripts/run_analytics_recompute.py --all`) with only the job name changed, so its email and log carry this release's name; if that guide's form differs in any other way, copy it exactly and report the difference.) Expected `exit=0` and the script's own counts, no error lines. **STOP** on a nonzero exit (`run-job.sh` emails the failure). **The owner starts the QA only after this step.**
 
 ### Step 9: new routes and the PostgreSQL checks
 **9 (quick verify, a smoke check, not the QA).**
