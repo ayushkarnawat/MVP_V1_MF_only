@@ -1,6 +1,6 @@
 # Staging Deploy Guide: the QA-round fixes (patches 1, 2 and 3 together) to `ls-redesign.unifolio.in`
 
-**DRAFT 26 Nov 2026 (not frozen).** Marked `AT FREEZE` items are filled in when the patches are built and gated: the tag name and hash and the final test numbers. **Owner decisions: 25 Nov 2026, the patches deploy together from this one guide (no per-patch guides); 26 Nov 2026, option B: patches 1 and 2 and the safe parts of patch 3 deploy now, and the heavy-section speed work (ES-5) and cold-data warming (ES-6) ship later as patch 3b.** The staging deploy is run by the **manager's Claude** from this guide at the owner's go; the owner's QA round follows (the rows of `2026-11-19-combined-qa-checklist.md`, section "QA-round patches", plus the M1 to M4 and XR rows still open). Predecessors: the XIRR and Returns release (**`xr-rc` = `942356f4df316279fdca871483d05be626c9fb0e`, deployed 25 Nov 2026: this is what staging runs today**; guide `2026-11-24-staging-deploy-guide-xirr-returns.md`, record `2026-11-25-staging-deploy-record-xirr-returns.md`), M4 (`m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`, guide `2026-11-24-staging-deploy-guide-m4.md`) and M3; this guide reuses their style and commands and **their lessons** (below).
+**FROZEN 26 Nov 2026: tag `qa-rc` = `ba55826098b9f2841476c4bd230ce42aa4e415df`, pushed to origin (tag object `87b5f7d4ac56f8d308defe2394a4e242ee45cf98`).** **Owner decisions: 25 Nov 2026, the patches deploy together from this one guide (no per-patch guides); 26 Nov 2026, option B: patches 1 and 2 and the safe parts of patch 3 deploy now, and the heavy-section speed work (ES-5) and cold-data warming (ES-6) ship later as patch 3b.** The staging deploy is run by the **manager's Claude** from this guide at the owner's go; the owner's QA round follows (the rows of `2026-11-19-combined-qa-checklist.md`, section "QA-round patches", plus the M1 to M4 and XR rows still open). Predecessors: the XIRR and Returns release (**`xr-rc` = `942356f4df316279fdca871483d05be626c9fb0e`, deployed 25 Nov 2026: this is what staging runs today**; guide `2026-11-24-staging-deploy-guide-xirr-returns.md`, record `2026-11-25-staging-deploy-record-xirr-returns.md`), M4 (`m4-rc` = `355cc8a1f117210f3ec2a73a06e0ee33dac54951`, guide `2026-11-24-staging-deploy-guide-m4.md`) and M3; this guide reuses their style and commands and **their lessons** (below).
 
 ## What changes
 **Patch 1 (the QA round's fixes).**
@@ -38,15 +38,15 @@
 
 ## Prompt for the executing Claude
 ```
-You are deploying the QA-round fixes (patches 1, 2 and 3 together) to the LeapSwitch staging VM (ls-redesign.unifolio.in). Read Docs/orchestration/2026-11-26-staging-deploy-guide-qa-round.md and follow it step by step.
+You are deploying the QA-round fixes (patches 1 and 2 and the safe part of patch 3, candidate tag qa-rc = ba55826098b9f2841476c4bd230ce42aa4e415df) to the LeapSwitch staging VM (ls-redesign.unifolio.in). Run `git fetch origin --tags` first so the guide and the tag are on your machine. Read Docs/orchestration/2026-11-26-staging-deploy-guide-qa-round.md and follow it step by step.
 Rules: run one command at a time and show its output; at every STOP, stop and report; run the GATE steps only after the owner's yes (the guide marks each); never print .env lines; never run clean-db.sh, restore.sh or rollback.sh on your own initiative; use ssh by hostname from WSL only (write the remote command so the variables are not expanded by the Windows-to-WSL layer: put commands in a script file or write every value out); the one-off script close_stuck_cams_requests.py is run WITHOUT --apply first and --apply only after the owner has seen the counts and said yes.
 At the end fill in step 11 and give the owner the report. The look-gate PDFs hold real data: they stay in the container's temporary files and in the VM folder named in step 3b only until step 9d, then are deleted; never commit, print or copy their content.
 ```
 
 ## Section 1: steps
 
-### Step 0 (laptop): publish the frozen candidate `AT FREEZE`
-The three patch branches (`patch/qa1`, `patch/qa2`, `patch/qa3`) are merged into one candidate on `leapswitch-redesign`, tagged `qa-rc`. Publish: `git fetch origin && git push origin leapswitch-redesign qa-rc` (**never force-push**); confirm with `git ls-remote origin 'qa-rc^{}'` that the hash equals `<AT FREEZE>`.
+### Step 0 (laptop): the frozen candidate is already published (check only)
+The three patch branches (`patch/qa1`, `patch/qa2`, `patch/qa3`) are merged into one candidate on `leapswitch-redesign`, tagged `qa-rc`. It was pushed on 26 Nov 2026 (never force-pushed). Confirm with `git fetch origin --tags && git ls-remote origin 'qa-rc^{}'` that the hash equals `ba55826098b9f2841476c4bd230ce42aa4e415df`. Documents committed after the tag (this guide, notes) change no code: the code diff between the tag and the branch head is empty.
 
 ### Step 1 (laptop): the release touches only what it should
 ```bash
@@ -54,8 +54,8 @@ git diff --name-only xr-rc qa-rc | grep -vE "^Docs/|\.test\.tsx?$|^backend/tests
 ```
 Expected groups only (measured on the candidate against `xr-rc`: **61 non-test front-end files and 22 back-end files**): **front end** `frontend/src/components/{BenchmarkInfoNote.tsx, MeasureFlip.tsx, MeasureFlip.module.css, XirrCautionChip.tsx}` and the folders `components/info/`, `components/search/`, `components/summary-bar/`, `components/wealth-graph/`, `features/auth/`, `features/dashboard/`, `features/export/`, `features/home/`, `features/import/`, `features/mutual-funds/`, `features/portfolio/`, `features/profile-v2/`, plus `lib/summaryFigure.ts`, `styles/auth-tokens.css`, `styles/palette-tokens.css`, `test/summaryTextInventory.ts` (and tests); **back end** `backend/app/api/{auth,cas_imports,imports}.py`, `backend/app/main.py`, `backend/app/services/analytics/{category_ranking,pdf_export,performance_ranking}.py`, `backend/app/services/auth/{head_change,head_eligibility,schemas}.py`, `backend/app/services/export/{render,timing}.py`, `backend/app/services/import_/{cams_portal,confirm_people,deletion,state_machine}.py`, `backend/scripts/{category_average_diff_report,category_pool_before_after,close_stuck_cams_requests,export_category_average_excel,export_look_gate,measure_export_staging}.py`; and `decisions.md`, `session.md`. **STOP** on a migration (`backend/alembic/versions/`), any change to `backend/Dockerfile`, `docker-entrypoint.sh`, anything under `deploy/`, `frontend/package.json` or its lock file, `backend/requirements.txt`, anything in `frontend/src/mobile/` outside tests, `frontend/src/print/`, or any `backend/app` file outside the list above.
 
-### Step 2 (laptop): evidence `AT FREEZE`
-Fill in the numbers of the frozen candidate, as the M4 guide's step 2 does: front end (test files, tests, skipped, failed, `tsc -b`, `oxlint` errors, `vite build`), back end (the areas run, passed, skipped, the failures that **also fail on the base branch**: `test_scorer.py::test_compute_fund_score_survives_concurrent_duplicate_insert` and the 10 `pypdf` export tests on the laptop), the Sonnet reviews (G2 summary bar, G2 patch 2, G3 patch 1: no blockers; G3 patch 2 and 3 at freeze) and the Codex G1 reviews (Head of Family lock fix: PASS on the third round; export timing log: PASS; clean-up script: four rounds, the owner stopped the loop at `8628fdc7`; patch 3 reviews at freeze). **Not verified on the laptop:** the PostgreSQL behaviour of the swap and the clean-up script (steps 9a and 9b), the real click in Chrome and Edge (QA rows), anything on real data.
+### Step 2 (laptop): evidence (measured on the frozen candidate)
+**Measured on `qa-rc`:** front end 615 test files, 7,322 tests, 0 failed; `tsc -b` clean; `oxlint` 0 errors; `vite build` ok. Back end 6,520 passed, 28 skipped, 3 xfailed, 0 failed (with `pypdf==5.1.0` installed locally). Patch 3's contents-only print was reverted before freeze (see step 1 note). The detail below says what each item covers: front end (test files, tests, skipped, failed, `tsc -b`, `oxlint` errors, `vite build`), back end (the areas run, passed, skipped, the failures that **also fail on the base branch**: `test_scorer.py::test_compute_fund_score_survives_concurrent_duplicate_insert` and the 10 `pypdf` export tests on the laptop), the Sonnet reviews (G2 summary bar, G2 patch 2, G3 patch 1: no blockers; G3 patch 2 and 3 at freeze) and the Codex G1 reviews (Head of Family lock fix: PASS on the third round; export timing log: PASS; clean-up script: four rounds, the owner stopped the loop at `8628fdc7`; patch 3 reviews at freeze). **Not verified on the laptop:** the PostgreSQL behaviour of the swap and the clean-up script (steps 9a and 9b), the real click in Chrome and Edge (QA rows), anything on real data.
 
 ### Step 3 (VM): pre-flight, read-only
 ```bash
@@ -91,7 +91,7 @@ Expected: `previous` and `latest` show the same id (step 3's); `backup_exit=0`; 
 ```bash
 cd /opt/unifolio-redesign && git fetch origin && git checkout -B leapswitch-redesign qa-rc && git rev-parse HEAD
 ```
-Expected: the full hash equals `<AT FREEZE>`. **STOP** if not. No `.env` change is needed in this release.
+Expected: the full hash equals `ba55826098b9f2841476c4bd230ce42aa4e415df`. **STOP** if not. No `.env` change is needed in this release.
 
 ### Step 6 (VM): deploy. GATE (the owner's yes)
 ```bash
