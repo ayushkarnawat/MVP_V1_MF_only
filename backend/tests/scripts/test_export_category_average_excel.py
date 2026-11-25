@@ -129,7 +129,7 @@ def _rounded(value):
 
 
 def _period_rows(pool, period):
-    return [row for row in pool if row["3Y return"].value is not None and row[f"{period} return"].value is not None]
+    return [row for row in pool if row[f"{period} return"].value is not None]
 
 
 def _weights(rows):
@@ -192,20 +192,25 @@ def test_weights_add_to_100_percent_for_every_category_and_period(workbook):
 
 def test_weight_and_contribution_are_formulas(workbook):
     for row in _rows(workbook["Pool"]):
-        assert row["Counts (3Y floor)"].data_type == "f"
+        assert row["Counts (has a return)"].data_type == "f"
         for period in PERIODS:
             assert row[f"Weight {period}"].data_type == "f"
             assert "SUMIFS(" in row[f"Weight {period}"].value
             assert row[f"Contribution {period}"].data_type == "f"
 
 
-def test_three_year_floor_excludes_short_history_from_every_period(workbook):
+def test_short_history_peer_is_in_the_1y_pool_and_excluded_from_3y_and_5y_with_reasons(workbook):
     pool = _select(workbook["Pool"], LARGE)
     short = next(row for row in pool if row["Scheme code"].value == "910109")
-    assert short["1Y return"].value is not None and short["3Y return"].value is None
-    assert all(short not in _period_rows(pool, period) for period in PERIODS)
+    assert short in _period_rows(pool, "1Y")
+    assert all(short not in _period_rows(pool, period) for period in ("3Y", "5Y"))
+    excluded = [row for row in _select(workbook["Excluded"], LARGE) if row["Scheme code"].value == "910109"]
+    assert {(row["Reason"].value, row["Effect"].value) for row in excluded} == {
+        ("No 3Y return", "Excluded from 3Y"), ("No 5Y return", "Excluded from 5Y"),
+    }
+    assert "ISNUMBER" in short["Counts 1Y"].value
+    assert short["3Y return"].coordinate not in short["Counts 1Y"].value
     reasons = {row["Scheme code"].value: row["Reason"].value for row in _select(workbook["Excluded"], LARGE)}
-    assert reasons["910109"] == reasons["910113"] == "no 3-year history"
     assert reasons["910106"] == "second option of the same fund"
     assert reasons["910110"] == "inactive"
     assert reasons["910111"] == "not live"
