@@ -296,7 +296,8 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 <tr><td>QA-16 (item 12)</td><td>The premium polish covers <b>the whole summary bar</b>, all five tiles, every state, <b>without changing anything that is shown</b></td><td>Item 12, mockups of every state</td></tr>
 <tr><td>QA-17 / QA-18 (D-10)</td><td>Round 2 of the measuring <b>done</b> (no more measuring); a full report must take <b>under 2 minutes</b></td><td>Item 10 (results and the speed plan)</td></tr>
 <tr><td>QA-19 (D-10)</td><td><b>The PDF must look exactly as it does today</b>: keep every row, change nothing that is drawn; any look-changing step comes back to you</td><td>Item 10, the rule and the look gate</td></tr>
-<tr><td>QA-12 (D-12)</td><td><b>Not answered yet</b></td><td>Item 1 (still open)</td></tr>
+<tr><td>QA-12 (D-12)</td><td>The 1-year category average follows the rank pool, built as one shared pool function; the 1-year average percentage moves and you see the before and after first</td><td>Item 1 (decided)</td></tr>
+<tr><td>QA-20 / QA-21 (D-10)</td><td>Honest progress in the export dialog, in the same patch as the speed work; stop the old start-up browsers after checking nothing else uses them</td><td>Item 10, speed plan steps 1 and 5</td></tr>
 </table></div>
 </section>
 
@@ -581,8 +582,8 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 
 <section id="d12">
 <h2>1 · D-12 · The category average and the rank use different funds at 1 year</h2>
-<div class="callout"><p><b>Still open (QA-12):</b> your answer on the rule is the one thing this item waits for. Nothing is built for it.</p></div>
-<span class="pill w">Number defect</span> <span class="pill b">Needs your decision</span>
+<div class="callout ok"><p><b>Decided (QA-12 A):</b> the category average follows the rank pool, one period at a time, built as one shared "who is in the pool" function that both sides call, so they can never drift again. The 1-year average then covers the same funds as the rank (your five examples: 42, 30, 32, 30 and 42). 3Y and 5Y do not change. The gate stays: the 1-year average <b>percentage</b> will move, so the read-only before and after on real data is shown to you before anything is deployed, and the stored results are rebuilt after the deploy. M2-04's expected 1-year figures are recomputed first.</p></div>
+<span class="pill w">Number defect</span> <span class="pill g">Decided: A</span>
 <div class="kv"><b>What the user sees</b><div>On the Performance page a fund can say "rank 19 of 42" at 1 year while the card below says "Category average covers 37 funds". At 3 and 5 years the two counts match. All five funds you checked showed it (42 vs 37, 30 vs 28, 32 vs 30, 30 vs 25, 42 vs 37).</div></div>
 <div class="kv"><b>Why it happens</b><div>
 <p><b>Confirmed in the code.</b> Two separate pieces of code pick the funds. The ranking side asks for the category's funds <i>including those with less than 3 years of history</i> (<code>performance_ranking.py:65</code>, <code>include_short_history=True</code>). The average side asks <i>without</i> that flag (<code>category_ranking.py:327</code>), and then applies a second rule that drops any fund without a 3-year figure from <b>every</b> period (<code>category_ranking.py:289</code>). So a fund that is 1 to 3 years old is ranked at 1 year but left out of the 1-year average. That is why the average's 1Y count always equals its 3Y count. At 3 years the pools are the same by construction; at 5 years a fund needs 3 years anyway, so they match.</p>
@@ -613,7 +614,7 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 <li>Rewrite the tests that assert the old rule: <code>test_three_year_floor_excludes_short_history_from_all_periods</code>, <code>test_fund_under_3_years_is_left_out_of_every_period</code>, and the Excel export test (each is listed in the handoff, none deleted silently)</li></ul></div></div>
 <div class="kv"><b>Files</b><div><code>backend/app/services/analytics/category_ranking.py</code> (pool loader and both average functions), a shared pool function (new or in <code>performance_ranking.py</code>), the tests above; the two Excel/diff scripts assume the old rule and need a look. The front end changes only if the wording does. No migration expected.</div></div>
 <div class="kv"><b>Re-check</b><div>M2-01 (N identical in rank and average, now at 1 year too, for all five funds) and M2-02. <b>M2-04 changes:</b> its expected 1-year averages (0.27 and 2.13) were computed with the old rule, so they must be recomputed after this fix before that row is run.</div></div>
-<div class="kv"><b>Your decision</b><div>QA-12 below: A, B or C. This touches numbers, so it also goes through the batch's own number review.</div></div>
+<div class="kv"><b>Your decision</b><div>Decided: A (QA-12). It touches numbers, so it goes through the batch's own number review and the before and after on real data comes to you before deploy.</div></div>
 </section>
 
 <section id="d2">
@@ -794,7 +795,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 
 <section id="d9">
 <h2>10 · D-9 and D-10 · Export: the "Keep working" button and the long wait</h2>
-<span class="pill w">Wording</span> <span class="pill w">Speed</span> <span class="pill g">Wording decided</span> <span class="pill g">Measured 25 Nov</span> <span class="pill g">Round 1 and 2 measured</span> <span class="pill g">Target: under 2 minutes</span> <span class="pill g">Look must not change</span> <span class="pill b">Two questions below</span>
+<span class="pill w">Wording</span> <span class="pill w">Speed</span> <span class="pill g">Wording decided</span> <span class="pill g">Measured 25 Nov</span> <span class="pill g">Round 1 and 2 measured</span> <span class="pill g">Target: under 2 minutes</span> <span class="pill g">Look must not change</span> <span class="pill g">All questions decided</span>
 <div class="callout ok"><p><b>Decided:</b> D-9 reads <b>Run in background</b> (QA-9 A). D-10: <b>measure first</b> (QA-10 A). <b>The measuring run is done (25 Nov): see "What the measuring run found" below.</b> The script and guide stay in the repository (<code>backend/scripts/measure_export_staging.py</code>, <code>Docs/orchestration/2026-11-25-export-timing-guide.md</code>) for round 2.</p></div>
 <h3>D-9 · The wording</h3>
 <div class="kv"><b>What the user sees</b><div>While the PDF prepares there are two buttons, "Cancel" and "Keep working". It is unclear what "Keep working" does.</div></div>
@@ -866,7 +867,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <li><b>Please end the session you used for the run.</b> The manager's Claude read your session token from a screenshot and sent it to the server over ssh; it was not written to a file, but it is in that conversation's transcript. Open the private window you used and <b>sign out</b> (signing out ends that session), then close the window. If that private window is already closed, sign in and out once on staging from a normal window with the same account, or ask me for the one-line way to end that session.</li>
 <li>The memory stop line in the guide (2,500 MB) was crossed on the warm full run; the script cannot stop itself mid-run, so the guide should say "about" and the next round uses a lower-risk order.</li>
 <li>The manager's cleanup used a pattern that cut its own connection; the rest was rerun without it. The VM checkout was not changed. Disk went from 6.9 to 6.8 GB free (PDFs are purged after 10 minutes). The script was removed from the container and the VM.</li></ul></div></div>
-<div class="kv"><b>Your decisions</b><div>Decided: round 2 (done) and the target of under 2 minutes. Open, at the bottom: <b>QA-20</b> (honest progress in the dialog) and <b>QA-21</b> (stop the old start-up browsers). When you have answered, I write the speed plan as a proper implementation plan; nothing is built before that.</div></div>
+<div class="kv"><b>Your decisions</b><div>All decided: round 2 (done), under 2 minutes, the PDF must look exactly as today (QA-19), honest progress in the dialog in the same patch (QA-20 A), and stopping the old start-up browsers after checking nothing else uses them (QA-21 A). The speed work is written as an implementation plan when you say so; nothing is built before that.</div></div>
 </section>
 
 <section id="notrun">
@@ -946,10 +947,10 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <section id="order">
 <h2>Suggested order, what is still open, and the patch deploy</h2>
 <h3>What is still open</h3>
-<ul><li><b>QA-12 (D-12)</b>: your answer on the 1-year category average rule.</li><li>Item 12 (the summary bar) is fully decided: QA-13 to QA-16 are answered.</li><li>Item 10: the export measuring is finished. QA-19 is answered (the PDF must look exactly as today); QA-20 and QA-21 are open; the target is under 2 minutes for a full report.</li><li>Two small confirmations of wording I proposed: the completion-notice sentence (mockup 6) and the saving notice's reassurance and countdown (mockup 7).</li><li>The result of the D-2 test (after it runs) and the export timings (after your manager's run). Nothing is built before those, for the items they decide.</li></ul>
+<ul><li><b>Every question on this page is now answered.</b> Nothing is built yet.</li><li>Small confirmations I asked for in passing: the completion-notice sentence (mockup 6); the saving notice's reassurance line and countdown (mockup 7); the contents page numbers appearing as the one visible change to the PDF (item 10); and, in item 12, the "Prices as on" move and the six decorative additions you may veto.</li><li>The D-2 test (the link-button route) has not been run; it is the one thing that can still change a plan. The export measuring is finished.</li><li>You said you will tell me when to start writing the implementation plans.</li></ul>
 <h3>Suggested order</h3>
 <ol>
-<li><b>Now, no code:</b> the export measuring is finished (rounds 1 and 2, results in item 10); you answer QA-12, QA-20 and QA-21; I run the read-only D-12 before and after, and the link-button test of D-2 is scheduled.</li>
+<li><b>Now, no code:</b> the export measuring is finished (rounds 1 and 2, results in item 10) and every question is answered; I run the read-only D-12 before and after, and the link-button test of D-2 is scheduled.</li>
 <li><b>Build 1, in parallel (different files):</b> Head of Family part A (with the discard and the saving notice) and D-12 once QA-12 is answered. D-12 goes through its number review before it is merged.</li>
 <li><b>Build 2, one front-end worker, one pass over shared files:</b> the visual group in this order: V1 shared styles (D-1 white text on every green button, D-7 the "i"), V2 search (D-3, D-4), V3 Home (D-5, D-6), V4 onboarding icons (D-8, green), V5 export wording (D-9) plus the D-10 timing log, V6 the whole summary bar polish (item 12, after V1 because it shares the "i" and the green-button rule). The Head of Family parts B, C and D follow, because part D, D-2 and D-1 share the checklist files; they run one after another, never in parallel.</li>
 <li><b>Later:</b> any D-10 speed changes (after the numbers), the designer's own icon set if you still want one, the abandoned-review sweep (D4 follow-up).</li></ol>
@@ -1089,7 +1090,7 @@ var Q=[
  {k:"a",rec:1,l:"Yes, as part of this work, after checking nothing else still uses them",d:"Frees about 800 MB and some CPU headroom on the VM."},
  {k:"b",l:"Leave them for now",d:"No change; they keep using memory."}]}
 ];
-var ANS={Q1:"a",Q2:"d",Q3:"a",Q4:"b",Q5:"a",Q6:"a",Q7:"a",D1:"C",D2:"a",D3:"a",D4:"a","QA-2":"a","QA-1":"b","QA-7":"a","QA-9":"a","QA-10":"a","QA-3":"a","QA-5":"a","QA-8":"a","QA-11":"a","QA-13":"a","QA-14":"a","QA-15":"a","QA-16":"b","QA-17":"a","QA-18":"b","QA-19":"a"};
+var ANS={Q1:"a",Q2:"d",Q3:"a",Q4:"b",Q5:"a",Q6:"a",Q7:"a",D1:"C",D2:"a",D3:"a",D4:"a","QA-2":"a","QA-1":"b","QA-7":"a","QA-9":"a","QA-10":"a","QA-3":"a","QA-5":"a","QA-8":"a","QA-11":"a","QA-13":"a","QA-14":"a","QA-15":"a","QA-16":"b","QA-17":"a","QA-18":"b","QA-19":"a","QA-12":"a","QA-20":"a","QA-21":"a"};
 var NOTES={Q2:"The page with the Request on CAMS button: the small line before it, \"A floating checklist will appear. Continue without it\", needs to be enhanced.",D2:"Show it nicely: a polished, enhanced UI for this notice.","QA-2":"Remove the time-estimate wording everywhere; mention it only as a test.","QA-10":"Give the script now so the manager can run it while I answer the rest; or commit it and give the prompt for the manager's Claude.","QA-8":"The icons should be green, #22C55E, not black as in the mockups.","QA-16":"This was not only the XIRR section: the whole bar, without changing what is being shown right now, for all states.","QA-17":"Run the round two. If it needs another script on the VM, do the same: commit the script and give the prompt for the manager's Claude; if it can be done without the VM, do it.","QA-18":"It should be under 2 minutes.","QA-19":"The way the PDF looks must not change: we need to make sure the PDF loads and looks how it does today."};
 var list=document.getElementById("d11list");
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
