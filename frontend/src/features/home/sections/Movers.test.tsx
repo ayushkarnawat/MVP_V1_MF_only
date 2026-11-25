@@ -241,6 +241,25 @@ describe("Movers: view all by day's change", () => {
     return screen.queryByRole("button", { name: linkName }) ?? screen.getByRole("link", { name: linkName });
   }
 
+  it("view_all_link_is_underlined_at_rest", () => {
+    setupWithLoader();
+    expect(getViewAll()).toHaveClass("underline");
+  });
+  it("view_all_link_keeps_its_accessible_name", () => {
+    setupWithLoader();
+    expect(getViewAll()).toHaveAccessibleName("View all by day's change");
+  });
+  it("disabled_variant_stays_non_interactive", () => {
+    setup();
+    const twin = screen.getByText(linkName).closest('[aria-disabled="true"]');
+    expect(twin).toHaveAttribute("title", "Coming soon");
+    expect(twin?.tagName).toBe("SPAN");
+    expect(twin).not.toHaveAttribute("tabindex");
+    expect(screen.queryByRole("button", { name: linkName })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText(linkName));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("the existing one-row panel is untouched", () => {
     const { card, loadAll } = setupWithLoader();
     const row = card.gains[0];

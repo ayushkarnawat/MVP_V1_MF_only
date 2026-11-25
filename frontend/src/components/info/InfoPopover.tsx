@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
+import { INFO_GLYPH_CLASS } from "./infoGlyph";
 
 export interface InfoPopoverProps {
   label: string;
@@ -97,7 +98,7 @@ export function InfoPopover({ label, title, children, side = "bottom", trigger }
           <button
             type="button"
             data-clickable=""
-            className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[var(--ui-divider)] text-[10px] font-semibold text-[var(--ui-text-muted)] hover:border-[var(--ui-text-muted)] hover:text-[var(--ui-text)]"
+            className={INFO_GLYPH_CLASS}
           >
             i
           </button>

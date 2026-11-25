@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 import { INVESTOR_PROFILE_OPTIONS } from "./finishCopy";
 import { InvestorProfile } from "./InvestorProfile";
+import { INVESTOR_TYPE_ICONS, GOAL_TILE_ICONS } from "../onboardingIcons";
 
 function mount(over: Partial<Parameters<typeof InvestorProfile>[0]> = {}) {
   const handlers = { onSubmit: vi.fn(), onBack: vi.fn() };
@@ -264,5 +265,31 @@ describe("InvestorProfile: spacing while a message is showing (Codex review of B
     fireEvent.click(options()[0]);
     for (const box of goalBoxes().slice(0, 1)) fireEvent.click(box);
     await waitFor(() => expect(screen.getByTestId("auth-card")).not.toHaveAttribute("data-dense"));
+  });
+});
+
+describe("visual pass onboarding icons", () => {
+  it("every_investor_type_and_goal_has_its_own_icon", () => {
+    expect(Object.keys(INVESTOR_TYPE_ICONS)).toHaveLength(4);
+    expect(Object.keys(GOAL_TILE_ICONS)).toHaveLength(6);
+    expect(new Set([...Object.values(INVESTOR_TYPE_ICONS), ...Object.values(GOAL_TILE_ICONS)]).size).toBe(10);
+  });
+  it("icon_tile_is_aria_hidden_and_uses_the_brand_green_token", () => {
+    mount();
+    for (const row of options()) {
+      const tile = within(row).getByTestId("icon-badge");
+      expect(tile).toHaveAttribute("aria-hidden", "true");
+      expect(tile).toHaveClass("text-[var(--pos)]");
+    }
+  });
+  it("no_emoji_characters_in_any_onboarding_screen_file", () => {
+    const sources = import.meta.glob<string>([
+      "./InvestorProfile.tsx", "./IconBadge.tsx", "./ChipCheckbox.tsx",
+      "../Q2Investing.tsx", "../Q3Purpose.tsx", "../MobileOnboardingScreen.tsx", "../onboardingIcons.ts",
+    ], { eager: true, query: "?raw", import: "default" });
+    expect(Object.keys(sources)).toHaveLength(7);
+    for (const [file, source] of Object.entries(sources)) {
+      expect(source, file).not.toMatch(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{FE0F}\u{20E3}]/u);
+    }
   });
 });
