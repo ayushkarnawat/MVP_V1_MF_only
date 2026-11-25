@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ExportDialog } from "./ExportDialog";
 import type { ExportDialogProps } from "./exportTypes";
+import { EXPORT_LONG_NOTE } from "./useExportJob";
 
 function makeProps(overrides: Partial<ExportDialogProps> = {}): ExportDialogProps {
   return {
@@ -141,4 +142,45 @@ it("shows_run_in_background_and_not_keep_working", () => {
   render(<ExportDialog {...makeProps()} />);
   expect(screen.getByRole("button", { name: "Run in background" })).toBeInTheDocument();
   expect(screen.queryByText("Keep working")).not.toBeInTheDocument();
+});
+
+const honestProgress: ExportDialogProps["progress"] = {
+  ...makeProps().progress,
+  elapsed: "2 min 10 s so far",
+  stageLine: "Finishing the PDF",
+  longNote: EXPORT_LONG_NOTE,
+};
+
+it("shows_the_elapsed_time_while_preparing", () => {
+  render(<ExportDialog {...makeProps({ progress: honestProgress })} />);
+  expect(screen.getByTestId("export-elapsed")).toHaveTextContent("2 min 10 s so far");
+});
+
+it("shows_the_finishing_stage_line", () => {
+  render(<ExportDialog {...makeProps({ progress: honestProgress })} />);
+  expect(screen.getByTestId("export-stage-line")).toHaveTextContent("Finishing the PDF");
+});
+
+it("shows_the_long_note_only_while_preparing", () => {
+  const view = render(<ExportDialog {...makeProps({ progress: honestProgress })} />);
+  expect(screen.getByTestId("export-long-note")).toHaveTextContent(EXPORT_LONG_NOTE);
+  for (const stage of ["choose", "ready", "failed"] as const) {
+    view.rerender(<ExportDialog {...makeProps({ stage, progress: honestProgress })} />);
+    expect(screen.queryByTestId("export-long-note")).not.toBeInTheDocument();
+  }
+  view.rerender(<ExportDialog {...makeProps({ progress: { ...honestProgress, longNote: null } })} />);
+  expect(screen.queryByTestId("export-long-note")).not.toBeInTheDocument();
+});
+
+it("buttons_and_their_callbacks_are_unchanged", () => {
+  const props = makeProps({ progress: honestProgress });
+  render(<ExportDialog {...props} />);
+  for (const [name, callback] of [["Cancel", props.onCancel], ["Run in background", props.onKeepWorking]] as const) {
+    const button = screen.getByRole("button", { name });
+    expect(button).toHaveAttribute("data-clickable");
+    expect(button).toHaveAttribute("data-effect", "close");
+    fireEvent.click(button);
+    expect(callback).toHaveBeenCalledTimes(1);
+  }
+  expect(screen.getByText("This can take about a minute. You can keep using Unifolio. Nothing is stored on our servers.")).toBeInTheDocument();
 });

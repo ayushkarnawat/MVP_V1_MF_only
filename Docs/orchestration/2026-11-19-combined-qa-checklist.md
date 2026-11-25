@@ -198,5 +198,28 @@ All visual checks are the owner's, in this round (decision 25 Nov 2026): look at
 |---|---|---|---|
 | ES-01 | Run one full export on staging, then read the backend log | One extra `export timing:` line beside `export finished:` with stage durations and the contents outcome; no names, ids or amounts; the PDF is as before | |
 
+### Patch 2: Head of Family B, C, D and D-2 (a waiting CAMS request, the checklist, the real link)
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| HB-01 | Request from CAMS (desktop), then close the checklist or reload the page, then open Add data again | A card "CAMS request waiting" with the time left, **Upload the file** and **Cancel request**, above the "Waiting for CAMS email" block; it shows after the reload with no checklist notes | |
+| HB-02 | Press **Cancel request** on the card (also right after a reload) | The request is cancelled, the choice screen comes back, the card is gone; no error text | |
+| HB-03 | Open Add data for the same member in a second browser or a private window | The same waiting card shows there | |
+| HB-04 | Import a statement for that member (upload a file in the waiting view) | The waiting card is gone afterwards; **another member's** waiting request is untouched | |
+| HB-05 | With a waiting request: tick checklist items, press I have the file, Close this checklist, close the floating window, switch tabs and come back, open Import History and press Back | **The screen never changes** because of any of these; Back from Import History shows the waiting card again | |
+| HB-06 | Request page (desktop): the "A small checklist will float over the CAMS page to guide you." row | A row with an icon, that sentence, a **Continue without it** button, and "You can close it any time." under it; pressing the button shows "Checklist off for this request. CAMS will open on its own." with **Turn it back on**, which restores the row; neither button starts a request; **on a phone the row is not shown** | |
+| HB-07 | The checklist strip: floating window open; window closed; page reloaded; a browser that cannot float (in-page panel) | A progress bar with "N of 5 done" and the step name; when closed: **Reopen checklist** and **Reset checklist**; Reset only resets the checklist and does **not** cancel the request; panel mode shows the strip with Reset | |
+| HB-08 | **D-2, in Chrome and in Edge:** press **Request Statement on CAMS** once | CAMS opens in a new tab **by itself** and the floating checklist opens from the same click; there is **no** "Open the CAMS form" button anywhere; if you block the floating window in site settings, CAMS still opens and the checklist shows in the page | |
+| HB-09 | Head of Family change dialog while a member has a waiting request | One quiet line "A CAMS request for <name> is still waiting. It does not stop this change." with an info icon and **no button**; the member is still selectable and the change works | |
+| HB-10 | (Claude, deploy guide step 9b) the one-off clean-up of stuck requests | The dry run prints four counts and writes nothing; after the owner's yes, `--apply` closes only requests past 48 hours or superseded by a later import | |
+| HB-11 | The wording the owner confirms before this ships | "for <name>", "We will use the file as soon as you upload it.", "Expires in N h", "Show checklist", "Upload the file", "Checklist off for this request.", "CAMS will open on its own.", "Turn it back on" | |
+
+### Patch 3, the safe part (PDF export)
+| ID | Where and how | What you should see | Result |
+|---|---|---|---|
+| ES-02 | Export a full report (all 24 sections) and watch the dialog; close it and reopen it while it runs | The elapsed time counts up ("N min N s so far"), "Finishing the PDF" shows at the last stage, the "can take a few minutes" note shows for a large report, and the time keeps counting after you reopen the dialog | |
+| ES-03 | Open a **new** export next to an **old** one (the staging look-gate baseline, if kept) | The pages look the same; **only the contents page now has page numbers** (the owner decision QA-19 A) | |
+| ES-04 | (Claude, after the first export) the backend log and the container memory | The `export timing:` line shows the stages; memory at idle is about 800 MB lower (the old Download PDF route no longer launches a browser at start-up) | |
+| ES-05 | The old analytics page's Download PDF button | It still returns a PDF (it launches its browser on first use) | |
+
 ## Cross-batch regression list (kept from the program plan, section 10)
 Sign-up, sign-in and OTP with a real inbox and a real phone; import and the new member (the drop-down, the landing, the wrong-person case, the tutorial link); the numbers (XIRR tile and column, a rank and its total, the category average, the same household before and after); folios (eye and Copy); charts; search; navigation and dates; PDF; browser and size (Chrome and Edge at three laptop sizes, light and dark).
