@@ -6,7 +6,6 @@ import { XirrCautionChip } from "@/components/XirrCautionChip";
 import { InfoGlyph } from "@/components/info/InfoGlyph";
 import {
   SummaryBar,
-  SummaryBarSkeleton,
   SummaryCell,
   SummaryErrorCard,
   SummaryFigure,
@@ -62,7 +61,7 @@ export function SummaryStrip({
   const [face, setFace] = useState<"xirr" | "returns">("xirr");
 
   if (status === "loading") {
-    return <SummaryBarSkeleton ariaLabel="Loading summary" />;
+    return <SummaryBar loading ariaLabel="Loading summary" />;
   }
 
   if (status === "error" || !data) {

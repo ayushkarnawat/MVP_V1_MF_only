@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { AlertCircle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SummaryBar } from "./SummaryBar";
 import styles from "./summaryBar.module.css";
 
 export interface SummaryBarSkeletonProps {
@@ -10,38 +10,7 @@ export interface SummaryBarSkeletonProps {
 export function SummaryBarSkeleton({
   ariaLabel,
 }: SummaryBarSkeletonProps): JSX.Element {
-  return (
-    <section role="status" aria-label={ariaLabel} className={styles.bar}>
-      <div className={styles.lead}>
-        <div className={styles.leadHead}>
-          <Skeleton className="h-4 w-28" />
-        </div>
-        <div className={styles.fig}>
-          <Skeleton data-row="figure" className="h-8 w-36" />
-        </div>
-        <div className={styles.caption}>
-          <Skeleton className="h-4 w-24" />
-        </div>
-        <div className={styles.leadFoot} />
-      </div>
-      <div className={styles.panel}>
-        <div className={styles.cells}>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className={styles.cell}>
-              <div className={styles.head}>
-                <Skeleton className="h-4 w-24" />
-              </div>
-              <div className={styles.fig}>
-                <Skeleton data-row="figure" className="h-8 w-28" />
-              </div>
-              <div className={styles.caption} />
-            </div>
-          ))}
-        </div>
-        <div className={styles.foot} />
-      </div>
-    </section>
-  );
+  return <SummaryBar loading ariaLabel={ariaLabel} />;
 }
 
 export interface SummaryErrorCardProps {
