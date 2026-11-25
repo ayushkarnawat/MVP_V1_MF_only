@@ -14,6 +14,51 @@ from app.models.user import HouseholdMember, User
 NOW = datetime(2026, 11, 2, tzinfo=timezone.utc)
 
 
+def test_eligibility_lists_a_waiting_cams_request_flag_per_member():
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    db = _session()
+    user, _, candidate = _household(db)
+    other = _second_candidate(db, user)
+    initiate_cams_request(db, user.id, candidate.id)
+    rows = {row.member_id: row for row in _head_change().list_member_eligibility(db, user)}
+    assert rows[candidate.id].waiting_cams_request is True
+    assert rows[other.id].waiting_cams_request is False
+
+
+def test_the_flag_never_adds_a_reason_or_blocks():
+    from app.services.import_.cams_portal import initiate_cams_request
+    from app.services.legal.consent import ConsentEvidence
+
+    db = _session()
+    user, _, candidate = _household(db)
+    before = _head_change().list_member_eligibility(db, user)[0].reasons
+    initiate_cams_request(db, user.id, candidate.id)
+    row = _head_change().list_member_eligibility(db, user)[0]
+    assert row.waiting_cams_request is True
+    assert row.reasons == before == []
+    started = _start(db, user, candidate)
+    _verify_all(db, user, started)
+    _head_change().complete_head_change(db, user, started.request.id, evidence=ConsentEvidence(
+        ip_truncated="127.0.0.0", ip_hmac="test", user_agent="pytest", device_id=None,
+    ))
+    db.refresh(candidate)
+    assert candidate.is_head is True
+
+
+def test_a_request_past_its_expiry_does_not_set_the_flag():
+    from app.services.import_.cams_portal import initiate_cams_request
+
+    db = _session()
+    user, _, candidate = _household(db)
+    request, _ = initiate_cams_request(db, user.id, candidate.id)
+    request.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+    row = _head_change().list_member_eligibility(db, user)[0]
+    assert row.waiting_cams_request is False
+    assert request.status == ImportStatus.WAITING_FOR_USER
+
+
 def _session():
     from app.db.base import Base
 

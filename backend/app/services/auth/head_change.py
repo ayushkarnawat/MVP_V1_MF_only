@@ -781,12 +781,15 @@ def peek_pending_head_change(
 class MemberEligibility:
     member_id: uuid.UUID
     reasons: list[str]
+    waiting_cams_request: bool = False
 
 
 def list_member_eligibility(db: DbSession, user: User) -> list[MemberEligibility]:
     """Each non-head member with ONLY the reasons that come from the account's own data. The
     reasons that would reveal another account (`email_in_use`, `phone_in_use`,
     `pan_registered_elsewhere`) are dropped here and stay behind the verified start code."""
+    from app.services.import_.cams_portal import get_pending_request
+
     _expire_stale_request(db, user)
     _current_head(db, user)
     members = (
@@ -808,6 +811,7 @@ def list_member_eligibility(db: DbSession, user: User) -> list[MemberEligibility
             MemberEligibility(
                 member_id=member.id,
                 reasons=[reason for reason in reasons if reason in START_CODE_ELIGIBILITY_REASONS],
+                waiting_cams_request=get_pending_request(db, user.id, member.id) is not None,
             )
         )
     return rows
