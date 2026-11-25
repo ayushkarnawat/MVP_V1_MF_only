@@ -152,17 +152,42 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 .ibadge{width:44px;height:44px;border-radius:50%;background:#E9F9EF;display:inline-flex;align-items:center;justify-content:center;font-size:22px;color:#15803D}.ibadge.sm{font-size:16px;color:#4ade80;font-weight:300}
 .pbar{height:8px;border-radius:99px;background:#ECECEC;overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;background:#22C55E}
 .steps2{display:flex;flex-direction:column;gap:5px}.s2{font-size:12.5px;padding:6px 10px;border-radius:8px;background:#F5F5F5;border-left:4px solid #DFDFDF}.s2.hot{background:#FDECEC;border-left-color:#E5484D}
-.ntile{width:40px;height:40px;border-radius:10px;background:#F5F5F5;color:#111;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ibadge.sm svg{display:block}.ui .cb{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:3px;vertical-align:-2px;margin-right:4px;background:#fff}.ui .cb.on{background:#15803D;border-color:#15803D}.ui .rd{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:50%;vertical-align:-2px;margin-right:4px}.ui .rd.on{border-color:#15803D;box-shadow:inset 0 0 0 3px #fff;background:#15803D}.ui .sbox svg{vertical-align:-2px;margin-right:4px}
-.ui .card.flat{background:#FCFCFC}</style>
+.ntile{width:40px;height:40px;border-radius:10px;background:#F5F5F5;color:#22C55E;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.ibadge.sm svg{display:block}.ui .cb{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:3px;vertical-align:-2px;margin-right:4px;background:#fff}.ui .cb.on{background:#15803D;border-color:#15803D}.ui .rd{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:50%;vertical-align:-2px;margin-right:4px}.ui .rd.on{border-color:#15803D;box-shadow:inset 0 0 0 3px #fff;background:#15803D}.ui .sbox svg{vertical-align:-2px;margin-right:4px}
+.ui .card.flat{background:#FCFCFC}.cb{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:3px;vertical-align:-2px;margin-right:4px;background:#fff}.cb.on{background:#15803D;border-color:#15803D}.rd{display:inline-block;width:13px;height:13px;border:1.5px solid #9B9B9B;border-radius:50%;vertical-align:-2px;margin-right:4px}.rd.on{border-color:#15803D;background:#15803D;box-shadow:inset 0 0 0 3px #fff}.ui .note2{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:#4B4B4B;background:#F5F5F5;border-radius:8px;padding:7px 9px;margin-top:8px}.ui .note2 svg{flex:none;margin-top:1px}.ui .note3{background:#E9F9EF;border:1px solid #BAEFCC;border-radius:10px;padding:9px 12px;font-size:12px;color:#15803D;margin-bottom:10px}.ui .optrow{display:flex;gap:12px;align-items:center;border:1px solid #DFDFDF;border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#fff}.ui .optrow.off{background:#F5F5F5}.ui .optx{display:flex;flex-direction:column;flex:1;font-size:12.5px;gap:1px}.ui .optx b{font-family:'DM Sans',Inter,sans-serif;font-weight:600}.ui .bigbtn{text-align:center;border-radius:12px;padding:13px;font-weight:600;font-size:13.5px;font-family:'DM Sans',Inter,sans-serif}.ui .sw{width:42px;height:24px;border-radius:99px;background:#DFDFDF;position:relative;flex:none}.ui .sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff}.ui .sw.on{background:#22C55E}.ui .sw.on i{left:21px}.ui .saving{display:flex;gap:12px;align-items:flex-start;background:#EEEDFC;border:1px solid #D2CFF6;border-radius:12px;padding:12px;margin-top:10px;color:#3730A3}.ui .saving b{font-family:'DM Sans',Inter,sans-serif;font-weight:600}.ui .mut2{font-size:12.5px;color:#4B4B4B}.ui .ntile.ind{background:#fff;color:#4F46E5}.ui .ntile.okt{background:#EAFBF0;color:#15803D}.ui .bg.dis{background:#DFDFDF;color:#717171}pre.prompt{white-space:pre-wrap;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;font-family:'JetBrains Mono',monospace;overflow-wrap:anywhere}.ui .lnk0,.ui .lnk1{display:inline}
+.grid2w{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px}.ui .optrow{flex-wrap:wrap}.ui .optx{min-width:170px}.ui .saving{flex-wrap:nowrap}</style>
 
 <main>
 <header id="top">
   <span class="pill w">Plan only · nothing built</span>
-  <span class="pill b">Version 3 · adds D-12, D-2, D-1, D-3 to D-10 and the not-run rows · 25 Nov 2026</span>
+  <span class="pill b">Your answers of 25 Nov recorded · QA-12 still open</span>
   <h1>Head of Family change (D-11) and the other QA round findings</h1>
   <p class="sub">Found in the owner's QA on staging, stage 9. This version answers one question first (is the floating checklist the cause?), then maps everything the checklist touches in Add data, lists the other problems found around it, and plans the whole clean-up. Nothing is built and no code or test was edited: every finding comes from reading the code.</p>
-  <nav class="toc" aria-label="Sections"><a href="#qa-intro">Part 2: other QA findings</a><a href="#plain">In plain words</a><a href="#question">Your question</a><a href="#coupling">What the checklist touches</a><a href="#others">Other problems found</a><a href="#scenarios">Scenarios</a><a href="#fix">The plan</a><a href="#mockups">Mockups</a><a href="#investigation">Investigation</a><a href="#tests">Tests first</a><a href="#delivery">Files, risks, deploy</a><a href="#acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
+  <nav class="toc" aria-label="Sections"><a href="#decided">What you decided</a><a href="#qa-intro">Part 2: other QA findings</a><a href="#plain">In plain words</a><a href="#question">Your question</a><a href="#coupling">What the checklist touches</a><a href="#others">Other problems found</a><a href="#scenarios">Scenarios</a><a href="#fix">The plan</a><a href="#mockups">Mockups</a><a href="#investigation">Investigation</a><a href="#tests">Tests first</a><a href="#delivery">Files, risks, deploy</a><a href="#acceptance">Acceptance</a><a href="#d11q">Decisions</a></nav>
 </header>
+
+<section id="decided">
+<h2>What you decided (25 Nov)</h2>
+<p>Your answers are recorded below and in the questions at the bottom (marked "Answered", with "Your choice" on the option). One question is still open: <b>QA-12</b> (the 1-year category average rule). Everything else in this page now reads as decided.</p>
+<div class="tablewrap"><table>
+<tr><th style="width:80px">Question</th><th>Your answer</th><th>Where it lands</th></tr>
+<tr><td>Q1</td><td>All four Head of Family parts, shipped in order A, B, C, D</td><td>The plan, and "Suggested order"</td></tr>
+<tr><td>Q2</td><td>The block of text is the <b>"A floating checklist will appear. Continue without it"</b> line before the Request button; make it easier to see</td><td>Part D and a new mockup set</td></tr>
+<tr><td>Q3</td><td>Rename "Start over" to <b>Reset checklist</b>; it only resets the checklist; Cancel request stays separate</td><td>Part D</td></tr>
+<tr><td>Q4</td><td>The Head of Family dialog shows <b>one quiet line</b>, no button, when a request waits</td><td>Part C and the dialog mockup</td></tr>
+<tr><td>Q5 / Q6 / Q7</td><td>Cancel by the id the server gives; close only the imported member's request; one-off clean-up script, dry run first</td><td>Parts B and C</td></tr>
+<tr><td>D1</td><td>Never block; <b>discard</b> an unfinished review inside the change and say so in the completion notice</td><td>Part A, and a mockup of the notice</td></tr>
+<tr><td>D2</td><td>If a statement is being saved at that moment: "A statement is being saved. Try again in a minute." Shown with a polished design</td><td>Part A, and a new mockup</td></tr>
+<tr><td>D3 / D4</td><td>No known reason for the old rule; the abandoned-review sweep is a follow-up, not in this work</td><td>Part A, "Not in this work"</td></tr>
+<tr><td>QA-2 (D-2)</td><td>Run the short test of the link-button route first; build it if it passes</td><td>Item 2 (the time estimate is removed everywhere; it is just "the test")</td></tr>
+<tr><td>QA-1 (D-1)</td><td><b>White text on the bright green as it is</b></td><td>Item 3, rewritten</td></tr>
+<tr><td>QA-7 / QA-9 / QA-3 / QA-5</td><td>The small "i"; "Run in background"; "Try a fund, a member or a page"; "Choose up to 3"</td><td>Items 8, 10, 4, 6</td></tr>
+<tr><td>QA-8 (D-8)</td><td>News-list style tiles everywhere, no repeats, <b>icons in green #22C55E</b></td><td>Item 9, mockups updated</td></tr>
+<tr><td>QA-10 (D-10)</td><td>Measure first. <b>The timing script is ready and committed</b>, with a prompt for your manager's Claude</td><td>Item 10, "Run now"</td></tr>
+<tr><td>QA-11 (M1-11)</td><td>You send 11 requests with plus-addresses of one mailbox</td><td>Item 11, with the exact steps</td></tr>
+<tr><td>QA-12 (D-12)</td><td><b>Not answered yet</b></td><td>Item 1 (still open)</td></tr>
+</table></div>
+</section>
+
 
 <section id="plain">
   <h2>In plain words</h2>
@@ -250,8 +275,8 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
     <tr><td>S6</td><td>Request on one computer, change Head on another</td><td>Blocked; no checklist on the second computer to explain why</td><td>Goes through; the waiting request is visible in Add data on any device</td></tr>
     <tr><td>S7</td><td>Browser without floating windows (Firefox, Safari): the checklist is an in-page panel</td><td>Same block; panel state kept in the browser</td><td>Same as above; panel is reference only</td></tr>
     <tr><td>S8</td><td>Request is abandoned for 3 days</td><td>Expires after 2 days plus the nightly run, then the block ends</td><td>Never blocks the change at all</td></tr>
-    <tr><td>S9</td><td>A statement is uploaded and left on the review screen, then Head is changed (under about 65 minutes)</td><td>Blocked (counted as open)</td><td>Decision D1 below: continue, discard the review, or block and name it</td></tr>
-    <tr><td>S10</td><td>Head change is being completed while "Confirm" is saving a statement</td><td>Blocked or failing at the last step</td><td>Decision D2: "try again in a minute"</td></tr>
+    <tr><td>S9</td><td>A statement is uploaded and left on the review screen, then Head is changed (under about 65 minutes)</td><td>Blocked (counted as open)</td><td><b>Decided (D1 C):</b> the change goes through; the review is discarded inside it and the completion notice says so</td></tr>
+    <tr><td>S10</td><td>Head change is being completed while "Confirm" is saving a statement</td><td>Blocked or failing at the last step</td><td><b>Decided (D2 A):</b> "A statement is being saved. Try again in a minute." in a calm notice with a countdown; nothing is lost; the codes stay valid</td></tr>
     <tr><td>S11</td><td>Codes are sent, then a CAMS request is started before the last step</td><td>The last step fails after all four codes are used</td><td>The last step does not look at requests</td></tr>
     <tr><td>S12</td><td>Phone: request through the phone (no checklist)</td><td>Same server record, same block</td><td>Same fixes apply</td></tr>
     <tr><td>S13</td><td>Two members each have a waiting request</td><td>Blocked (family-wide)</td><td>Goes through; each request stays with its own member</td></tr>
@@ -261,79 +286,83 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 </section>
 
 <section id="fix">
-  <h2>The plan: four parts, each with its own tests</h2>
-  <h3>Part A · Head of Family never looks at requests (the original owner decision)</h3>
-  <p>A waiting, abandoned, failed or old import can never stop a change. The household-wide check is removed from the eligibility list, from the start-code step, from the start step, from the dialog and from the <b>last step</b> (which re-runs the same check). The other eleven reasons stay exactly as they are. For the one narrow case of a live review (an uploaded statement on the review screen, up to about 65 minutes): see decision D1; my recommendation is to discard it inside the swap, with a note, because the swap signs everyone out anyway.</p>
-  <h3>Part B · Close the waiting record when it has done its job</h3>
-  <ul>
-    <li>When a statement for that member is imported (the confirm step finishes), close any waiting request for that member (mark it expired, the same status "Cancel request" uses).</li>
-    <li>When the user presses <b>Cancel request</b> or <b>Start over</b>, close it too (see decision Q3).</li>
-    <li>A one-time clean-up of rows already stuck: any waiting request that has a later confirmed import for the same member, or is past its 48 hours, is closed. This is a data fix with a script, not a schema change (confirm in step R7).</li>
-  </ul>
-  <h3>Part C · A waiting request is visible and cancellable</h3>
-  <ul>
-    <li>Add data shows a small <b>"Your CAMS request is waiting"</b> card driven by the server (not by browser notes): who it is for, how long is left, a Cancel button. It appears on any device and after any reload.</li>
-    <li>Cancel works from that card, so it no longer depends on a request id kept in the page's memory. This needs the server to tell the page "this member has a waiting request, id X, expires at Y" (a small read, or one extra field on an existing response).</li>
-    <li>The Head of Family dialog may add one quiet line when a request is waiting ("a CAMS request for Rohan is still waiting; this does not stop the change"). Not a blocker, not a button. Decision Q4.</li>
-  </ul>
-  <h3>Part D · The checklist becomes a reading aid, and easier to see</h3>
-  <ul>
-    <li><b>Decouple.</b> The checklist is opened by its own button and by Request (still the first thing in the click, because of the browser rule), but: the page never waits for it; its notes never choose the Add data screen; coming back to the tab never changes the screen because of it; "Start over" and "Close" only touch the checklist; its failure shows a message and nothing else breaks.</li>
-    <li><b>The page chooses its screen from the server.</b> If a request is waiting, show the waiting card; if not, show the usual choice. One source of truth.</li>
-    <li><b>Make it visible.</b> Replace the plain "0 of 5 done" line and the quiet "closed" banner with a proper status strip (see mockups): a progress bar, the current step name, and Reopen. The floating checklist gets a clearer header and a progress bar.</li>
-    <li><b>Wording.</b> "Start over" becomes "Reset checklist" so it cannot be mistaken for cancelling the request. Copy stays plain; no advice wording; no em dashes.</li>
-  </ul>
-  <div class="callout"><p><b>Size:</b> this is bigger than the first D-11 plan. Part A is small and independent (back end plus one sentence in the dialog). Parts B and C touch the CAMS request flow (back end plus Add data). Part D is the front-end clean-up. They can ship in that order; each is valuable alone. Decision Q1 asks whether to do all four now.</p></div>
+<h2>The plan: four parts, each with its own tests (decided: all four, in order A, B, C, D)</h2>
+<h3>Part A · Head of Family never looks at requests</h3>
+<p>A waiting, abandoned, failed or old import can never stop a change. The household-wide check is removed from the eligibility list, from the start-code step, from the start step, from the dialog and from the <b>last step</b> (which re-runs the same check). The other eleven reasons stay exactly as they are.</p>
+<ul>
+<li><b>An unfinished statement review</b> (uploaded, not confirmed, up to about 65 minutes): <b>decided (D1 C)</b> it never blocks. It is <b>discarded inside the change</b> together with its PAN claim, and the completion notice says so (mockup 6 below). The change already signs everyone out, so nothing half-attributed survives.</li>
+<li><b>A statement being saved at the exact moment (D2 A):</b> the last step answers with the plain sentence "A statement is being saved. Try again in a minute." in a calm, designed notice (mockup 7), the codes stay valid, and nothing is lost.</li>
+<li><b>Not in this work (D4 A):</b> abandoned review rows still stay open until the next import call; no daily job cleans them. Noted as a follow-up.</li>
+<li>D3 A: nobody remembers a reason for the old rule beyond caution, so the evidence from step R6 decides whether discarding is safe.</li></ul>
+<h3>Part B · Close the waiting record when it has done its job</h3>
+<ul>
+<li><b>Q6 A:</b> when a statement is imported, close the waiting request of <b>that member only</b>. Other members' requests stay.</li>
+<li>Pressing <b>Cancel request</b> closes it too. <b>Reset checklist</b> does not (Q3 A).</li>
+<li><b>Q7 A:</b> a one-off script, <b>dry run first (counts only)</b>, closes requests that have a later confirmed import or are past 48 hours. A data fix, no schema change (confirm in R7).</li></ul>
+<h3>Part C · A waiting request is visible and cancellable</h3>
+<ul>
+<li><b>Q5 A:</b> Add data asks the server "is a request waiting for this member?" and cancels by the id the server returns. Works on any device and after any reload.</li>
+<li>A small <b>"CAMS request waiting"</b> card shows who it is for, the time left, and a Cancel button (mockups 2 and 5).</li>
+<li><b>Q4 B:</b> the Head of Family dialog shows <b>one quiet line, no button</b>, when a request waits: "A CAMS request for Rohan is still waiting. It does not stop this change." (mockup 4).</li></ul>
+<h3>Part D · The checklist becomes a reading aid, and easier to see</h3>
+<ul>
+<li><b>Decouple.</b> The checklist opens from its own control and from Request (still the first thing in the click, because of the browser rule). The page never waits for it; its notes never choose the Add data screen; coming back to the tab never changes the screen because of it; Reset and Close only touch the checklist; a failure shows a message and nothing else breaks.</li>
+<li><b>The page chooses its screen from the server:</b> a waiting request shows the waiting card; otherwise the usual choice.</li>
+<li><b>Make it visible.</b> A proper status strip (progress bar, current step, Reopen) replaces the plain "0 of 5 done" line and the quiet "closed" banner; the floating checklist gets a clearer header and a progress bar (mockups 2 and 3).</li>
+<li><b>Q3 A:</b> "Start over" becomes <b>Reset checklist</b>.</li>
+<li><b>Q2 (your note): the "Continue without it" line</b> before the Request button becomes a clearly visible control, not a small link at the end of a sentence (mockup 5). Today it is a 12.5px green link tucked inside a green-tinted note, hidden on phones, and one way only: once clicked, it cannot be undone without reloading.</li></ul>
+<div class="callout"><p><b>Order and size:</b> Part A is small and independent (back end plus a few lines in the dialog) and unblocks stage 9. B and C touch the CAMS request flow; D is the front-end clean-up and shares files with D-2. Each part is valuable alone and ships in order A, B, C, D.</p></div>
 </section>
 
 <section id="mockups">
-  <h2>Mockups (illustrative)</h2>
-  <h3>1. Today: the small text people miss</h3>
-  <div class="grid2">
-    <div class="mock"><span class="tag bad">Now · floating window open</span>
-      <div class="card"><b>Waiting for CAMS email</b><div class="small" style="margin-top:6px">(the "0 of 5 done" line is a plain, unstyled line of text under the card)</div></div>
-      <p class="plainline">0 of 5 done</p></div>
-    <div class="mock"><span class="tag bad">Now · checklist closed or page reloaded</span>
-      <div class="banner">Your checklist closed when this page reloaded. You were on <b>step 2: Fill the form</b>. <span class="lnk">Reopen checklist</span> <span class="lnk">Start over</span></div>
-      <p class="small" style="margin-top:6px">Small, green-on-green, same weight as the page text; "Start over" does not cancel the request.</p></div>
-  </div>
-  <h3>2. Proposed: one status card for a CAMS request (driven by the server)</h3>
-  <div class="grid2">
-    <div class="mock"><span class="tag good">A · waiting, checklist open</span>
-      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div>
-      <div class="small">We will use the file as soon as you upload it. Expires in 47 h.</div>
-      <div class="pbar"><i style="width:0%"></i></div><div class="small">Form: <b>0 of 5</b> settings ticked</div>
-      <div class="actions"><span class="btn">Show checklist</span><span class="btn ghost">Cancel request</span></div></div></div>
-    <div class="mock"><span class="tag good">B · checklist closed (any browser, any device)</span>
-      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div>
-      <div class="small">Your checklist is closed. You can reopen it, or upload the file when it arrives. Expires in 44 h.</div>
-      <div class="actions"><span class="btn">Reopen checklist</span><span class="btn">Upload the file</span><span class="btn ghost">Cancel request</span></div></div></div>
-    <div class="mock"><span class="tag good">C · browser cannot float the checklist (in-page panel)</span>
-      <div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b></div>
-      <div class="small">Your browser cannot float the checklist, so it stays on this page.</div>
-      <div class="pbar"><i style="width:60%"></i></div><div class="small">Form: <b>3 of 5</b> settings ticked</div></div></div>
-    <div class="mock"><span class="tag good">D · no request waiting</span>
-      <div class="statuscard"><div class="srow"><span class="dot grey"></span><b>No CAMS request waiting</b></div>
-      <div class="small">Request your statement from CAMS, or add a file you already have.</div></div></div>
-  </div>
-  <h3>3. The floating checklist, refined</h3>
-  <div class="grid2">
-    <div class="mock"><span class="tag bad">Now</span>
-      <div class="float"><b>Fill the CAMS form</b><div class="small">0 of 5 done</div><div class="row"><span class="cb"></span> Statement type: Detailed</div><div class="row"><span class="cb"></span> Period: Specific Period...</div><div class="row"><span class="cb"></span> ...</div></div></div>
-    <div class="mock"><span class="tag good">Proposed</span>
-      <div class="float"><div class="srow"><b>Unifolio checklist</b><span class="chip">Step 1 of 3</span></div>
-      <div class="pbar"><i style="width:0%"></i></div><div class="small"><b>0 of 5</b> form settings ticked</div>
-      <div class="steps"><span class="s on">1 Fill the form</span><span class="s">2 Wait for the email</span><span class="s">3 You have the file</span></div>
-      <div class="row"><span class="cb"></span> Statement type: Detailed</div><div class="row"><span class="cb"></span> Period: Specific Period...</div><div class="row"><span class="cb"></span> ...</div></div></div>
-  </div>
-  <h3>4. Head of Family dialog (only if decision Q4 says yes)</h3>
-  <div class="mock"><span class="tag good">One quiet line, nothing blocked</span>
-    <div class="statuscard"><b>Choose who will be Head of Family</b><div class="row"><span class="rd on"></span> Rohan Kulkarni · Spouse</div><div class="row"><span class="rd"></span> Meera Kulkarni · Child</div>
-    <div class="note">A CAMS request for Rohan is still waiting. It does not stop this change.</div><div class="actions"><span class="btn">Next</span></div></div></div>
+<h2>Mockups (illustrative, desktop)</h2>
+<h3>1. Today: the small text people miss</h3>
+<div class="grid2">
+<div class="ui"><div class="uitag bad">Now · floating window open</div><div class="card"><b>Waiting for CAMS email</b></div><p class="small" style="margin:6px 0 0">0 of 5 done (a plain unstyled line under the card)</p></div>
+<div class="ui"><div class="uitag bad">Now · checklist closed or page reloaded</div><div class="statuscard2" style="background:#E9F9EF;color:#15803D">Your checklist closed when this page reloaded. You were on step 2: Fill the form. <u>Reopen checklist</u> <u>Start over</u></div><p class="small" style="margin:6px 0 0">Small, green on green, same weight as the page text; "Start over" does not cancel the request.</p></div>
+</div>
+<h3>2. Proposed: one status card for a CAMS request (driven by the server)</h3>
+<div class="grid2">
+<div class="ui"><div class="uitag good">A · waiting, checklist open</div><div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div><div class="small">We will use the file as soon as you upload it. Expires in 47 h.</div><div class="pbar"><i style="width:0%"></i></div><div class="small">Form: <b>0 of 5</b> settings ticked</div><div class="actions"><span class="bg bright-white sm">Show checklist</span><span class="bg sec sm">Cancel request</span></div></div></div>
+<div class="ui"><div class="uitag good">B · checklist closed (any browser, any device)</div><div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b><span class="chip">for Rohan</span></div><div class="small">Your checklist is closed. You can reopen it, or upload the file when it arrives. Expires in 44 h.</div><div class="actions"><span class="bg bright-white sm">Reopen checklist</span><span class="bg sec sm">Upload the file</span><span class="bg sec sm">Cancel request</span></div></div></div>
+<div class="ui"><div class="uitag good">C · a browser that cannot float the checklist (in-page panel)</div><div class="statuscard"><div class="srow"><span class="dot amber"></span><b>CAMS request waiting</b></div><div class="small">Your browser cannot float the checklist, so it stays on this page.</div><div class="pbar"><i style="width:60%"></i></div><div class="small">Form: <b>3 of 5</b> settings ticked</div><div class="actions"><span class="bg sec sm">Reset checklist</span></div></div></div>
+<div class="ui"><div class="uitag good">D · no request waiting</div><div class="statuscard"><div class="srow"><span class="dot grey"></span><b>No CAMS request waiting</b></div><div class="small">Request your statement from CAMS, or add a file you already have.</div></div></div>
+</div>
+<h3>3. The floating checklist, refined</h3>
+<div class="grid2">
+<div class="ui"><div class="uitag bad">Now</div><div class="float"><b>Fill the CAMS form</b><div class="small">0 of 5 done</div><div class="row"><span class="cb"></span>Statement type: Detailed</div><div class="row"><span class="cb"></span>Period: Specific Period</div><div class="row"><span class="cb"></span>...</div></div></div>
+<div class="ui"><div class="uitag good">Proposed</div><div class="float"><div class="srow"><b>Unifolio checklist</b><span class="chip">Step 1 of 3</span></div><div class="pbar"><i style="width:0%"></i></div><div class="small"><b>0 of 5</b> form settings ticked</div><div class="steps"><span class="s on">1 Fill the form</span><span class="s">2 Wait for the email</span><span class="s">3 You have the file</span></div><div class="row"><span class="cb"></span>Statement type: Detailed</div><div class="row"><span class="cb"></span>Period: Specific Period</div></div></div>
+</div>
+<h3>4. Head of Family dialog (decided: one quiet line, no button)</h3>
+<div class="ui" style="max-width:480px"><div class="uitag good">When a CAMS request is waiting</div><div class="card flat" style="box-shadow:0 6px 20px rgba(0,0,0,.08)"><div class="h" style="font-size:15px;margin-bottom:8px">Choose who will be Head of Family</div><div class="row"><span class="rd on"></span>Rohan Kulkarni · Spouse</div><div class="row"><span class="rd"></span>Meera Kulkarni · Child</div><div class="note2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> A CAMS request for Rohan is still waiting. It does not stop this change.</div><div class="actions" style="margin-top:10px"><span class="bg bright-white">Next</span></div></div></div>
+
+<h3>5. The Request page: the "Continue without it" line (your note on Q2)</h3>
+<p class="small">Today the page shows a green-tinted note, "A small checklist will float over the CAMS page to guide you. You can close it any time." with the words <b>Continue without it</b> as a small green link at the end of that sentence, directly above the big green Request button. It is hidden on phones, and once you click it you cannot bring the checklist back without reloading.</p>
+<div class="grid2w">
+<div class="ui"><div class="uitag bad">Today</div><div class="note3">A small checklist will float over the CAMS page to guide you. You can close it any time. <span class="lnk0">Continue without it</span></div><div class="bigbtn bright-white">Request Statement on CAMS</div></div>
+<div class="ui"><div class="uitag good">Option A (recommended): same words, a clear row with a real button</div><div class="optrow"><span class="ntile g"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg></span><div class="optx"><b>A small checklist will float over the CAMS page to guide you.</b><span class="mut">You can close it any time.</span></div><span class="bg sec sm">Continue without it</span></div><div class="bigbtn bright-white">Request Statement on CAMS</div></div>
+<div class="ui"><div class="uitag good">Option A after pressing it: undoable, not a dead end</div><div class="optrow off"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg></span><div class="optx"><b>Checklist off for this request.</b><span class="mut">CAMS will open on its own.</span></div><span class="bg sec sm">Turn it back on</span></div><div class="bigbtn bright-white">Request Statement on CAMS</div></div>
+<div class="ui"><div class="uitag good">Option B: a switch (new words)</div><div class="optrow"><span class="ntile g"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m8 12 3 3 5-6"/></svg></span><div class="optx"><b>Floating checklist</b><span class="mut">A small checklist floats over the CAMS page to guide you.</span></div><span class="sw on"><i></i></span></div><div class="bigbtn bright-white">Request Statement on CAMS</div></div>
+<div class="ui"><div class="uitag">Option C: keep the note, make only the link louder</div><div class="note3">A small checklist will float over the CAMS page to guide you. You can close it any time. <span class="lnk1">Continue without it</span></div><div class="bigbtn bright-white">Request Statement on CAMS</div></div>
+<div class="ui"><div class="uitag">On a phone (unchanged)</div><div class="card flat"><div class="mut">No checklist is shown on phones, so the row is not shown either. The Request button works as today.</div></div></div>
+</div>
+<p class="small"><b>Recommendation: A.</b> It keeps every built word (the copy rule), turns the link into a visible button inside a row that has a line icon in the same style as the news list, and fixes the dead end by letting you turn the checklist back on. B is clearer still but changes the words ("Floating checklist"). The button text on the Request button is white on the bright green, as you decided in QA-1.</p>
+
+<h3>6. The completion notice after the change (decided: say so when a review was discarded)</h3>
+<div class="ui" style="max-width:520px"><div class="uitag good">Head of Family changed, and an unfinished statement review was discarded</div><div class="card flat" style="box-shadow:0 6px 20px rgba(0,0,0,.08)"><div class="srow"><span class="ntile g okt"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><div><div class="h" style="font-size:15px">Head of Family changed</div><div class="mut">Rohan Kulkarni is now the Head of Family. You have been signed out everywhere and will sign in again.</div></div></div><div class="note2" style="margin-top:10px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> A statement you had uploaded but not yet confirmed was removed. Upload the file again when you are ready.</div><div class="actions" style="margin-top:10px"><span class="bg bright-white">Continue</span></div></div><p class="small" style="margin:6px 0 0">The wording of the second box is a proposal for you to confirm. It appears only when a review was discarded.</p></div>
+
+<h3>7. A statement is being saved at that moment (decided wording, designed notice)</h3>
+<p class="small">This can happen only in a window of seconds: the last step runs while a statement's Confirm is writing. Nothing is lost and the four codes stay valid. The notice is informational, not an error, so it uses the palette's calm information colours (indigo tint), not red.</p>
+<div class="grid2w">
+<div class="ui"><div class="uitag good">While waiting (the button counts down)</div><div class="card flat" style="box-shadow:0 6px 20px rgba(0,0,0,.08)"><div class="h" style="font-size:15px;margin-bottom:8px">Confirm the change</div><div class="row">New Head of Family: <b>Rohan Kulkarni</b></div><div class="saving"><span class="ntile ind"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><div><b>A statement is being saved.</b><div class="mut2">Try again in a minute.</div><div class="mut2" style="margin-top:4px">Nothing is lost, and your codes are still valid.</div></div></div><div class="actions" style="margin-top:12px"><span class="bg sec">Close</span><span class="bg dis">Try again in 0:52</span></div></div></div>
+<div class="ui"><div class="uitag good">When the minute is up</div><div class="card flat" style="box-shadow:0 6px 20px rgba(0,0,0,.08)"><div class="h" style="font-size:15px;margin-bottom:8px">Confirm the change</div><div class="row">New Head of Family: <b>Rohan Kulkarni</b></div><div class="saving"><span class="ntile ind"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><div><b>A statement is being saved.</b><div class="mut2">Try again in a minute.</div><div class="mut2" style="margin-top:4px">Nothing is lost, and your codes are still valid.</div></div></div><div class="actions" style="margin-top:12px"><span class="bg sec">Close</span><span class="bg bright-white">Try again</span></div></div></div>
+</div>
+<p class="small">Design notes: line icon in the same tile style as the news list (indigo on the information tint), the exact sentence you chose as the main line, a short reassurance, and a button that is disabled with a visible countdown so nobody presses it blindly. The reassurance line and the countdown are proposals; the sentence itself is yours.</p>
 </section>
 
 <section id="investigation">
   <h2>Investigation, step by step (before anything is built)</h2>
+<div class="callout"><p>D1 is decided (discard the review, say so). R6 now only proves that discarding inside the change cannot leave a half-attributed import, which is what the tests in Part A also pin.</p></div>
   <p class="small">Local database and synthetic data only. Staging steps are read-only. Stop and report if a step contradicts this page.</p>
   <div class="tablewrap"><table>
     <tr><th style="width:42px">Step</th><th>Do</th><th>We learn</th></tr>
@@ -351,32 +380,35 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 </section>
 
 <section id="tests">
-  <h2>Tests first (named; each must fail on today's code before the fix)</h2>
-  <h3>Part A: Head of Family (back end, <code>tests/services/auth/</code> and <code>tests/api/</code>)</h3>
-  <ul>
-    <li><code>test_waiting_cams_request_does_not_block_eligibility</code> (waiting_for_user, requesting_cas, not_started); <code>test_request_past_its_window_but_not_swept_does_not_block</code>; <code>test_dormant_and_legacy_statuses_do_not_block</code></li>
-    <li><code>test_each_of_the_other_eleven_reasons_still_blocks</code>; <code>test_reason_list_has_exactly_the_eleven_values</code></li>
-    <li><code>test_start_code_and_start_succeed_while_a_cams_request_waits</code>; <code>test_full_change_completes_while_a_cams_request_waits</code>; <code>test_change_leaves_import_rows_and_pan_fields_untouched</code>; <code>test_import_started_after_start_does_not_fail_the_final_step</code>; <code>test_start_code_start_dialog_list_and_final_step_agree</code>; <code>test_undo_works_while_a_cams_request_waits</code></li>
-    <li>Live review, depending on D1: <code>test_complete_discards_a_live_review_and_releases_its_pan_claim</code> (C) or <code>test_live_review_blocks_start_and_names_the_import</code> (B); and <code>test_complete_answers_try_again_while_a_confirm_is_processing</code></li>
-    <li>API and Postgres: <code>test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request</code>; <code>test_swap_with_a_waiting_cams_request_on_postgres</code>; <code>test_swap_and_confirm_do_not_interleave_on_postgres</code></li>
-  </ul>
-  <h3>Part B: closing the record (back end, <code>tests/services/import_/</code>)</h3>
-  <ul>
-    <li><code>test_confirming_an_import_closes_the_members_waiting_request</code>; <code>test_confirm_closes_only_that_members_request</code>; <code>test_cancel_and_start_over_close_the_request</code>; <code>test_a_member_with_only_a_waiting_request_is_handled_as_having_no_statement</code></li>
-    <li><code>test_cleanup_script_closes_stuck_requests_and_leaves_live_ones</code> (dry-run count and real run)</li>
-  </ul>
-  <h3>Part C: visible, cancellable (back end and front end)</h3>
-  <ul>
-    <li>Back end: <code>test_waiting_request_is_readable_for_each_member</code> (id, expires at, member); <code>test_cancel_works_with_the_id_the_server_gave</code></li>
-    <li>Front end: <code>shows_a_waiting_request_card_from_the_server_not_from_browser_notes</code>; <code>cancel_works_after_a_reload</code>; <code>shows_the_card_on_a_second_device</code>; <code>no_card_when_nothing_is_waiting</code></li>
-  </ul>
-  <h3>Part D: the checklist as a reading aid (front end)</h3>
-  <ul>
-    <li><code>request_does_not_wait_for_the_checklist_window</code>; <code>a_failing_checklist_window_never_stops_the_request</code>; <code>checklist_state_does_not_choose_the_add_data_screen</code>; <code>coming_back_to_the_tab_does_not_change_the_screen</code>; <code>reset_checklist_does_not_touch_the_request</code>; <code>closing_the_checklist_does_not_touch_the_request</code></li>
-    <li><code>status_strip_shows_progress_and_the_current_step</code>; <code>closed_state_shows_a_visible_reopen_action</code>; <code>panel_mode_shows_the_same_strip</code>; the existing checklist tests keep passing unless they pin the removed coupling (each replaced test is listed)</li>
-  </ul>
-  <h3>Dialog (front end)</h3>
-  <ul><li><code>shows_no_import_sentence_and_lets_every_complete_member_be_chosen</code>; <code>renders_a_generic_sentence_for_an_unknown_reason</code>; if Q4 is yes: <code>shows_one_quiet_line_when_a_request_waits_and_blocks_nothing</code></li></ul>
+<h2>Tests first (named; each must fail on today's code before the fix)</h2>
+<h3>Part A: Head of Family (back end, <code>tests/services/auth/</code> and <code>tests/api/</code>)</h3>
+<ul>
+<li><code>test_waiting_cams_request_does_not_block_eligibility</code> (waiting_for_user, requesting_cas, not_started); <code>test_request_past_its_window_but_not_swept_does_not_block</code>; <code>test_dormant_and_legacy_statuses_do_not_block</code></li>
+<li><code>test_each_of_the_other_eleven_reasons_still_blocks</code>; <code>test_reason_list_has_exactly_the_eleven_values</code></li>
+<li><code>test_start_code_and_start_succeed_while_a_cams_request_waits</code>; <code>test_full_change_completes_while_a_cams_request_waits</code>; <code>test_change_leaves_import_rows_and_pan_fields_untouched</code>; <code>test_import_started_after_start_does_not_fail_the_final_step</code>; <code>test_start_code_start_dialog_list_and_final_step_agree</code>; <code>test_undo_works_while_a_cams_request_waits</code></li>
+<li>D1 C: <code>test_complete_discards_a_live_review_and_releases_its_pan_claim</code>; <code>test_completion_response_says_a_review_was_discarded</code>; <code>test_completion_response_says_nothing_when_no_review_existed</code></li>
+<li>D2 A: <code>test_complete_answers_try_again_while_a_confirm_is_processing</code> (a clear code, the four codes not consumed, retry after the confirm succeeds works)</li>
+<li>API and Postgres: <code>test_eligibility_route_has_no_import_reason_with_a_waiting_cams_request</code>; <code>test_swap_with_a_waiting_cams_request_on_postgres</code>; <code>test_swap_and_confirm_do_not_interleave_on_postgres</code></li>
+</ul>
+<h3>Part B: closing the record (back end, <code>tests/services/import_/</code>)</h3>
+<ul>
+<li><code>test_confirming_an_import_closes_the_members_waiting_request</code>; <code>test_confirm_closes_only_that_members_request</code> (Q6 A); <code>test_cancel_closes_the_request</code>; <code>test_a_member_with_only_a_waiting_request_is_handled_as_having_no_statement</code></li>
+<li>Q7 A: <code>test_cleanup_script_dry_run_only_counts</code>; <code>test_cleanup_script_closes_stuck_requests_and_leaves_live_ones</code></li>
+</ul>
+<h3>Part C: visible, cancellable (back end and front end)</h3>
+<ul>
+<li>Back end (Q5 A): <code>test_waiting_request_is_readable_for_each_member</code> (id, expires at, member); <code>test_cancel_works_with_the_id_the_server_gave</code></li>
+<li>Front end: <code>shows_a_waiting_request_card_from_the_server_not_from_browser_notes</code>; <code>cancel_works_after_a_reload</code>; <code>shows_the_card_on_a_second_device</code>; <code>no_card_when_nothing_is_waiting</code></li>
+<li>Dialog (Q4 B): <code>shows_one_quiet_line_when_a_request_waits_and_blocks_nothing</code>; <code>shows_no_line_when_nothing_waits</code>; <code>lets_every_complete_member_be_chosen</code>; <code>renders_a_generic_sentence_for_an_unknown_reason</code></li>
+<li>Completion screens: <code>shows_the_discarded_review_note_only_when_one_was_discarded</code>; <code>shows_the_saving_notice_with_a_countdown_and_enables_try_again_after_it</code>; <code>keeps_the_dialog_state_after_the_notice</code></li>
+</ul>
+<h3>Part D: the checklist as a reading aid (front end)</h3>
+<ul>
+<li><code>request_does_not_wait_for_the_checklist_window</code>; <code>a_failing_checklist_window_never_stops_the_request</code>; <code>checklist_state_does_not_choose_the_add_data_screen</code>; <code>coming_back_to_the_tab_does_not_change_the_screen</code>; <code>reset_checklist_does_not_touch_the_request</code>; <code>closing_the_checklist_does_not_touch_the_request</code></li>
+<li><code>reset_button_reads_reset_checklist_and_start_over_is_gone</code> (Q3 A)</li>
+<li>Q2: <code>continue_without_it_is_a_visible_button_in_a_row_with_the_checklist_icon</code>; <code>pressing_it_turns_the_checklist_off_for_this_request_and_shows_turn_it_back_on</code>; <code>turn_it_back_on_restores_the_checklist</code>; <code>the_choice_does_not_cancel_or_start_a_request</code>; <code>row_is_not_shown_on_phones</code>; <code>every_built_word_in_the_row_is_unchanged</code></li>
+<li><code>status_strip_shows_progress_and_the_current_step</code>; <code>closed_state_shows_a_visible_reopen_action</code>; <code>panel_mode_shows_the_same_strip</code>; the existing checklist tests keep passing unless they pin the removed coupling (each replaced test is listed)</li>
+</ul>
 </section>
 
 <section id="delivery">
@@ -413,17 +445,19 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 </section>
 
 <section id="acceptance">
-  <h2>Acceptance (the owner re-runs stage 9 after the fix)</h2>
-  <ol>
-    <li>Press Request from CAMS and close the checklist without ticking anything. Open Profile, Choose who will be Head of Family: members with complete details are selectable. No import sentence appears.</li>
-    <li>Run the full change; after it, the waiting request is still listed for the same member, unchanged (or, if you cancelled it first, gone).</li>
-    <li><b>M1-17:</b> the change emails in <b>Gmail web, Gmail app, Apple Mail and Outlook</b>. <b>M1-18:</b> the undo email (date line, same full link in the button and the box, works once, only for the previous head). <b>M1-19:</b> run the undo; the "changed back" email reads right.</li>
-    <li>Import a statement for a member, then check Head of Family the same day: no block; the waiting card is gone.</li>
-    <li>Press Request, reload the page, open Add data: the "CAMS request waiting" card is there, with a Cancel that works.</li>
-    <li>Close the checklist: the status strip stays visible with a Reopen button. Reset checklist does not cancel the request.</li>
-    <li>With a live review open: the behaviour chosen in D1.</li>
-    <li>The other eleven reasons still grey a member (for example no PAN).</li>
-  </ol>
+<h2>Acceptance (the owner re-runs stage 9 after the fix)</h2>
+<ol>
+<li>Press Request from CAMS and close the checklist without ticking anything. Open Profile, Choose who will be Head of Family: members with complete details are selectable. A quiet line says a request is waiting and that it does not stop the change.</li>
+<li>Run the full change; afterwards the waiting request is still listed for the same member, unchanged (or, if you cancelled it first, gone).</li>
+<li><b>M1-17:</b> the change emails in <b>Gmail web, Gmail app, Apple Mail and Outlook</b>. <b>M1-18:</b> the undo email (date line, same full link in the button and the box, works once, only for the previous head). <b>M1-19:</b> run the undo; the "changed back" email reads right.</li>
+<li>Import a statement for a member, then check Head of Family the same day: no block; the waiting card is gone.</li>
+<li>Press Request, reload the page, open Add data: the "CAMS request waiting" card is there, with a Cancel that works.</li>
+<li>Close the checklist: the status strip stays visible with a Reopen button. Reset checklist does not cancel the request.</li>
+<li>With an unfinished statement review open: the change goes through, and the completion notice says the review was removed.</li>
+<li>With a statement being confirmed at that exact moment (the scripted case): the saving notice appears with the countdown; nothing is lost; the codes still work; Try again succeeds.</li>
+<li>On the Request page: the "Continue without it" row is easy to see; pressing it turns the checklist off; "Turn it back on" restores it.</li>
+<li>The other eleven reasons still grey a member (for example no PAN).</li>
+</ol>
 </section>
 
 <section id="qa-intro">
@@ -435,6 +469,7 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 
 <section id="d12">
 <h2>1 · D-12 · The category average and the rank use different funds at 1 year</h2>
+<div class="callout"><p><b>Still open (QA-12):</b> your answer on the rule is the one thing this item waits for. Nothing is built for it.</p></div>
 <span class="pill w">Number defect</span> <span class="pill b">Needs your decision</span>
 <div class="kv"><b>What the user sees</b><div>On the Performance page a fund can say "rank 19 of 42" at 1 year while the card below says "Category average covers 37 funds". At 3 and 5 years the two counts match. All five funds you checked showed it (42 vs 37, 30 vs 28, 32 vs 30, 30 vs 25, 42 vs 37).</div></div>
 <div class="kv"><b>Why it happens</b><div>
@@ -471,6 +506,7 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 
 <section id="d2">
 <h2>2 · D-2 · Request from CAMS goes straight to CAMS, with the checklist floating over it</h2>
+<div class="callout ok"><p><b>Decided (QA-2 A):</b> run the test of the link-button route first; build it if it passes. The time estimate is removed from this page: it is simply "the test".</p></div>
 <span class="pill w">Browser limit</span> <span class="pill g">Updated after your answer</span> <span class="pill b">Needs a short test, then your decision</span>
 <div class="callout ok"><p><b>What you asked for (exact requirement, now the pass mark):</b> the user clicks the existing <b>Request from CAMS</b> button. They land on the CAMS website, and the floating checklist is there above that page. <b>No separate button inside the checklist to open CAMS, and no screen or step in between.</b> The order does not matter (checklist first then CAMS, or CAMS first then checklist), as long as it is one click and nothing in between. This replaces my earlier "make the CAMS link step 1 of the list" idea: that is still an extra click, so it is dropped.</p></div>
 <div class="kv"><b>What the user sees today</b><div>Press Request from CAMS and a floating checklist opens, <i>but the CAMS site does not open</i>. The user must press "Open the CAMS form" inside the checklist. That is the extra step you want gone.</div></div>
@@ -496,7 +532,7 @@ code{overflow-wrap:anywhere}.kv>div{min-width:0}
 <li><b>C: a browser extension</b> that draws the checklist on the CAMS page itself. Gives exactly your picture without relying on the browser's click rule. Heavy: install, store review, permission to read the CAMS site. Not for this MVP unless A and B fail.</li>
 <li><b>D: the fallback if A and B fail.</b> One click goes to CAMS and the checklist is shown as the in-page panel back on the Unifolio tab (no floating window over CAMS). No in-between step, but the checklist is not above the CAMS site. I would only offer this with your explicit OK, because it is not what you asked for.</li></ol>
 <p class="small">Honest limits: nothing here is proven. A and B are web-platform behaviours I know from documentation, not from a test of our page. Chrome is the only browser with the floating window; Firefox and Safari will always get the in-page panel.</p></div></div>
-<div class="kv"><b>The short test (before any build)</b><div>Extend the existing spike page (branch <code>batch/h-spike</code>, <code>Docs/orchestration/spike/checklist-spike/</code>) and run it in Chrome and Edge. About half a day including your run. <b>Pass mark: one click on a link-button gives the CAMS tab in front <i>and</i> the floating checklist, with nothing else clicked.</b> Cases:
+<div class="kv"><b>The short test (before any build)</b><div>Extend the existing spike page (branch <code>batch/h-spike</code>, <code>Docs/orchestration/spike/checklist-spike/</code>) and run it in Chrome and Edge. Including your run, a short job. <b>Pass mark: one click on a link-button gives the CAMS tab in front <i>and</i> the floating checklist, with nothing else clicked.</b> Cases:
 <ol><li><b>S1:</b> link click with <code>requestWindow</code> called first in the click handler (option A).</li><li><b>S2:</b> the same with the order reversed (script opens the floating window after the link navigation starts).</li><li><b>S3:</b> pop-ups set to Allow, then floating window then script tab (option B).</li><li><b>S4:</b> whether the CAMS tab comes to the front and the floating window stays above it; ticks still update; the request still reaches our server.</li><li><b>S5:</b> keyboard (Enter or Space on the button), a slow network, and a small laptop window size.</li><li><b>S6:</b> a refused floating window: the link must still open CAMS.</li></ol>
 If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B (with a clear one-time hint). If none pass, you choose between C and D.</div></div>
 <div class="kv"><b>Tests first (after the spike, when the build starts)</b><div><ul>
@@ -509,43 +545,32 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <li>Phone: <code>mobile_request_still_opens_cams_as_today</code></li></ul></div></div>
 <div class="kv"><b>Files</b><div><code>features/import/RequestCamsPath.tsx</code> (the button becomes a link; the handler changes), <code>features/import/checklist/CamsChecklist.tsx</code> (remove the button and its "ready" state), <code>checklistCopy.ts</code> (remove the two lines), <code>checklistStore.ts</code> (open first, no wait for the link), the spike page. The Head of Family plan's part D touches the same files: <b>done together, one after the other</b>.</div></div>
 <div class="kv"><b>Re-check</b><div>M4-12 (Request goes straight to CAMS with the floating checklist, no extra button) and M4-13 (Chrome and Edge floating; Firefox and Safari panel).</div></div>
-<div class="kv"><b>Your decision</b><div>QA-2 below: agree to the half-day test first, and what we do if A does not pass.</div></div>
+<div class="kv"><b>Your decision</b><div>QA-2 below: agree to the test first, and what we do if A does not pass.</div></div>
 </section>
 
 <section id="d1">
 <h2>3 · D-1 · White text on every green button, app-wide</h2>
-<span class="pill w">Design, whole app</span> <span class="pill b">Needs your decision</span>
-<div class="kv"><b>What the user sees</b><div>Some green buttons (sign-up, log-in, onboarding) have black text. You want white on every green button.</div></div>
-<div class="kv"><b>Why it happens</b><div>
-<p><b>Confirmed.</b> The app is split. The palette PDF says dark text (<code>#111111</code>) on the brand green <code>#22C55E</code>, so the sign-up, log-in and onboarding screens, the export dialog, the checklist buttons and the XIRR disclaimer all use dark text. The shared button (<code>components/ui/button.tsx</code>, about 68 uses), <code>Button.module.css</code>, the import screens, the analytics buttons, the mobile screens and several dialogs use <b>white</b> on the same bright green. Roughly 34 places use the accent token and about 17 files hard-code the green.</p>
-<p><b>The contrast (my own arithmetic, standard accessibility formula; the target for button text is 4.5 to 1):</b></p>
-<div class="tablewrap"><table>
-<tr><th>Green</th><th>White text</th><th>Dark text #111</th><th>Where it is used</th></tr>
-<tr><td><b>#22C55E</b> bright (brand, button default in the palette)</td><td><b>2.3 to 1</b> (fails)</td><td>8.3 to 1 (passes)</td><td>almost every button</td></tr>
-<tr><td>#16A34A (hover)</td><td>3.3 to 1 (fails)</td><td>5.7 to 1</td><td>hover</td></tr>
-<tr><td><b>#15803D</b> deep (the palette's pressed and "safe text" green)</td><td><b>5.0 to 1</b> (passes)</td><td>3.8 to 1</td><td>pressed, green text</td></tr>
-<tr><td>#166534 darker</td><td>7.1 to 1</td><td>2.7 to 1</td><td>not used today</td></tr>
-</table></div>
-<p><b>The tension:</b> your wish (white everywhere) conflicts with the palette PDF's rule (dark text on the bright green). I am flagging it, not resolving it. White text on the bright green is only 2.3 to 1, which is hard to read. White works only on a darker green.</p></div></div>
-<div class="kv"><b>Mockup: the same button three ways (real palette values)</b><div class="ui"><div class="swrow">
-<div><span class="bg bright-white">Continue</span><div class="mut">White on #22C55E<br><b>2.3 : 1</b> · low contrast, today's shared button</div></div>
-<div><span class="bg deep-white">Continue</span><div class="mut">White on #15803D<br><b>5.0 : 1</b> · passes · <b>recommended</b></div></div>
-<div><span class="bg bright-dark">Continue</span><div class="mut">#111 on #22C55E<br><b>8.3 : 1</b> · the palette rule · what auth screens do today</div></div>
-</div>
-<div class="uitag good" style="margin-top:14px">Recommended look: Sign-up screen, desktop</div>
-<div class="card" style="max-width:360px"><div class="h big2">Create your account</div><div class="field">name@email.com</div><span class="bg deep-white wide">Continue</span><div class="mut" style="text-align:center;margin-top:6px">Hover: darker #166534 · pressed: darker still</div></div></div></div>
-<div class="kv"><b>Options</b><div><ol>
-<li><b>A (recommended): white text, on a deeper green fill for buttons only.</b> Add one "button green" token, <code>#15803D</code> (already in the palette), hover a step darker. The bright <code>#22C55E</code> stays for charts, dots, progress bars, focus rings and the logo. One switch point, so all ~68 shared-button uses and the legacy files change together. This needs your OK because it moves the palette's "primary button" off the bright green.</li>
-<li><b>B: white text on the bright green as is.</b> Does what you literally asked, but 2.3 to 1 fails accessibility.</li>
-<li><b>C: dark text on the bright green everywhere</b> (the palette rule; fixes the split the other way). Contradicts your wish.</li></ol>
-<p class="small">Also found: small green text on a faint green tint (the "/10" chips) is about 2.3 to 1 on white; using <code>#15803D</code> for that text would pass. The white checkmark in the tick boxes is a graphic (needs 3 to 1) and also fails on the bright green; option A fixes it too.</p></div></div>
+<span class="pill w">Design, whole app</span> <span class="pill g">Decided: B</span>
+<div class="callout ok"><p><b>Your decision: white text on the bright green <code>#22C55E</code>, as the fill is today.</b> Recorded. One fact stays on the record, stated once and not argued: white on <code>#22C55E</code> is <b>2.3 to 1</b>, below the 4.5 to 1 accessibility target for button text. The hover green <code>#16A34A</code> is 3.3 to 1 and the pressed green <code>#15803D</code> is 5.0 to 1. This overrides the palette PDF's rule of dark text on the bright green, so it also goes into <code>decisions.md</code> and the palette reference for workers.</p></div>
+<div class="kv"><b>What the user sees</b><div>Some green buttons (sign-up, log-in, onboarding) have black text. After the change every green-filled button has white text.</div></div>
+<div class="kv"><b>What changes (confirmed in the code)</b><div>
+<p><b>Already white (no change):</b> the shared button (<code>components/ui/button.tsx</code>, about 68 uses), <code>Button.module.css</code>, the import screens and dialogs, the analytics buttons, the phone import and landing views.</p>
+<p><b>Dark text today, to be changed to white:</b> the auth buttons (<code>styles/auth-tokens.css</code>, <code>.auth-btn</code>, <code>#111</code> text in default and hover), the export dialog buttons (<code>ExportDialog.tsx</code>, <code>--export-btn-ink</code>), the checklist buttons (<code>checklist-tokens.css</code>, <code>.cc-btn-primary</code>, <code>.ccp-reopen-btn</code>), the onboarding buttons (<code>onboarding.module.css</code>) and the XIRR disclaimer button (<code>XirrDisclaimerModal.module.css</code>; its comment says white was about 2.2 to 1, which is the same issue, now accepted).</p>
+<p><b>Not changed:</b> the green itself (<code>#22C55E</code> stays the fill everywhere), hover and pressed greens, charts, dots, progress bars, focus rings and the logo. The disabled button keeps its own look per screen (not part of this request).</p></div></div>
+<div class="kv"><b>Mockup (desktop): sign-up, every state</b><div class="ui"><div class="swrow">
+<div><span class="bg bright-white">Continue</span><div class="mut">Default · white on #22C55E</div></div>
+<div><span class="bg" style="background:#16A34A;color:#fff">Continue</span><div class="mut">Hover · white on #16A34A</div></div>
+<div><span class="bg" style="background:#15803D;color:#fff">Continue</span><div class="mut">Pressed · white on #15803D</div></div>
+<div><span class="bg" style="background:#DFDFDF;color:#9B9B9B">Continue</span><div class="mut">Disabled (as today)</div></div></div>
+<div class="uitag good" style="margin-top:14px">Sign-up screen after the change</div>
+<div class="card" style="max-width:360px"><div class="h big2">Create your account</div><div class="field">name@email.com</div><span class="bg bright-white wide">Continue</span></div></div></div>
 <div class="kv"><b>Tests first</b><div><ul>
-<li><code>button_green_with_white_text_meets_4_5_to_1</code> (computes the ratio from the token values; fails today)</li>
-<li><code>no_green_button_uses_dark_text</code> (a scan of the shared button and the listed files)</li>
-<li>One visual check per screen group: auth, onboarding, import, analytics, dialogs, mobile, export, checklist</li></ul></div></div>
-<div class="kv"><b>Files</b><div>Tokens: <code>styles/tokens.css</code>, <code>palette-tokens.css</code>, <code>auth-tokens.css</code>, <code>export-tokens.css</code>, <code>checklist-tokens.css</code>, <code>shell-tokens.css</code>, <code>print-tokens.css</code>. Components: <code>components/ui/button.tsx</code>, <code>Button.module.css</code>, the auth screens (<code>AuthEntryFlow</code>, <code>EmailEntry</code>, <code>Landing</code>, <code>OtpVerify</code>, <code>PhoneEntry</code>), the mobile import and landing views, <code>ExportDialog.tsx</code>, <code>XirrDisclaimerModal.module.css</code>, <code>onboarding.module.css</code>, the import dialogs. Also <code>Docs/orchestration/2026-11-18-palette-reference-for-workers.md</code> and <code>decisions.md</code> (a palette change is a recorded decision).</div></div>
-<div class="kv"><b>Re-check</b><div>M1-12 (white on the deep green) and M2-10 (the dark label that is now white), plus a walk through every screen group.</div></div>
-<div class="kv"><b>Your decision</b><div>QA-1 below.</div></div>
+<li><code>every_green_filled_button_uses_white_text</code> (a scan of the shared button and the files above; fails today on the auth, export, checklist, onboarding and XIRR buttons)</li>
+<li><code>auth_buttons_are_white_in_default_hover_and_pressed</code></li>
+<li>One visual check per screen group: auth, onboarding, import, analytics, dialogs, mobile, export, checklist, with the disabled state left as is</li>
+<li>The earlier idea of a contrast-ratio test is dropped: it would fail by design.</li></ul></div></div>
+<div class="kv"><b>Files</b><div>The files above, plus <code>Docs/orchestration/2026-11-18-palette-reference-for-workers.md</code> (the line "Text on a green button is dark" becomes white), <code>decisions.md</code>, and the two QA rows below. Shares files with the checklist work (Part D, D-2), so the front-end lanes run one after another.</div></div>
+<div class="kv"><b>Re-check</b><div>M1-12 and M2-10 are rewritten to say "white text on the green button" (M1-12 said white on the deep green; M2-10 said a dark label on the bright green), then a walk through every screen group.</div></div>
 </section>
 
 <section id="d-visual">
@@ -555,6 +580,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 
 <section id="d3">
 <h2>4 · D-3 · The search box opens as an empty white strip the first time</h2>
+<div class="callout ok"><p><b>Decided (QA-3 A):</b> show "Try a fund, a member or a page" while there are no recents and nothing is typed.</p></div>
 <span class="pill w">Design</span>
 <div class="kv"><b>What the user sees</b><div>The first time the search box opens, only an empty white strip drops below it.</div></div>
 <div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> The drop-down shell (<code>components/search/PageSearch.tsx:387</code>) is drawn whenever the box is open. With nothing typed, <code>buildResults.ts:319-326</code> returns an empty list unless there are recent funds, and "Recent searches" appears only if there are some. On first use there are none, so you get the padded, empty panel. The search list also loads on first open (<code>:80-83</code>) and there is no loading line.</div></div>
@@ -580,6 +606,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 
 <section id="d5">
 <h2>6 · D-5 · The Home graph benchmark control never says "choose up to 3"</h2>
+<div class="callout ok"><p><b>Decided (QA-5 A):</b> "Choose up to 3", always visible.</p></div>
 <span class="pill w">Design (new text you asked for)</span>
 <div class="kv"><b>What the user sees</b><div>Nothing tells you the limit is 3, or why a fourth box greys out, until you hit the limit.</div></div>
 <div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> <code>components/wealth-graph/BenchmarkChecklist.tsx:217-225</code> builds "Choose up to 3" but shows it only after a fourth tick is attempted (<code>:30</code>, <code>:88-90</code>). Boxes beyond the limit just grey out with no reason. The same control is on Home and on the Mutual Funds Overview (<code>WealthGraph.tsx:620</code>). Not on the phone.</div></div>
@@ -604,6 +631,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 
 <section id="d7">
 <h2>8 · D-7 · The small "i" info icon is hard to see</h2>
+<div class="callout ok"><p><b>Decided (QA-7 A):</b> the small "i" info icon, about 13 places, one shared larger and darker style with a clearer hover.</p></div>
 <span class="pill w">Design</span> <span class="pill b">One thing to confirm</span>
 <div class="kv"><b>What the user sees</b><div>The small icon (you wrote "eye", the report read it as the "i") is hard to see.</div></div>
 <div class="kv"><b>Why it happens</b><div><b>Confirmed look, contrast not measured.</b> There are two copies of the same tiny "i" circle: the default trigger in <code>components/info/InfoPopover.tsx:111-117</code> (used once, per fund row in the valuation card) and <code>InfoMark</code> in <code>features/mutual-funds/common/SectionCard.tsx:19-30</code> (12 uses on Overview, Performance and the summary strips; about 13 places in all). Both are 16px with a 10px letter, a border in the faintest "divider" colour and muted text. The hover change is small. <b>Eyes elsewhere</b> (hide-values button, the folio number, the upload forms) are different icons.</div></div>
@@ -618,8 +646,9 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 
 <section id="d8">
 <h2>9 · D-8 · Onboarding icons look plain: use the same icon style as the news list</h2>
+<div class="callout ok"><p><b>Decided (QA-8 A):</b> news-list style tiles on sign-up screen 4 and the phone and older onboarding screens in one pass, no repeated icons, and <b>the icons are green, <code>#22C55E</code></b>, not black. The mockups below are updated. For the record: green on the soft grey tile is about 2.1 to 1; the icons are decorative (hidden from screen readers) and every row has its text label, so no meaning depends on the icon colour.</p></div>
 <span class="pill w">Design</span> <span class="pill g">Updated after your answer</span>
-<div class="callout ok"><p><b>Rule recorded: no emojis anywhere in the app.</b> My earlier mockup for this item used emoji; that was wrong and is removed. The new target is <b>the same icon style and manner as the Home news list</b>: a line icon from the icon set we already use, 20px, in dark text colour, inside a soft rounded square tile.</p></div>
+<div class="callout ok"><p><b>Rule recorded: no emojis anywhere in the app.</b> My earlier mockup for this item used emoji; that was wrong and is removed. The new target is <b>the same icon style and manner as the Home news list</b>: a line icon from the icon set we already use, 20px, in the brand green #22C55E (you chose green; the news list itself uses dark text), inside a soft rounded square tile.</p></div>
 <div class="kv"><b>What the user sees</b><div>On "How do you usually invest?" and the goals below it, the icons look plain and generated.</div></div>
 <div class="kv"><b>How the news list does it (confirmed, <code>features/home/components/NewsCategoryIcon.tsx</code>)</b><div>Each news item has a line icon from the icon library (Landmark, Cpu, Pill, Car, Coins, Percent, Scale, Newspaper and others), drawn at <b>20px</b> with the library's normal 2px stroke, in the main text colour (<code>--ui-text</code>), inside a <b>40px rounded-square tile</b> (corner radius 10px) filled with the soft card grey (<code>--ui-card</code>). Not green, not a circle, no emoji. Every category has its own icon, and a fallback icon exists.</div></div>
 <div class="kv"><b>Why the onboarding looks different today (confirmed)</b><div>Sign-up screen 4 (<code>features/auth/redesign/InvestorProfile.tsx</code>) draws the same library, but inside a <b>mint circle</b> (<code>IconBadge.tsx</code>, 44px) with the icon at about 46% size and a thin 1.7 stroke, so the glyph is small and faint. The "growth" bar-chart icon is used twice (as "I manage my own investments" and as "Build my wealth"). The goal rows and the investor-type rows are drawn two different ways. <b>The phone and older onboarding flows use other files</b> (<code>Q2Investing.tsx</code> with four inline drawings, <code>Q3Purpose.tsx</code>, <code>MobileOnboardingScreen.tsx</code>), so changing <code>InvestorProfile</code> alone does not fix the phone.</div></div>
@@ -629,7 +658,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <div class="orow"><span class="ibadge sm"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> I manage my own investments</div>
 <div class="orow"><span class="ibadge sm"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> I work with a financial professional</div>
 <div class="orow"><span class="ibadge sm"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg></span> A mix of both</div></div></div>
-<div class="ui"><div class="uitag good">After: the news-list style (tile, 20px line icon, dark)</div><div class="card flat">
+<div class="ui"><div class="uitag good">After: the news-list style (tile, 20px line icon, green #22C55E)</div><div class="card flat">
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span> I’m just getting started</div>
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></span> I manage my own investments</div>
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> I work with a financial professional</div>
@@ -642,18 +671,28 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> Buy a home</div>
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></span> Achieve financial freedom</div>
 <div class="orow"><span class="ntile"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/></svg></span> Plan my taxes</div></div></div>
-<div class="ui"><div class="uitag">Change in one line each</div><div class="card flat"><div class="row">Shape: mint circle becomes the soft grey rounded square.</div><div class="row">Size: 20px icon in a 40px tile (was about 20px in 44px, thin).</div><div class="row">Colour: dark text colour (was green on mint).</div><div class="row">No repeats: "Build my wealth" gets a rising-line icon; "I manage my own investments" gets a compass.</div><div class="row">Same style on every row, both lists.</div></div><div class="mut" style="margin-top:6px">Icons drawn here in the library's style; the exact glyph for each row is chosen from the installed set (for example, the one for "A mix of both" may differ). Wording does not change.</div></div></div></div>
+<div class="ui"><div class="uitag">Change in one line each</div><div class="card flat"><div class="row">Shape: mint circle becomes the soft grey rounded square.</div><div class="row">Size: 20px icon in a 40px tile (was about 20px in 44px, thin).</div><div class="row">Colour: brand green #22C55E on the soft grey tile (was a small, faint green on mint).</div><div class="row">No repeats: "Build my wealth" gets a rising-line icon; "I manage my own investments" gets a compass.</div><div class="row">Same style on every row, both lists.</div></div><div class="mut" style="margin-top:6px">Icons drawn here in the library's style; the exact glyph for each row is chosen from the installed set (for example, the one for "A mix of both" may differ). Wording does not change.</div></div></div></div>
 <div class="kv"><b>Options</b><div><ol>
 <li><b>A (recommended): use the news tile style on the sign-up rows now</b> (the shared tile and the icon map in one place so the goals and investor types match), no repeats. The phone and older onboarding screens get the same tile in the same pass, so the style is the same everywhere.</li>
 <li>B: sign-up screen 4 only; the phone and older screens later.</li>
 <li>C: wait for a designer's custom set. Not needed if A looks right to you; the first build comes to you before merging.</li></ol></div></div>
-<div class="kv"><b>Tests first</b><div><code>onboarding_option_rows_use_the_news_style_tile_and_a_20px_line_icon</code>; <code>every_investor_type_and_goal_has_its_own_icon</code> (the duplicate is gone); <code>icon_tile_is_aria_hidden</code>; <code>no_emoji_characters_in_any_onboarding_screen</code> (a scan of the screen files); the phone screens get the same checks. Files: <code>InvestorProfile.tsx</code>, <code>IconBadge.tsx</code>, <code>authRowIcons.tsx</code>, <code>Q2Investing.tsx</code>, <code>Q3Purpose.tsx</code>, <code>MobileOnboardingScreen.tsx</code>; the tile can reuse the news tile classes. <b>Re-check:</b> M1-02 at all five screen sizes, plus the phone flow.</div></div>
+<div class="kv"><b>Tests first</b><div><code>onboarding_option_rows_use_the_news_style_tile_and_a_20px_line_icon</code>; <code>every_investor_type_and_goal_has_its_own_icon</code> (the duplicate is gone); <code>icon_tile_is_aria_hidden</code>; <code>onboarding_icons_use_the_brand_green_22C55E</code>; <code>no_emoji_characters_in_any_onboarding_screen</code> (a scan of the screen files); the phone screens get the same checks. Files: <code>InvestorProfile.tsx</code>, <code>IconBadge.tsx</code>, <code>authRowIcons.tsx</code>, <code>Q2Investing.tsx</code>, <code>Q3Purpose.tsx</code>, <code>MobileOnboardingScreen.tsx</code>; the tile can reuse the news tile classes. <b>Re-check:</b> M1-02 at all five screen sizes, plus the phone flow.</div></div>
 <div class="kv"><b>Your decision</b><div>QA-8 below.</div></div>
 </section>
 
 <section id="d9">
 <h2>10 · D-9 and D-10 · Export: the "Keep working" button and the long wait</h2>
-<span class="pill w">Wording</span> <span class="pill w">Speed (measure first)</span> <span class="pill b">Needs your decision and your timings</span>
+<span class="pill w">Wording</span> <span class="pill w">Speed (measure first)</span> <span class="pill g">Decided</span> <span class="pill b">Needs the timing run</span>
+<div class="callout ok"><p><b>Decided:</b> D-9 reads <b>Run in background</b> (QA-9 A). D-10: <b>measure first</b> (QA-10 A), and the measuring script is <b>ready and committed now</b> so your manager's Claude can run it while you answer the rest. Nothing in the app changes.</p></div>
+<div class="kv"><b>Run now (the manager's Claude)</b><div>
+<p><b>What was committed (commit <code>84103648</code>, branch <code>leapswitch-redesign</code>):</b> <code>backend/scripts/measure_export_staging.py</code> (the timing script), <code>backend/tests/scripts/test_measure_export_staging.py</code> (8 logic tests, passing), and the step-by-step guide <code>Docs/orchestration/2026-11-25-export-timing-guide.md</code>. It sends four real exports through the real export API for your real household (full report cold, full warm, small warm, small cold), polls every half second, and prints how long each stage takes, plus the container's memory, Chromium count and CPU. It prints only counts and times, never names or amounts. It changes no code and no stored data apart from the PDFs an export always makes (removed after 10 minutes). Total about 15 to 20 minutes, outside the job windows (05:40 to 06:35, 10:30 to 10:40, 14:00 to 14:15 IST).</p>
+<p><b>What you do:</b> give the prompt below to your manager's Claude. It will ask you (in a private window on staging) for the value of the key <code>unifolio_session_token</code> from the browser's storage, because the exports must run as the account that holds the real household. It keeps it out of every file and note. Stay signed in until it tells you the run is done.</p>
+<p><b>Prompt to give your manager's Claude:</b></p>
+<pre class="prompt">You are running a timing measurement on the LeapSwitch staging VM (ls-redesign.unifolio.in). Read Docs/orchestration/2026-11-25-export-timing-guide.md in the repository (git fetch origin --tags first; it is on the leapswitch-redesign branch) and follow it step by step.
+Rules: run one command at a time and show its output; at every STOP, stop and report; change nothing on the VM except what a step says; never print .env lines, tokens or session values and never write the token to a file or to your notes; never run clean-db.sh, restore.sh or rollback.sh; do not start the measurement inside the job windows (05:40 to 06:35, 10:30 to 10:40, 14:00 to 14:15 IST); use ssh by hostname from WSL only (put commands in a script file or write every value out so the Windows-to-WSL layer expands nothing).
+At the end give the owner the script's output exactly as printed, the "export finished" log lines, the memory before and after, and the list of anything that differed from the guide.</pre>
+<p><b>What you send back to me:</b> the output exactly as your manager's Claude gives it. I will turn it into <code>2026-11-25-export-timing-result.md</code>, read the slow stage from it, and write the speed plan from the numbers.</p></div></div>
+
 <h3>D-9 · The wording</h3>
 <div class="kv"><b>What the user sees</b><div>While the PDF prepares there are two buttons, "Cancel" and "Keep working". It is unclear what "Keep working" does.</div></div>
 <div class="kv"><b>Why it happens</b><div><b>Confirmed.</b> It only <b>hides</b> the dialog (<code>ExportHost.tsx:46</code>, <code>() =&gt; setOpen(false)</code>); the PDF keeps preparing in the background, and a message under it says "You can keep using Unifolio." The same hide also happens on Esc or clicking outside while preparing (<code>ExportDialog.tsx:267-284</code>). The button is at <code>:581-589</code>, next to Cancel at <code>:572-580</code>.</div></div>
@@ -674,7 +713,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <li>Send me the numbers; <b>then</b> a speed plan is written, with options (for example: fewer proxied requests, cached data, a longer second-pass limit, a warm browser).</li></ol>
 <p class="small">The plan's own measuring script (<code>measure_export.py</code>, item I-13) was planned; I did not verify that it exists.</p></div></div>
 <div class="kv"><b>One thing I found that may matter</b><div>If the contents-page second pass takes longer than 10 s, the report silently falls back to the first pass <b>without</b> contents page numbers (<code>render.py</code>, 10 s limit). A heavily loaded server could therefore produce a report with missing numbers, quietly. The timing log will show how often.</div></div>
-<div class="kv"><b>Your decision</b><div>QA-9 (the wording) and QA-10 (agree to the measure-first plan; and please send the real minutes you saw, for which household and sections).</div></div>
+<div class="kv"><b>Your decision</b><div>Both decided (QA-9 A, QA-10 A). The timing run supplies the real minutes; if you also remember how long an export took for which household and sections, send that too.</div></div>
 </section>
 
 <section id="notrun">
@@ -682,7 +721,7 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 <div class="tablewrap"><table>
 <tr><th style="width:90px">Row</th><th>What it checks</th><th>What is needed</th><th>Note</th></tr>
 <tr><td>M1-17, M1-18, M1-19</td><td>The four Head of Family emails, the undo email, the undo itself</td><td>The Head of Family fix (part A above) on staging</td><td>Blocked by D-11</td></tr>
-<tr><td>M1-11</td><td>The 11th code request from one network in 10 minutes shows "Too many attempts from this network"</td><td><b>11 different addresses, one network, within 10 minutes</b>, then a 10-minute wait. You do not need 11 mailboxes: the code only trims and lowercases an address (<code>normalize_email</code>), so <code>name+1@</code> to <code>name+11@</code> style addresses count as 11 different addresses and land in one inbox (read from the code, <b>not tested</b>; works only if your mail provider supports plus-addresses). Or the manager's Claude sends 11 scripted requests from the VM.</td><td>The rule itself is covered by a test (<code>test_eleventh_different_address...</code>); this row is only the live check. Real code emails are sent, so use addresses you own.</td></tr>
+<tr><td>M1-11</td><td>The 11th code request from one network in 10 minutes shows "Too many attempts from this network"</td><td><b>Decided (QA-11 A): you send 11 requests with plus-addresses of one mailbox you own.</b> Steps: (1) use a mailbox that supports plus-addresses (Gmail does) and one network (the same Wi-Fi; the count is per network, so keep other staging tests off it for 10 minutes); (2) in a private window on the staging sign-up page, ask for a code for <code>yourname+q1@gmail.com</code>, then <code>+q2</code> and so on, each a different address, 10 requests inside 10 minutes (each sends a real email; ignore them); (3) the <b>11th</b> (<code>+q11</code>) should read "Too many attempts from this network. Try again in N minutes."; (4) ask again for <code>+q1</code> (an address already used): the network rule must not be what stops it (a different, per-address message may appear); (5) wait 10 minutes and ask for <code>+q12</code>: it works. The code only trims and lowercases an address, so plus-addresses count as different (read from the code, not tested).</td><td>The rule is covered by a test (<code>test_eleventh_different_address...</code>); this row is the live check.</td></tr>
 <tr><td>M2-03</td><td>A held IDCW or Bonus plan is ranked as its Growth plan; a fund with no Growth series says so</td><td>A test account holding (a) an IDCW or Bonus plan whose fund has a Growth plan, and (b) one with no Growth series. Source: a statement file with them. I did not check whether the synthetic statement set in <code>Docs/CAS Files/synthetic/</code> already has these.</td><td>Needs data</td></tr>
 <tr><td>M2-04</td><td>Category averages for Sectoral/Thematic (Direct) and Liquid (Direct): about 0.27 and 13.80, 2.13 and 4.28</td><td>A held Sectoral/Thematic (Direct) fund and a held Liquid (Direct) fund</td><td><b>The expected 1-year figures change if D-12 option A is chosen</b>: recompute them (the M2 guide's before and after table) after that fix, then run this row</td></tr>
 <tr><td>M2-02, Corporate Bond</td><td>"out of 21"</td><td>A held Corporate Bond (Direct) fund</td><td>The rank pool does not change under D-12 option A, so 21 stays the expected number</td></tr>
@@ -691,22 +730,21 @@ If S1 passes in Chrome and Edge, option A is built. If only S3 passes, option B 
 </section>
 
 <section id="order">
-<h2>Suggested order, what needs you first, and the patch deploy</h2>
+<h2>Suggested order, what is still open, and the patch deploy</h2>
+<h3>What is still open</h3>
+<ul><li><b>QA-12 (D-12)</b>: your answer on the 1-year category average rule. The only open question.</li><li>Two small confirmations of wording I proposed: the completion-notice sentence (mockup 6) and the saving notice's reassurance and countdown (mockup 7).</li><li>The result of the D-2 test (after it runs) and the export timings (after your manager's run). Nothing is built before those, for the items they decide.</li></ul>
 <h3>Suggested order</h3>
 <ol>
-<li><b>Now, no code:</b> you decide the six items marked "Needs your decision" (QA-12, QA-2, QA-1, QA-7, QA-9, QA-10) and the Head of Family ones (Q1 to Q7, D1 to D4). Run the read-only D-12 before and after, and the free export timing.</li>
-<li><b>First build, in parallel (different files):</b> Head of Family part A (unblocks the four emails) and D-12 (the only wrong-number item). D-12 goes through its number review before it is merged.</li>
-<li><b>Second build, one front-end worker, one pass:</b> V1 (D-1 greens, D-7 info icon), then V2 (D-3, D-4), V3 (D-5, D-6), V4 (D-8), V5 (D-9 wording). D-2 follows its half-day test; if the link-button route passes it joins here, and it touches the same checklist files as Head of Family part D, so those two are done together.</li>
-<li><b>Measuring patch:</b> the D-10 timing log rides with the second build, so the next export gives real numbers. <b>Speed changes only after those numbers.</b></li>
-<li><b>Later:</b> Head of Family parts B, C and D, the D-8 designer's icons, any D-10 speed work.</li></ol>
-<h3>What needs your decision before anything is built</h3>
-<ul><li><b>D-12</b>: which rule is right at 1 year (our own documents disagree).</li><li><b>D-2</b>: agree to the half-day test of the link-button route first (your one-click requirement is the pass mark), and what happens if it fails.</li><li><b>D-1</b>: white on a deeper green (moves the palette), white on the bright green, or dark on bright.</li><li><b>D-9</b>: the button wording.</li><li><b>D-10</b>: OK to measure first, and the real minutes.</li><li>Also: D-7 (which icon), the D-3 and D-5 hint words, D-8 (quick pass or wait).</li></ul>
-<h3>One patch deploy (the manager's Claude runs it, after the XIRR deploy)</h3>
+<li><b>Now, no code:</b> your manager's Claude runs the export timing; you answer QA-12; I run the read-only D-12 before and after, and the link-button test of D-2 is scheduled.</li>
+<li><b>Build 1, in parallel (different files):</b> Head of Family part A (with the discard and the saving notice) and D-12 once QA-12 is answered. D-12 goes through its number review before it is merged.</li>
+<li><b>Build 2, one front-end worker, one pass over shared files:</b> the visual group in this order: V1 shared styles (D-1 white text on every green button, D-7 the "i"), V2 search (D-3, D-4), V3 Home (D-5, D-6), V4 onboarding icons (D-8, green), V5 export wording (D-9) plus the D-10 timing log. The Head of Family parts B, C and D follow, because part D, D-2 and D-1 share the checklist files; they run one after another, never in parallel.</li>
+<li><b>Later:</b> any D-10 speed changes (after the numbers), the designer's own icon set if you still want one, the abandoned-review sweep (D4 follow-up).</li></ol>
+<h3>The patch deploys (my proposal; the manager's Claude runs them, after the XIRR deploy)</h3>
 <div class="tablewrap"><table>
-<tr><th>Goes in the patch</th><th>Stays out</th></tr>
-<tr><td>Head of Family part A; D-12 (and a rebuild of the stored results, as in the XIRR guide's step 8); D-1, D-3, D-4, D-5, D-6, D-7, D-9; the D-10 timing log (no behaviour change); D-8 quick pass if chosen; D-2 only if its test passed (link-button or pop-up route)</td><td>Head of Family parts B, C, D; the D-10 speed changes; the designer's D-8 icons; D-2 extension route</td></tr>
+<tr><th>Patch 1 (first: unblocks stage 9)</th><th>Patch 2 (the Add data flow)</th></tr>
+<tr><td>Head of Family part A; D-12 (and a rebuild of the stored results, as in the XIRR guide's step 8); D-1, D-3, D-4, D-5, D-6, D-7, D-8, D-9; the D-10 timing log (no behaviour change)</td><td>Head of Family parts B, C and D (waiting card, close-on-import, the one-off clean-up, decoupled and refined checklist, Reset checklist, the Request page row); D-2 if its test passed</td></tr>
 </table></div>
-<p class="small">Expected: no migration (Alembic stays 0054) and no new settings; one new tag (for example <code>qa-patch-rc</code>) cut after a full gate; a stakeholder note only if you want one. The QA rows to re-run are listed per item above, with M1-17 to M1-19 and M2-04 re-run last.</p>
+<p class="small">Why two: parts B to D change the import and checklist flow and deserve their own QA round (M4-12, M4-13, Add data), while patch 1 is mostly small, independent fixes. Say so if you would rather ship everything in one. Expected for both: no migration (Alembic stays 0054) and no new settings; each gets a tag after a full gate; the clean-up script runs once after patch 2, dry run first. QA rows are re-run per item above, with M1-17 to M1-19 and M2-04 last.</p>
 </section>
 
 <section id="d11q">
@@ -731,7 +769,8 @@ var Q=[
 {id:"Q2",t:"Which 'small block of text' do you mean?",why:"I found three: the plain 'N of 5 done' line on the page, the 'Your checklist closed...' banner, and the 'Waiting for CAMS email' heading. The proposed status card replaces all three.",o:[
  {k:"a",rec:1,l:"All of them: one clear status card or strip",d:"One place that always shows: waiting, progress, Reopen, Cancel."},
  {k:"b",l:"Only the 'N of 5 done' line",d:"Make just that line more visible; leave the rest."},
- {k:"c",l:"Only the 'checklist closed' banner",d:"Make just the banner more visible."}]},
+ {k:"c",l:"Only the 'checklist closed' banner",d:"Make just the banner more visible."},
+ {k:"d",l:"The 'Continue without it' line on the Request page (the line just before the Request button)",d:"Make that line easy to see and not a dead end. See mockup 5."}]},
 {id:"Q3",t:"What should 'Start over' do?",why:"Today it clears only the checklist, which looks like cancelling the request but is not.",o:[
  {k:"a",rec:1,l:"Rename it 'Reset checklist'; it only resets the checklist. Cancelling stays a separate 'Cancel request' button",d:"Clear and safe: nothing is cancelled by accident."},
  {k:"b",l:"Make it cancel the request too, after a confirmation",d:"One button does both, but a user can lose a request they still need."},
@@ -767,8 +806,8 @@ var Q=[
  {k:"a",rec:1,l:"The average follows the rank pool, built as one shared pool function",d:"1Y average then covers 42, 30, 32, 30, 42 funds (same as the rank). 3Y and 5Y unchanged. The 1Y average percentage moves; you see the before and after first."},
  {k:"b",l:"The rank follows the average",d:"Rank becomes 'of 37' etc. Funds under 3 years lose a 1-year rank; contradicts a test that gives a 1-year-only fund a rank."},
  {k:"c",l:"Change nothing in the numbers; explain it in words",d:"Cheapest; the two counts still disagree on screen and the M2 promise stays broken."}]},
-{id:"QA-2",t:"D-2: how do we get 'one click to CAMS with the checklist floating', with no in-between step?",why:"Your requirement is now the pass mark: one click on Request from CAMS, CAMS in front, checklist floating over it, no extra button or screen. The spike only tried a script-opened tab; a real link click may behave differently, and the CAMS address is a fixed constant so the link can sit on the button. A half-day test settles it before any build.",o:[
- {k:"a",rec:1,l:"Run the half-day test first (Request button as a real link plus the floating window in the same click, Chrome and Edge); if it passes, build that",d:"Gives exactly your picture if the browser allows it. If it fails, the next options are offered, with your OK."},
+{id:"QA-2",t:"D-2: how do we get 'one click to CAMS with the checklist floating', with no in-between step?",why:"Your requirement is now the pass mark: one click on Request from CAMS, CAMS in front, checklist floating over it, no extra button or screen. The spike only tried a script-opened tab; a real link click may behave differently, and the CAMS address is a fixed constant so the link can sit on the button. A test settles it before any build.",o:[
+ {k:"a",rec:1,l:"Run the test first (Request button as a real link plus the floating window in the same click, Chrome and Edge); if it passes, build that",d:"Gives exactly your picture if the browser allows it. If it fails, the next options are offered, with your OK."},
  {k:"b",l:"Also test the one-time 'allow pop-ups' route and use it if only that works",d:"No extra click on later requests, but the user must allow pop-ups for the site once."},
  {k:"c",l:"Skip the test and go to a browser extension",d:"The only guaranteed way to float over the CAMS page; heavy (install, store review, permission on the CAMS site)."},
  {k:"d",l:"If the test fails: CAMS opens at once and the checklist shows as the in-page panel on the Unifolio tab",d:"No in-between step, but the checklist is not above the CAMS site. Only with your explicit OK."}]},
@@ -802,25 +841,27 @@ var Q=[
  {k:"b",l:"The manager's Claude sends 11 scripted requests from the VM",d:"No mailbox needed; a bit more setup."}]}
 
 ];
+var ANS={Q1:"a",Q2:"d",Q3:"a",Q4:"b",Q5:"a",Q6:"a",Q7:"a",D1:"C",D2:"a",D3:"a",D4:"a","QA-2":"a","QA-1":"b","QA-7":"a","QA-9":"a","QA-10":"a","QA-3":"a","QA-5":"a","QA-8":"a","QA-11":"a"};
+var NOTES={Q2:"The page with the Request on CAMS button: the small line before it, \"A floating checklist will appear. Continue without it\", needs to be enhanced.",D2:"Show it nicely: a polished, enhanced UI for this notice.","QA-2":"Remove the time-estimate wording everywhere; mention it only as a test.","QA-10":"Give the script now so the manager can run it while I answer the rest; or commit it and give the prompt for the manager's Claude.","QA-8":"The icons should be green, #22C55E, not black as in the mockups."};
 var list=document.getElementById("d11list");
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
 Q.forEach(function(q){
- var d=el("div","q");d.appendChild(el("h3",null,q.id+" · "+q.t));d.appendChild(el("p","why",q.why));
+ var d=el("div","q");var h=el("h3",null,q.id+" · "+q.t);if(ANS[q.id]){h.appendChild(el("span","badge ans","Answered"));}d.appendChild(h);d.appendChild(el("p","why",q.why));
  q.o.forEach(function(o){
   var id="d11"+q.id+o.k;
   var lab=el("label","o");lab.setAttribute("for",id);
-  var inp=document.createElement("input");inp.type="radio";inp.id=id;inp.name="d11"+q.id;inp.value=o.k;
+  var inp=document.createElement("input");inp.type="radio";inp.id=id;inp.name="d11"+q.id;inp.value=o.k;if(ANS[q.id]===o.k)inp.checked=true;
   var box=el("div");var b=el("b",null,o.k.toUpperCase()+" · "+o.l);
-  if(o.rec)b.appendChild(el("span","badge","Recommended"));
+  if(o.rec)b.appendChild(el("span","badge","Recommended"));if(ANS[q.id]===o.k)b.appendChild(el("span","badge pick","Your choice"));
   box.appendChild(b);box.appendChild(el("span","d",o.d));
   lab.appendChild(inp);lab.appendChild(box);d.appendChild(lab);
  });
- var n=document.createElement("input");n.type="text";n.id="d11"+q.id+"n";n.placeholder="Optional note for "+q.id;n.setAttribute("aria-label","Note for "+q.id);
+ var n=document.createElement("input");n.type="text";n.id="d11"+q.id+"n";n.placeholder="Optional note for "+q.id;n.setAttribute("aria-label","Note for "+q.id);if(NOTES[q.id])n.value=NOTES[q.id];
  d.appendChild(n);list.appendChild(d);
 });
 var out=document.getElementById("d11out");
 function build(){
- var s="My answers to the Head of Family and QA fixes plan (Docs/orchestration/2026-11-24-head-of-family-d11-plan.html, v3). Update the whole page from these:\n";
+ var s="My answers to the Head of Family and QA fixes plan (Docs/orchestration/2026-11-24-head-of-family-d11-plan.html). Update the whole page from these:\n";
  Q.forEach(function(q){
   var v=document.querySelector('input[name="d11'+q.id+'"]:checked');
   var o=q.o.filter(function(x){return v&&x.k===v.value})[0];
