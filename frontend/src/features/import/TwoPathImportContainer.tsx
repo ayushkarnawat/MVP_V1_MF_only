@@ -67,7 +67,8 @@ function MemberImportContainer({
   }, [requestCasVersion]);
 
   const showView = (next: ImportView) => {
-    setView(effectiveView === "history" && next === "choice" ? null : next);
+    // "Back to import" from Import History always shows the choice screen, even when a request is open (owner decision, 26 Nov 2026).
+    setView(next);
   };
 
   const handleRequestInitiated = () => {

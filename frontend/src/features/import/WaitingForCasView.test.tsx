@@ -194,7 +194,7 @@ describe("H-8 desktop upload screen checklist integration", () => {
     expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
   });
 
-  it("closing the checklist never shows an upload banner before or after history navigation", async () => {
+  it("closing the checklist never shows an upload banner before or after history navigation, and Back to import shows the choice screen", async () => {
     const { checklist } = await renderReadyChecklist();
     fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
     fireEvent.click(await checklist.findByRole("button", { name: "Close this checklist" }));
@@ -206,9 +206,9 @@ describe("H-8 desktop upload screen checklist integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Import History" }));
     fireEvent.click(screen.getByRole("button", { name: "Back to import" }));
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
-    // The server still says a request waits, so coming back from Import History shows the upload screen again.
-    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeInTheDocument();
-    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
+    // Back to import from Import History shows the choice screen (the upload options), even with a request open.
+    expect(await screen.findByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
   });
 
