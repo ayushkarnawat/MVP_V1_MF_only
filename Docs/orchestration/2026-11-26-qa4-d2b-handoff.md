@@ -39,6 +39,12 @@ No new dependency; no hex colours; no `parseFloat`, `toFixed`, `Intl.`, `console
 ## Report format
 One fenced block `CODEX REPORT: qa4-d2b`: status (DONE, PARTIAL or BLOCKED); baseline HEAD; each existing test updated or deleted and what it pinned; files changed or deleted with a one-line reason each; what you found for `WaitingForCasView` imports; commands you tried and exact errors; `git status --short`; deviations.
 
+## Amendment 1 (26 Nov 2026, after the first Codex report)
+- The guard `checklist/checklistLook.guard.test.ts` listed `CamsWaitingCard.tsx`; **Claude already removed that one line** (commit on `patch/qa4`). Do not touch `checklist/**`.
+- `WaitingForCasView.tsx` and its test **stay** (the phone's `MobileImportView.tsx` uses it). You may edit `WaitingForCasView.test.tsx` only to remove or rewrite the cases that exercise the desktop container; do not change the component.
+- `pendingCopy.ts` stays; remove only the constants nothing imports any more.
+- Everything else in the handoff stands. Re-sync: the worktree is already at the new commit; read the handoff again.
+
 ## Paste-ready prompt
 ```
 Front-end worker for Unifolio (Codex). Read, in order:
