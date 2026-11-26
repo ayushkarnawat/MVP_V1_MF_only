@@ -33,6 +33,12 @@ routes) has been ported per PRD-01 and lives in `backend/app/services/import_/`
 it was ported from no longer exists on this branch. `CAS Parsers/mf-import/frontend`
 (vanilla TS prototype) is unaffected and still there as reference.
 
+## Writing a staging deploy guide
+
+Before writing any new staging deploy guide, read `Docs/orchestration/deploy-guide-standing-lessons.md` and carry
+its lessons into the guide (look-gate allowed pages, searching every built file, reloading the AMFI cache,
+expected counts, race-test commands). Append new lessons there after each deploy.
+
 ## Setup commands
 
 *(Fill in once the project scaffold exists — placeholders below, update on first setup)*
