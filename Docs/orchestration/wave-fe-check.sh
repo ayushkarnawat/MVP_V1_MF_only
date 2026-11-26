@@ -58,6 +58,7 @@ case "$lane" in
   qa1) SRC="$WT/unifolio-qa1/frontend" ;;   # patch 1 integration (patch/qa1)
   qa2) SRC="$WT/unifolio-qa2/frontend" ;;   # patch 2 integration (patch/qa2)
   qa3) SRC="$WT/unifolio-qa3/frontend" ;;   # patch 3 integration (patch/qa3)
+  qa4) SRC="$WT/unifolio-qa4/frontend" ;;   # QA-round fixes: waiting page removed, email sketches (patch/qa4)
   es7) SRC="$WT/unifolio-es7/frontend" ;;   # PDF export: honest progress (batch/es7)
   es-pr) SRC="$WT/unifolio-es-pr/frontend" ;;   # PDF export speed: print page (batch/es-pr)
   hofa) SRC="$WT/unifolio-hofa/frontend" ;;   # Head of Family part A: integration (batch/hofa)
