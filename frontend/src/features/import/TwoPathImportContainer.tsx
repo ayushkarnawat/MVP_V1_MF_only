@@ -129,7 +129,12 @@ function MemberImportContainer({
 
         {effectiveView === "choice" && (
           <ImportPathChoice
-            onSelectRequest={() => showView("request")}
+            onSelectRequest={() => {
+              // The floating checklist opens on THIS click, not on the Request button: Chrome lets one click
+              // do only one of "open a new tab" and "open a floating window", and the Request button must open CAMS.
+              checklist.open();
+              showView("request");
+            }}
             onSelectUpload={() => showView("upload")}
           />
         )}
@@ -138,7 +143,10 @@ function MemberImportContainer({
           <RequestCamsPath
             key={memberId}
             memberId={memberId}
-            onBack={() => showView("choice")}
+            onBack={() => {
+              checklist.close();
+              showView("choice");
+            }}
             onRequestInitiated={handleRequestInitiated}
           />
         )}

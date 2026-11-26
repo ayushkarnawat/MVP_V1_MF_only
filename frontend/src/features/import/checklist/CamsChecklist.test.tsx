@@ -6,6 +6,7 @@ import * as api from "../api";
 import { CamsChecklistHost } from "./CamsChecklistHost";
 import { getChecklistState, setChecklistState } from "../casResumeState";
 import { checklistCopy } from "./checklistCopy";
+import { openChecklistAsChoiceClick } from "../testFixtures";
 
 // The floating window's document must have a window (testing-library needs one to compute roles and styles), so it is the
 // document of a hidden iframe, not a bare document made with createHTMLDocument.
@@ -47,6 +48,7 @@ async function setup() {
   const openTab = vi.spyOn(window, "open").mockReturnValue(null);
   const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
   render(<MemoryRouter><RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} /></MemoryRouter>);
+  await openChecklistAsChoiceClick("member-h8");
   fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
   return { floating, requestWindow, openTab, request, checklist: within(floating.document.body) };
 }
@@ -142,6 +144,7 @@ describe("CamsChecklist through the request screen (no invented component props)
     localStorage.clear();
     Reflect.deleteProperty(window, "documentPictureInPicture");
     render(<RequestCamsPath memberId="member-d2-no-extra-button" onRequestInitiated={vi.fn()} />);
+    await openChecklistAsChoiceClick("member-h8");
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     expect(await screen.findAllByRole("checkbox")).toHaveLength(5);
     expect(screen.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
@@ -215,6 +218,7 @@ describe("CamsChecklist through the request screen (no invented component props)
     vi.spyOn(window, "open").mockReturnValue(null);
     vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
     render(<RequestCamsPath memberId="member-panel-strip" onRequestInitiated={vi.fn()} />);
+    await openChecklistAsChoiceClick("member-h8");
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     const boxes = await screen.findAllByRole("checkbox");
     fireEvent.click(boxes[0]);
