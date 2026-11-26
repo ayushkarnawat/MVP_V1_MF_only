@@ -213,6 +213,9 @@ All visual checks are the owner's, in this round (decision 25 Nov 2026): look at
 | HB-10 | (Claude, deploy guide step 9b) the one-off clean-up of stuck requests | The dry run prints four counts and writes nothing; after the owner's yes, `--apply` closes only requests past 48 hours or superseded by a later import | |
 | HB-11 | The wording (**confirmed by the owner, 26 Nov 2026**, so this row only checks it reads as written) | "for <name>", "We will use the file as soon as you upload it.", "Expires in N h", "Show checklist", "Upload the file", "Checklist off for this request.", "CAMS will open on its own.", "Turn it back on" | |
 
+### QA-round fixes 2 (26 Nov 2026, guide 2026-11-26-staging-deploy-guide-qa4.md): these REPLACE HB-01 to HB-05 and the waiting-card wording of HB-09
+The owner's QA of qa-rc failed the waiting page (D-2) and the email pictures (D-1). Rows Q4-01 to Q4-09 are in the guide's step 8: the upload card after Request, reload and a second window, the checklist never moving the screen, Back, Import History Back to the choice screen, uploading closes the request, the three Head of Family emails in Gmail light and dark, the phone unchanged. Cancel request no longer exists on desktop (owner decision, 26 Nov 2026).
+
 ### Patch 3, the safe part (PDF export)
 | ID | Where and how | What you should see | Result |
 |---|---|---|---|
