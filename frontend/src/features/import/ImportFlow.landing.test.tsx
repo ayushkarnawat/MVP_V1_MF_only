@@ -78,6 +78,22 @@ beforeEach(() => {
 afterEach(() => vi.resetAllMocks());
 
 describe("ImportFlow: who to land on after a wrong-person import (Batch C 17d)", () => {
+  it("an open CAMS request starts on upload and preserves the ordinary import landing", async () => {
+    vi.mocked(api.getPendingCamsRequest).mockResolvedValue({
+      import_id: "pending-landing", household_member_id: "m1", expires_at: "2099-12-01T12:00:00Z",
+    });
+    vi.mocked(api.parseImport).mockResolvedValue(preview({ schemes: [scheme("m1", { person_key: "me" })] }));
+    vi.mocked(api.confirmPeopleImport).mockResolvedValue(result([lal({ person_key: "me", member_id: "m1", name: "Aditi Sharma" })]));
+    const onDone = vi.fn();
+    render(<ImportFlow householdMemberId="m1" onDone={onDone} />);
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.queryByText("CAMS request waiting")).not.toBeInTheDocument();
+    expect(screen.queryByText("Waiting for CAMS email")).not.toBeInTheDocument();
+    await uploadAFile();
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(onDone.mock.calls[0]).toHaveLength(1);
+  });
+
   it("a wrong-person import that created a new person reports that person's id", async () => {
     const onDone = await runWrongPerson(result([lal({ created: true })]));
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));

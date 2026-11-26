@@ -21,7 +21,7 @@ vi.mock("../legal/api", async () => {
   return { ...actual, getLegalDocuments: vi.fn(async () => DOCS) };
 });
 
-describe("H-8 waiting screen checklist integration", () => {
+describe("H-8 desktop upload screen checklist integration", () => {
   const response = {
     import_id: "import-h8", household_member_id: "member-h8", status: "waiting_for_user",
     cams_url: "https://cams.example.test/statement", expires_at: "2026-12-01T12:00:00Z",
@@ -57,7 +57,7 @@ describe("H-8 waiting screen checklist integration", () => {
     localStorage.clear();
   });
 
-  it("request completion keeps the window; ready, focus and Close never change the waiting screen", async () => {
+  it("request completion keeps the window; ready, focus and Close never change the upload screen", async () => {
     localStorage.clear();
     const floating = floatingWindow();
     vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockResolvedValue(floating) });
@@ -69,38 +69,38 @@ describe("H-8 waiting screen checklist integration", () => {
     const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
-    await screen.findByText("Waiting for CAMS email");
+    await screen.findByRole("heading", { name: "Upload your statement" });
     expect(floating.close).not.toHaveBeenCalled();
     const checklist = within(floating.document.body);
     expect(await checklist.findAllByRole("checkbox")).toHaveLength(5);
     act(() => window.dispatchEvent(new Event("focus")));
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     for (const box of checklist.getAllByRole("checkbox")) fireEvent.click(box);
     fireEvent.click(checklist.getByRole("button", { name: "I have submitted the form" }));
     expect(getChecklistState("member-h8")?.step).toBe("waiting");
     act(() => window.dispatchEvent(new Event("focus")));
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     fireEvent.click(checklist.getByRole("button", { name: "I have the file" }));
     expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
     expect(checklist.getByRole("heading", { name: "You have the file" })).toBeInTheDocument();
     expect(floating.close).not.toHaveBeenCalled();
     expect(floating.closed).toBe(false);
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     act(() => window.dispatchEvent(new Event("focus")));
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(floating.close).not.toHaveBeenCalled();
     fireEvent.click(checklist.getByRole("button", { name: "Close this checklist" }));
     expect(getChecklistState("member-h8")).toBeFalsy();
     expect(floating.close).toHaveBeenCalledTimes(1);
     expect(floating.closed).toBe(true);
     expect(screen.queryByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).not.toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
   });
 
-  it("panel mode keeps ready until Close without changing the waiting screen or showing a banner", async () => {
+  it("panel mode keeps ready until Close without changing the upload screen or showing a banner", async () => {
     localStorage.clear();
     Reflect.deleteProperty(window, "documentPictureInPicture");
     vi.spyOn(window, "open").mockReturnValue(null);
@@ -111,25 +111,25 @@ describe("H-8 waiting screen checklist integration", () => {
     const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
-    await screen.findByText("Waiting for CAMS email");
+    await screen.findByRole("heading", { name: "Upload your statement" });
     const boxes = await screen.findAllByRole("checkbox");
     expect(boxes).toHaveLength(5);
     act(() => window.dispatchEvent(new Event("focus")));
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     boxes.forEach((box) => fireEvent.click(box));
     fireEvent.click(screen.getByRole("button", { name: "I have submitted the form" }));
     fireEvent.click(screen.getByRole("button", { name: "I have the file" }));
     expect(screen.getByRole("heading", { name: "Step 4: You have the file" })).toBeInTheDocument();
     expect(getChecklistState("member-h8")).toEqual({ ticks: [true, true, true, true, true], step: "ready" });
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     act(() => window.dispatchEvent(new Event("focus")));
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close this checklist" }));
     expect(getChecklistState("member-h8")).toBeNull();
     expect(screen.queryByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).not.toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(screen.queryByText(/of 5 done/)).not.toBeInTheDocument();
   });
 
@@ -146,7 +146,7 @@ describe("H-8 waiting screen checklist integration", () => {
     const { within } = await import("@testing-library/react");
     const onUploadSubmit = vi.fn();
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h9b" onUploadSubmit={onUploadSubmit} /></MemoryRouter>);
-    await screen.findByText("Waiting for CAMS email");
+    await screen.findByRole("heading", { name: "Upload your statement" });
     return { floating, requestWindow, checklist: within(floating.document.body), onUploadSubmit };
   }
 
@@ -154,7 +154,7 @@ describe("H-8 waiting screen checklist integration", () => {
     const { requestWindow, checklist } = await renderReadyChecklist();
     // The step name is set in bold inside the sentence (H-10), so the sentence is read from the banner's whole text.
     expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Your checklist closed when this page reloaded. You were on step 4: You have the file.")).toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
     expect(requestWindow).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
     expect(requestWindow).toHaveBeenCalledExactlyOnceWith({ width: 320, height: 440 });
@@ -162,7 +162,7 @@ describe("H-8 waiting screen checklist integration", () => {
     expect(checklist.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
   });
 
-  it("finish clears the saved state without navigating or showing a banner; upload needs a click", async () => {
+  it("finish clears the saved state without navigating or showing a banner; upload is immediately available", async () => {
     const { checklist, onUploadSubmit } = await renderReadyChecklist();
     const { getChecklistState } = await import("./casResumeState");
     fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
@@ -170,19 +170,18 @@ describe("H-8 waiting screen checklist integration", () => {
     expect(getChecklistState("member-h9b")).toBeNull();
     const banner = "Your checklist is closed. Add the file and type the password you set on CAMS.";
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Already got the email\? Upload it now/i }));
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     const file = new File(["synthetic pdf"], "synthetic-h9b.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [file] } });
     fireEvent.change(screen.getByLabelText(/PDF Password/i), { target: { value: "MF@123" } });
     await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: "Upload Statement" }));
-    expect(onUploadSubmit).toHaveBeenCalledWith(file, "MF@123", "request");
+    expect(onUploadSubmit).toHaveBeenCalledWith(file, "MF@123", "upload");
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
   });
 
-  it("closing the floating window on ready finishes without changing the waiting screen", async () => {
+  it("closing the floating window on ready finishes without changing the upload screen", async () => {
     const { floating, checklist } = await renderReadyChecklist();
     const { act } = await import("@testing-library/react");
     const { getChecklistState } = await import("./casResumeState");
@@ -191,26 +190,24 @@ describe("H-8 waiting screen checklist integration", () => {
     act(() => floating.close());
     expect(getChecklistState("member-h9b")).toBeNull();
     expect(screen.queryByText("Your checklist is closed. Add the file and type the password you set on CAMS.")).not.toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
   });
 
-  it("closing the checklist never shows an upload banner before or after explicit upload navigation", async () => {
+  it("closing the checklist never shows an upload banner before or after history navigation", async () => {
     const { checklist } = await renderReadyChecklist();
     fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
     fireEvent.click(await checklist.findByRole("button", { name: "Close this checklist" }));
     const banner = "Your checklist is closed. Add the file and type the password you set on CAMS.";
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Already got the email\? Upload it now/i }));
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     vi.spyOn(api, "getMemberImportHistory").mockResolvedValue([]);
     fireEvent.click(screen.getByRole("button", { name: "Import History" }));
     fireEvent.click(screen.getByRole("button", { name: "Back to import" }));
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
-    // The server still says a request waits, so coming back from Import History shows the waiting screen again (not the choice screen).
-    expect(await screen.findByText("Waiting for CAMS email")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Already got the email\? Upload it now/i }));
+    // The server still says a request waits, so coming back from Import History shows the upload screen again.
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeInTheDocument();
     expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(screen.queryByText(banner)).not.toBeInTheDocument();
   });
@@ -250,10 +247,10 @@ describe("H-8 waiting screen checklist integration", () => {
     const request = vi.spyOn(api, "requestCamsStatement").mockRejectedValue(new Error("Unexpected request"));
     const { TwoPathImportContainer } = await import("./TwoPathImportContainer");
     render(<TwoPathImportContainer memberId="member-reset" onUploadSubmit={vi.fn()} />);
-    await screen.findByText("Waiting for CAMS email");
+    await screen.findByRole("heading", { name: "Upload your statement" });
     fireEvent.click(screen.getByRole("button", { name: "Reset checklist" }));
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(cancel).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
     expect(api.getPendingCamsRequest).toHaveBeenCalledTimes(1);
@@ -267,8 +264,8 @@ describe("H-8 waiting screen checklist integration", () => {
     await checklist.findByRole("heading", { name: "You have the file" });
     const { act } = await import("@testing-library/react");
     act(() => floating.close());
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
     expect(cancel).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
     expect(api.getPendingCamsRequest).toHaveBeenCalledTimes(1);

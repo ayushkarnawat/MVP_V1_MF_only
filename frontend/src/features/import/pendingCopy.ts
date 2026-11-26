@@ -1,9 +1,3 @@
-export const WAITING_CARD_TITLE = "CAMS request waiting";
-export const waitingCardFor = (name: string) => `for ${name}`;
-export const WAITING_CARD_BODY = "We will use the file as soon as you upload it.";
-export const waitingCardExpires = (hours: number) => `Expires in ${hours} h`;
-export const WAITING_CARD_SHOW = "Show checklist";
-export const WAITING_CARD_UPLOAD = "Upload the file";
 export const CHECKLIST_OFF_TITLE = "Checklist off for this request.";
 export const CHECKLIST_OFF_BODY = "CAMS will open on its own.";
 export const CHECKLIST_TURN_ON = "Turn it back on";

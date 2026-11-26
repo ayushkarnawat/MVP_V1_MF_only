@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
 import { ImportPathChoice } from "./ImportPathChoice";
 import { RequestCamsPath } from "./RequestCamsPath";
-import { WaitingForCasView } from "./WaitingForCasView";
-import { CamsWaitingCard } from "./CamsWaitingCard";
 import { UploadForm } from "./UploadForm";
 import { ImportHistoryList } from "./ImportHistoryList";
 import {
   setCasResumeStep2,
   clearCasResumeStep2,
 } from "./casResumeState";
-import { cancelImportRequest, type PendingCamsRequest } from "./api";
 import { usePendingCamsRequest } from "./usePendingCamsRequest";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -19,7 +16,7 @@ import { useCamsChecklist } from "./checklist/useCamsChecklist";
 import { CamsChecklistHost, CamsChecklistHostedContext } from "./checklist/CamsChecklistHost";
 import "./checklist/checklist-tokens.css";
 
-export type ImportView = "choice" | "request" | "waiting" | "upload" | "history";
+export type ImportView = "choice" | "request" | "upload" | "history";
 
 export interface TwoPathImportContainerProps {
   error?: string | null;
@@ -40,7 +37,6 @@ export function TwoPathImportContainer(props: TwoPathImportContainerProps) {
 function MemberImportContainer({
   error, errorCode, requestCasVersion = 0,
   memberId,
-  memberName,
   defaultTab,
   onUploadSubmit,
   surface,
@@ -50,23 +46,19 @@ function MemberImportContainer({
   const [view, setView] = useState<ImportView | null>(() => {
     if (defaultTab === "history") return "history";
     if (defaultTab === "upload") return "upload";
-    if (defaultTab === "waiting") return "waiting";
+    if (defaultTab === "waiting") return "upload";
     if (defaultTab === "request") return "request";
     if (defaultTab === "choice") return "choice";
     return null;
   });
-  const [localRequest, setLocalRequest] = useState<PendingCamsRequest | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
 
   const effectiveView: ImportView | "loading" =
     view ??
     (pendingReq.status === "loading"
       ? "loading"
       : pendingReq.status === "waiting"
-        ? "waiting"
+        ? "upload"
         : "choice");
-
-  const activeRequest = pendingReq.request ?? localRequest;
 
   useEffect(() => {
     if (requestCasVersion > 0) {
@@ -78,22 +70,10 @@ function MemberImportContainer({
     setView(effectiveView === "history" && next === "choice" ? null : next);
   };
 
-  const handleRequestInitiated = (importId: string, expiresAt: string) => {
-    setLocalRequest({ import_id: importId, household_member_id: memberId, expires_at: expiresAt });
+  const handleRequestInitiated = () => {
     setCasResumeStep2(memberId);
-    setView("waiting");
+    setView("upload");
     void pendingReq.refresh();
-  };
-
-  const handleCancel = async () => {
-    if (!activeRequest) return;
-    await cancelImportRequest(activeRequest.import_id);
-    checklist.startOver();
-    clearCasResumeStep2(memberId);
-    setLocalRequest(null);
-    setUploadOpen(false);
-    await pendingReq.refresh();
-    setView(null);
   };
 
   const handleUploadSubmit = (file: File, password: string, sourceTab: string) => {
@@ -160,31 +140,6 @@ function MemberImportContainer({
             onBack={() => showView("choice")}
             onRequestInitiated={handleRequestInitiated}
           />
-        )}
-
-        {effectiveView === "waiting" && (
-          <div className="space-y-4 w-full">
-            {activeRequest && (
-              <CamsWaitingCard
-                request={activeRequest}
-                memberName={memberName}
-                checklistMode={checklist.mode}
-                onShowChecklist={checklist.focus}
-                onUpload={() => setUploadOpen(true)}
-                onCancel={handleCancel}
-              />
-            )}
-            <WaitingForCasView
-              passwordError={errorCode === "wrong_password" ? error ?? undefined : undefined}
-              serverFileError={errorCode && ["file_too_large", "unsupported_file", "invalid_file"].includes(errorCode) ? error ?? undefined : undefined}
-              importId={activeRequest ? activeRequest.import_id : ""}
-              onCancelled={() => {}}
-              onUploadSubmit={(file, password) => handleUploadSubmit(file, password, "request")}
-              surface={surface}
-              hideCancel
-              uploadOpen={uploadOpen}
-            />
-          </div>
         )}
 
         {effectiveView === "upload" && (

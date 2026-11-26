@@ -4,7 +4,7 @@ import { TwoPathImportContainer } from "./TwoPathImportContainer";
 import { setCasResumeStep2, hasCasResumeStep2, setChecklistState } from "./casResumeState";
 import * as api from "./api";
 
-// jsdom cannot complete the height animation; keep the waiting disclosure visible.
+// Keep motion deterministic in jsdom.
 vi.mock("motion/react", async () => {
   const actual = await vi.importActual<typeof import("motion/react")>("motion/react");
   return { ...actual, useReducedMotion: () => true };
@@ -34,6 +34,7 @@ describe("TwoPathImportContainer", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("renders entry choice screen with both options and navigates into Request view", async () => {
@@ -86,7 +87,7 @@ describe("TwoPathImportContainer", () => {
   });
 
 
-  it("transitions to waiting view and persists resume state when Request on CAMS is clicked", async () => {
+  it("after a request the upload card is shown and no waiting text", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
 
@@ -119,9 +120,9 @@ describe("TwoPathImportContainer", () => {
       expect(hasCasResumeStep2("m-1")).toBe(true);
     });
 
-    // Waiting view is displayed
-    expect(await screen.findByText(/waiting for cams email/i)).toBeInTheDocument();
-    expect(screen.getByText(/already got the email\? upload it now/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.queryByText("CAMS request waiting")).not.toBeInTheDocument();
+    expect(screen.queryByText("Waiting for CAMS email")).not.toBeInTheDocument();
   });
 
 
@@ -164,8 +165,8 @@ describe("TwoPathImportContainer", () => {
     expect(await screen.findByRole("heading", { name: /how would you like to bring in your statement/i })).toBeInTheDocument();
   });
 
-  it("waiting view hands the file to the review flow", async () => {
-    setCasResumeStep2("m-1");
+  it("uploading closes nothing on the client side and calls onUploadSubmit with source tab upload", async () => {
+    const cancel = vi.spyOn(api, "cancelImportRequest").mockRejectedValue(new Error("Unexpected cancellation"));
     const onUploadSubmit = vi.fn();
     vi.spyOn(api, "requestCamsStatement").mockResolvedValue({
       import_id: "imp-req-1",
@@ -180,8 +181,7 @@ describe("TwoPathImportContainer", () => {
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={onUploadSubmit} />);
     fireEvent.click(await screen.findByRole("button", { name: /request from cams/i }));
     fireEvent.click(await screen.findByRole("link", { name: /request statement on cams/i }));
-    await screen.findByText(/waiting for cams email/i);
-    fireEvent.click(screen.getByRole("button", { name: /already got the email\? upload it now/i }));
+    await screen.findByRole("heading", { name: "Upload your statement" });
 
     const file = new File(["pdf"], "cas.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText(/CAS PDF/i), { target: { files: [file] } });
@@ -189,12 +189,13 @@ describe("TwoPathImportContainer", () => {
     await tickDisclaimer();
     fireEvent.click(screen.getByRole("button", { name: /Upload Statement/i }));
 
-    expect(onUploadSubmit).toHaveBeenCalledWith(file, "pw", "request");
+    expect(onUploadSubmit).toHaveBeenCalledExactlyOnceWith(file, "pw", "upload");
+    expect(cancel).not.toHaveBeenCalled();
+    expect(hasCasResumeStep2("m-1")).toBe(false);
   });
-  it("forwards a password error to the waiting upload without losing the file", () => {
+  it("maps the waiting default tab to upload and preserves the file on a password error", () => {
     const onUploadSubmit = vi.fn();
     const { rerender } = render(<TwoPathImportContainer memberId="m-1" defaultTab="waiting" onUploadSubmit={onUploadSubmit} />);
-    fireEvent.click(screen.getByRole("button", { name: /already got the email/i }));
     const file = new File(["pdf"], "waiting.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
     rerender(<TwoPathImportContainer memberId="m-1" defaultTab="waiting" onUploadSubmit={onUploadSubmit} errorCode="wrong_password" error="That password didn’t open the file." />);
@@ -205,45 +206,84 @@ describe("TwoPathImportContainer", () => {
 
   const pending = { import_id: "server-import-1", household_member_id: "m-1", expires_at: "2099-12-01T12:00:00Z" };
 
-  it("chooses_the_waiting_view_from_the_server_not_from_browser_notes", async () => {
+  it("a member with an open request opens on the upload card", async () => {
     setCasResumeStep2("m-1");
     vi.mocked(api.getPendingCamsRequest).mockResolvedValue(pending);
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    expect(await screen.findByTestId("cams-waiting-card")).toBeVisible();
-    expect(screen.getByText("Waiting for CAMS email")).toBeVisible();
-    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
+    expect(screen.queryByText("CAMS request waiting")).not.toBeInTheDocument();
+    expect(screen.queryByText("Waiting for CAMS email")).not.toBeInTheDocument();
     expect(api.getPendingCamsRequest).toHaveBeenCalledWith("m-1");
   });
 
-  it("shows_the_waiting_card_after_a_reload_with_the_real_import_id", async () => {
+  it("shows the upload card after a reload without browser notes", async () => {
     vi.mocked(api.getPendingCamsRequest).mockResolvedValue(pending);
     const first = render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    await screen.findByTestId("cams-waiting-card");
+    await screen.findByRole("heading", { name: "Upload your statement" });
     first.unmount();
     localStorage.clear();
-    const cancel = vi.spyOn(api, "cancelImportRequest").mockRejectedValue(new Error("Synthetic cancel failure"));
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    expect(await screen.findByTestId("cams-waiting-card")).toBeVisible();
-    fireEvent.click(screen.getByTestId("cams-waiting-cancel"));
-    await waitFor(() => expect(cancel).toHaveBeenCalledWith(pending.import_id));
-    expect(cancel).not.toHaveBeenCalledWith("pending-import");
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /cancel request/i })).not.toBeInTheDocument();
   });
 
-  it("cancel_uses_the_id_the_server_gave", async () => {
+  it("Back from the upload card shows the choice screen even with an open request", async () => {
     vi.mocked(api.getPendingCamsRequest).mockResolvedValue(pending);
-    const cancel = vi.spyOn(api, "cancelImportRequest").mockImplementation(async () => {
-      vi.mocked(api.getPendingCamsRequest).mockResolvedValue(null);
-      return { import_id: pending.import_id, household_member_id: "m-1", status: "expired",
-        error_code: null, error_message: null, new_transactions_count: null, duplicate_transactions_count: null,
-        statement_from_date: null, statement_to_date: null, source_cas_type: null,
-        uploaded_at: "2026-11-25T00:00:00Z", confirmed_at: null };
-    });
+    const cancel = vi.spyOn(api, "cancelImportRequest").mockRejectedValue(new Error("Unexpected cancellation"));
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    fireEvent.click(await screen.findByTestId("cams-waiting-cancel"));
-    await screen.findByRole("heading", { name: /how would you like to bring in your statement/i });
-    expect(cancel).toHaveBeenCalledExactlyOnceWith(pending.import_id);
-    expect(api.getPendingCamsRequest).toHaveBeenCalledTimes(2);
-    expect(screen.queryByTestId("cams-waiting-card")).not.toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Upload your statement" });
+    fireEvent.click(screen.getByRole("button", { name: /back to import options/i }));
+    const choice = await screen.findByRole("heading", { name: /how would you like to bring in your statement/i });
+    await waitFor(() => expect(choice).toBeVisible()); // the screen fades in
+    fireEvent(window, new Event("focus"));
+    expect(screen.queryByLabelText(/CAS PDF/i)).not.toBeInTheDocument();
+    expect(cancel).not.toHaveBeenCalled();
+    expect(api.getPendingCamsRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("ticking, closing and reopening the checklist and refocusing the tab do not change the screen", async () => {
+    const { act, within } = await import("@testing-library/react");
+    const frame = document.createElement("iframe");
+    document.body.append(frame);
+    const events = new EventTarget();
+    const floating = {
+      document: frame.contentDocument as Document, closed: false, focus: vi.fn(),
+      close: vi.fn(() => {
+        floating.closed = true;
+        events.dispatchEvent(new Event("pagehide"));
+      }),
+      addEventListener: events.addEventListener.bind(events),
+      removeEventListener: events.removeEventListener.bind(events),
+    };
+    vi.stubGlobal("documentPictureInPicture", { requestWindow: vi.fn().mockImplementation(async () => {
+      floating.closed = false;
+      return floating;
+    }) });
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue({
+      ...pending, status: "waiting_for_user", cams_url: "https://cams.example.test/statement",
+    });
+    const rendered = render(<TwoPathImportContainer memberId="m-1" defaultTab="request" onUploadSubmit={vi.fn()} />);
+    try {
+      fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
+      await screen.findByRole("heading", { name: "Upload your statement" });
+      const checklist = within(floating.document.body);
+      const boxes = await checklist.findAllByRole("checkbox");
+      fireEvent.click(boxes[0]);
+      expect(boxes[0]).toBeChecked();
+      expect(screen.getByLabelText(/CAS PDF/i)).toBeInTheDocument();
+      act(() => floating.close());
+      expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Reopen checklist" }));
+      expect((await checklist.findAllByRole("checkbox"))[0]).toBeChecked();
+      fireEvent(window, new Event("focus"));
+      expect(screen.getByRole("heading", { name: "Upload your statement" })).toBeVisible();
+      expect(screen.queryByText("CAMS request waiting")).not.toBeInTheDocument();
+      expect(screen.queryByText("Waiting for CAMS email")).not.toBeInTheDocument();
+    } finally {
+      rendered.unmount();
+      frame.remove();
+    }
   });
 
   it("coming_back_to_the_tab_does_not_change_the_screen", async () => {
@@ -262,11 +302,11 @@ describe("TwoPathImportContainer", () => {
     expect(screen.queryByRole("heading", { name: /^request from cams$/i })).not.toBeInTheDocument();
   });
 
-  it("shows_the_card_when_the_server_says_a_request_waits_on_a_second_device", async () => {
+  it("shows the upload card for an open request on a second device", async () => {
     vi.mocked(api.getPendingCamsRequest).mockResolvedValue(pending);
     render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
-    expect(await screen.findByTestId("cams-waiting-card")).toBeVisible();
-    expect(screen.getByText("CAMS request waiting")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.queryByText("CAMS request waiting")).not.toBeInTheDocument();
     expect(hasCasResumeStep2("m-1")).toBe(false);
   });
 

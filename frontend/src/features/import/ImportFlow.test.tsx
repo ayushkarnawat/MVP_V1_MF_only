@@ -530,11 +530,12 @@ describe("ImportFlow", () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a waiting upload hidden during parsing and preserves its password retry", async () => {
+  it("maps the waiting default to upload, hides it during parsing and preserves its password retry", async () => {
     let rejectParse!: (error: unknown) => void;
     vi.mocked(api.parseImport).mockReturnValue(new Promise((_, reject) => { rejectParse = reject; }));
     render(<ImportFlow householdMemberId="member-1" defaultTab="waiting" />);
-    fireEvent.click(screen.getByRole("button", { name: /already got the email/i }));
+    expect(await screen.findByRole("heading", { name: "Upload your statement" })).toBeVisible();
+    expect(screen.queryByText("Waiting for CAMS email")).not.toBeInTheDocument();
     const file = new File(["pdf"], "waiting.pdf", { type: "application/pdf" });
     fireEvent.change(screen.getByLabelText("CAS PDF"), { target: { files: [file] } });
     await tickDisclaimer();
