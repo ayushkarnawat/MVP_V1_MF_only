@@ -1,3 +1,4 @@
+import { openChecklistAsChoiceClick } from "./testFixtures";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { WaitingForCasView } from "./WaitingForCasView";
@@ -68,6 +69,7 @@ describe("H-8 desktop upload screen checklist integration", () => {
     const { within, act } = await import("@testing-library/react");
     const { getChecklistState } = await import("./casResumeState");
     render(<MemoryRouter><TwoPathImportContainer memberId="member-h8" defaultTab="request" onUploadSubmit={vi.fn()} /></MemoryRouter>);
+    await openChecklistAsChoiceClick("member-h8");
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     await screen.findByRole("heading", { name: "Upload your statement" });
     expect(floating.close).not.toHaveBeenCalled();

@@ -12,7 +12,7 @@ export function useCamsChecklist(memberId: string) {
     supported: supportsChecklist(),
     mode: snapshot.mode, step: snapshot.step, ticks: snapshot.ticks,
     camsLink: snapshot.camsLink,
-    open: store.open, close: store.close, focus: store.focus, reopen: store.reopen,
+    open: store.open, openInPage: store.openInPage, close: store.close, focus: store.focus, reopen: store.reopen,
     startOver: store.startOver, toggle: store.toggle, setCamsLink: store.setCamsLink,
     markSubmitted: store.markSubmitted, markFileReady: store.markFileReady,
     finish: store.finish, finishedFromChecklist: snapshot.finishedFromChecklist,

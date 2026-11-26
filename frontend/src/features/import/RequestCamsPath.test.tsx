@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, within, act } from "@testing-librar
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { RequestCamsPath } from "./RequestCamsPath";
 import * as api from "./api";
+import { openChecklistAsChoiceClick } from "./testFixtures";
 import { checklistCopy } from "./checklist/checklistCopy";
 import { CHECKLIST_OFF_TITLE, CHECKLIST_OFF_BODY, CHECKLIST_TURN_ON } from "./pendingCopy";
 
@@ -136,41 +137,58 @@ describe("H-8 CAMS checklist request flow", () => {
     expect(request.mock.invocationCallOrder[0]).toBeLessThan(openTab.mock.invocationCallOrder[0]);
   });
 
-  it("clicking_request_opens_the_floating_window_before_anything_else_in_the_handler", async () => {
+  it("clicking_request_leaves_the_click_to_the_cams_tab_when_the_floating_window_is_already_open", async () => {
+    // Chrome gives one click one permission, shared by a new tab and a floating window (checked in a real Chrome):
+    // the floating window opens on the earlier choice-screen click, so this click only opens the CAMS tab.
     localStorage.clear();
     const floating = floatingWindow();
-    let resolveWindow!: (value: typeof floating) => void;
-    let resolveRequest!: (value: typeof response) => void;
-    const requestWindow = vi.fn(() => new Promise<typeof floating>((resolve) => { resolveWindow = resolve; }));
+    const requestWindow = vi.fn().mockResolvedValue(floating);
     vi.stubGlobal("documentPictureInPicture", { requestWindow });
-    const request = vi.spyOn(api, "requestCamsStatement").mockImplementation(() => {
-      expect(requestWindow).toHaveBeenCalledExactlyOnceWith({ width: 320, height: 440 });
-      return new Promise<typeof response>((resolve) => { resolveRequest = resolve; });
-    });
+    const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
     const openTab = vi.spyOn(window, "open").mockReturnValue(null);
     const initiated = vi.fn();
-    const { within, act } = await import("@testing-library/react");
     render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
-    fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
-    const clickReturned = vi.fn();
-    clickReturned();
+    await openChecklistAsChoiceClick("member-h8");
     expect(requestWindow).toHaveBeenCalledTimes(1);
-    expect(requestWindow.mock.invocationCallOrder[0]).toBeLessThan(clickReturned.mock.invocationCallOrder[0]);
+    const notCancelled = fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
+    expect(notCancelled).toBe(true); // the link's own default action opens CAMS
+    expect(requestWindow).toHaveBeenCalledTimes(1); // no second request for a floating window in this click
     expect(request).toHaveBeenCalledExactlyOnceWith("member-h8");
-    expect(requestWindow.mock.invocationCallOrder[0]).toBeLessThan(request.mock.invocationCallOrder[0]);
-    await act(async () => resolveWindow(floating));
-    const checklist = within(floating.document.body);
-    expect(await checklist.findAllByRole("checkbox")).toHaveLength(5);
-    expect(checklist.queryByText("Getting your link ready")).not.toBeInTheDocument();
-    expect(initiated).not.toHaveBeenCalled();
-    expect(openTab).not.toHaveBeenCalled();
-    await act(async () => resolveRequest(response));
     await waitFor(() => expect(initiated).toHaveBeenCalledExactlyOnceWith(response.import_id, response.expires_at));
     const { hasCasResumeStep2 } = await import("./casResumeState");
     expect(hasCasResumeStep2("member-h8")).toBe(true);
     expect(openTab).not.toHaveBeenCalled();
-    expect(floating.close).not.toHaveBeenCalled();
-    expect(checklist.queryByRole("button", { name: "Open the CAMS form" })).not.toBeInTheDocument();
+    expect(within(floating.document.body).queryByText("Getting your link ready")).not.toBeInTheDocument();
+  });
+
+  it("when_the_floating_window_is_not_open_the_checklist_shows_in_the_page_and_the_click_still_opens_cams", async () => {
+    localStorage.clear();
+    const requestWindow = vi.fn();
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
+    const openTab = vi.spyOn(window, "open").mockReturnValue(null);
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} />);
+    const notCancelled = fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
+    expect(notCancelled).toBe(true);
+    expect(requestWindow).not.toHaveBeenCalled();
+    await screen.findByText("0 of 5 done");
+    expect(screen.getAllByRole("checkbox")).toHaveLength(5);
+    expect(openTab).not.toHaveBeenCalled();
+  });
+
+  it("Continue without it closes the floating window and Turn it back on opens it again", async () => {
+    localStorage.clear();
+    const floating = floatingWindow();
+    const requestWindow = vi.fn().mockResolvedValue(floating);
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    render(<RequestCamsPath memberId="member-h8" onRequestInitiated={vi.fn()} />);
+    await openChecklistAsChoiceClick("member-h8");
+    expect(requestWindow).toHaveBeenCalledTimes(1);
+    fireEvent.click(await screen.findByRole("button", { name: "Continue without it" }));
+    expect(floating.close).toHaveBeenCalled();
+    floating.closed = false;
+    fireEvent.click(await screen.findByRole("button", { name: CHECKLIST_TURN_ON }));
+    await waitFor(() => expect(requestWindow).toHaveBeenCalledTimes(2));
   });
 
   it("the panel shows its title and the amber note", async () => {
@@ -215,6 +233,7 @@ describe("H-8 CAMS checklist request flow", () => {
     const initiated = vi.fn();
     const { within } = await import("@testing-library/react");
     render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    await openChecklistAsChoiceClick("member-h8");
     const link = await screen.findByRole("link", { name: "Request Statement on CAMS" });
     expect(request).not.toHaveBeenCalled();
     fireEvent.click(link);
@@ -295,10 +314,12 @@ describe("H-8 CAMS checklist request flow", () => {
     const request = vi.spyOn(api, "requestCamsStatement").mockResolvedValue(response);
     const initiated = vi.fn();
     render(<RequestCamsPath memberId="member-h8" onRequestInitiated={initiated} />);
+    await openChecklistAsChoiceClick("member-h8", { settle: false });
     fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
     try {
       await waitFor(() => expect(initiated).toHaveBeenCalledExactlyOnceWith(response.import_id, response.expires_at));
-      expect(requestWindow.mock.invocationCallOrder[0]).toBeLessThan(request.mock.invocationCallOrder[0]);
+      expect(requestWindow).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledTimes(1);
       expect(openTab).not.toHaveBeenCalled();
     } finally {
       await act(async () => resolveWindow(floating));

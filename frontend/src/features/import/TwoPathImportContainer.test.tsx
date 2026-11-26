@@ -1,3 +1,4 @@
+import { openChecklistAsChoiceClick } from "./testFixtures";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { TwoPathImportContainer } from "./TwoPathImportContainer";
@@ -242,6 +243,24 @@ describe("TwoPathImportContainer", () => {
     expect(api.getPendingCamsRequest).toHaveBeenCalledTimes(1);
   });
 
+  it("choosing Request from CAMS opens the floating checklist on that click, and Back from the request page closes it", async () => {
+    // One click can open a CAMS tab or a floating window, not both (checked in a real Chrome), so the window
+    // opens here and the Request button is left to opening the CAMS tab.
+    const floating = {
+      document: document.implementation.createHTMLDocument("floating"), closed: false, focus: vi.fn(),
+      close: vi.fn(() => { floating.closed = true; }),
+      addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    };
+    const requestWindow = vi.fn().mockResolvedValue(floating);
+    vi.stubGlobal("documentPictureInPicture", { requestWindow });
+    render(<TwoPathImportContainer memberId="m-1" onUploadSubmit={vi.fn()} />);
+    fireEvent.click(await screen.findByText("Request from CAMS"));
+    await waitFor(() => expect(requestWindow).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("link", { name: "Request Statement on CAMS" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /back to import options/i }));
+    await waitFor(() => expect(floating.close).toHaveBeenCalled());
+  });
+
   it("ticking, closing and reopening the checklist and refocusing the tab do not change the screen", async () => {
     const { act, within } = await import("@testing-library/react");
     const frame = document.createElement("iframe");
@@ -265,6 +284,7 @@ describe("TwoPathImportContainer", () => {
     });
     const rendered = render(<TwoPathImportContainer memberId="m-1" defaultTab="request" onUploadSubmit={vi.fn()} />);
     try {
+      await openChecklistAsChoiceClick("m-1");
       fireEvent.click(await screen.findByRole("link", { name: "Request Statement on CAMS" }));
       await screen.findByRole("heading", { name: "Upload your statement" });
       const checklist = within(floating.document.body);

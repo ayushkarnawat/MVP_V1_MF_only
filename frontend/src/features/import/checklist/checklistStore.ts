@@ -168,6 +168,13 @@ function createStore(memberId: string) {
     },
     open,
     reopen: open,
+    // Shows the checklist inside the page without asking for a floating window. Used when a click must be
+    // left to opening the CAMS tab: Chrome gives one click one permission, shared by a new tab and a floating window.
+    openInPage() {
+      if (snapshot.mode === "window") return;
+      setChecklistState(memberId, { ticks: snapshot.ticks, step: snapshot.step });
+      update({ mode: "panel", pipWindow: null });
+    },
     focus,
     close() {
       if (snapshot.step === "ready") {

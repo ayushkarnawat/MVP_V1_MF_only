@@ -43,3 +43,17 @@ export function familyPreview(over: Partial<ImportPreviewResponse> = {}): Import
     ...over,
   });
 }
+
+/**
+ * The product opens the floating checklist on the earlier "Request from CAMS" click (the choice screen), so the
+ * Request button's own click is left to opening the CAMS tab. Tests that need the checklist window do the same.
+ */
+export async function openChecklistAsChoiceClick(memberId: string, options: { settle?: boolean } = {}): Promise<void> {
+  const { act } = await import("@testing-library/react");
+  const { getChecklistStore } = await import("./checklist/checklistStore");
+  const store = getChecklistStore(memberId);
+  await act(async () => {
+    store.open();
+    if (options.settle !== false) await store.settleOpening();
+  });
+}

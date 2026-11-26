@@ -88,9 +88,15 @@ export function RequestCamsPath({
 
   const handleLinkClick = useCallback(() => {
     if (requesting.current) return;
-    if (!withoutChecklist) checklist.open();
+    if (!withoutChecklist) {
+      // This click must be left to opening the CAMS tab (the link's own default action). The floating checklist was
+      // opened by the earlier "Request from CAMS" click; if it is not open (page reloaded, window closed), the
+      // checklist shows inside the page instead of competing for this click.
+      const current = checklistStore.getSnapshot();
+      if (current.mode !== "window" && !checklistStore.isOpening()) checklist.openInPage();
+    }
     void sendRequest({ openTab: false });
-  }, [withoutChecklist, checklist.open, sendRequest]);
+  }, [withoutChecklist, checklistStore, checklist.openInPage, sendRequest]);
 
   const handleRequest = useCallback(async () => {
     if (requesting.current) return;
@@ -259,7 +265,7 @@ export function RequestCamsPath({
                 data-clickable=""
                 data-effect="close"
                 className="ccp-cw-btn"
-                onClick={() => setWithoutChecklist(true)}
+                onClick={() => { checklist.close(); setWithoutChecklist(true); }}
               >
                 {checklistCopy.skip}
               </button>
@@ -285,7 +291,7 @@ export function RequestCamsPath({
               data-clickable=""
               data-effect="open"
               className="ccp-cw-btn"
-              onClick={() => setWithoutChecklist(false)}
+              onClick={() => { setWithoutChecklist(false); checklist.open(); }}
             >
               {CHECKLIST_TURN_ON}
             </button>
