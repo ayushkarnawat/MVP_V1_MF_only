@@ -38,8 +38,20 @@ from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
-# Works both as a file (python scripts/audit_pipelines/status.py) and piped in from /app.
-_ROOT = Path(__file__).resolve().parents[2] if "__file__" in globals() else Path.cwd()
+
+
+def _project_root(file_value: str | None, cwd: Path) -> Path:
+    """The backend folder: two levels above this file, or the working folder when piped in.
+
+    Piped in (`python - < status.py`, as the VM guide runs it from /app), Python sets __file__ to
+    "<stdin>", which is not a real path, so the working folder is the root.
+    """
+    if file_value and not file_value.startswith("<"):
+        return Path(file_value).resolve().parents[2]
+    return cwd
+
+
+_ROOT = _project_root(globals().get("__file__"), Path.cwd())
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 

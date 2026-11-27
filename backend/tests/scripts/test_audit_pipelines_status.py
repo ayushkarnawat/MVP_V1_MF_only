@@ -11,7 +11,10 @@ Invented rows only. Target month end 31 Oct 2026 (a Saturday), the month before 
 import asyncio
 import importlib
 import os
+import subprocess
+import sys
 import uuid
+from pathlib import Path
 from datetime import date
 
 import pytest
@@ -250,3 +253,28 @@ def test_command_line_prints_every_block(database_url, capsys):
         assert f"=== {name} ===" in out and f"=== end {name} ===" in out
     assert "=== S5 ===" not in out  # network discovery only with --discover
     assert "=== done ===" in out
+
+
+def test_piped_on_stdin_from_the_backend_folder_like_the_vm_guide(database_url):
+    # The guide runs `python - <args> < status.py` in /app; Python then sets __file__ to "<stdin>".
+    backend = Path(__file__).resolve().parents[2]
+    script = backend / "scripts" / "audit_pipelines" / "status.py"
+    with script.open("rb") as stdin:
+        done = subprocess.run(
+            [sys.executable, "-", "--database-url", database_url, "--target-month-end", "2026-10-31"],
+            stdin=stdin, cwd=backend, capture_output=True, text=True, timeout=120,
+        )
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.count("=== end ") == 10
+    assert done.stdout.rstrip().endswith("=== done ===")
+
+
+@pytest.mark.parametrize("file_value", [None, "<stdin>"])
+def test_project_root_is_the_working_folder_when_piped(file_value):
+    # On the VM the working folder is /app: Path("/app/<stdin>").parents[2] does not exist.
+    assert status()._project_root(file_value, Path("/app")) == Path("/app")
+
+
+def test_project_root_from_the_script_file():
+    script = Path(status().__file__).resolve()
+    assert status()._project_root(str(script), Path("/elsewhere")) == script.parents[2]
