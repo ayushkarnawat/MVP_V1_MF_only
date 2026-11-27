@@ -1,0 +1,995 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMC Data Pipelines Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one 1000px reading column of white sections; item sections use label/value rows; mockups use the app's own light look */
+:root{--bg:#f6f7f5;--surface:#fff;--ink:#16201a;--muted:#5d6a62;--line:#dfe4e0;--green:#16a34a;--greenbg:#e6f5ec;--warn:#b45309;--warnbg:#fdf1de;--neg:#b42318;--negbg:#fdecec;--blue:#1d4ed8;--bluebg:#e8eefc;--code:#eef1ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--negbg:#3a1a18;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202a23;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1511;--surface:#171f19;--ink:#e8eee9;--muted:#9aa99f;--line:#2a352d;--green:#4ade80;--greenbg:#173424;--warn:#f0b35a;--warnbg:#3a2a12;--neg:#f58a80;--negbg:#3a1a18;--blue:#8fb0ff;--bluebg:#1b2a52;--code:#202a23;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.55;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+h1{font-family:'DM Sans',Inter,sans-serif;font-size:30px;margin:0;line-height:1.2;text-wrap:balance}
+h2{font-family:'DM Sans',Inter,sans-serif;font-size:21px;margin:0 0 10px;text-wrap:balance}
+h3{font-size:15px;margin:18px 0 6px}
+p{margin:0 0 10px;max-width:75ch}
+ul,ol{margin:0 0 10px;padding-left:22px}li{margin-bottom:4px}
+.sub{color:var(--muted)}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;min-width:0}
+code,.mono{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);padding:12px;border-radius:10px;overflow-x:auto;margin:0 0 10px;line-height:1.5}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted);white-space:nowrap}
+.pill.g{background:var(--greenbg);color:var(--green)}.pill.w{background:var(--warnbg);color:var(--warn)}.pill.b{background:var(--bluebg);color:var(--blue)}.pill.r{background:var(--negbg);color:var(--neg)}
+.callout{border-left:4px solid var(--warn);background:var(--warnbg);padding:12px 16px;border-radius:0 10px 10px 0;margin-bottom:10px}
+.callout.ok{border-color:var(--green);background:var(--greenbg)}.callout.info{border-color:var(--blue);background:var(--bluebg)}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.small{font-size:12.5px;color:var(--muted)}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}.toc a{color:var(--blue)}
+h2.part{font-size:23px;border-top:3px solid var(--green);padding-top:18px;margin:18px 0 0}
+.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 16px;border-top:1px solid var(--line);padding:12px 0}
+.kv>b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kv>div{min-width:0}
+@media(max-width:700px){.kv{grid-template-columns:1fr}}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px}
+.ihead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.ihead .id{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--green);font-weight:600}
+/* mockups: fixed app colors on purpose, they show the product, not this page */
+.ui{font-family:'Manrope',Inter,sans-serif;color:#111;background:#FCFCFC;border:1px solid #ECECEC;border-radius:12px;padding:14px;font-size:13px;line-height:1.4;min-width:0;overflow-x:auto}
+.ui *{box-sizing:border-box}
+.ui .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;color:#717171;display:block}
+.ui .h{font-family:'DM Sans',Inter,sans-serif;font-weight:700;font-size:15px}
+.ui .mut{color:#717171;font-size:12px}
+.ui .card{background:#fff;border:1px solid #ECECEC;border-radius:12px;padding:12px;min-width:0}
+.ui .big{font-family:'DM Sans',Inter,sans-serif;font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.ui .row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:4px 0;border-bottom:1px solid #F3F3F3}.ui .row:last-child{border-bottom:0}
+.ui .row b{font-variant-numeric:tabular-nums}
+.ui .g3{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:10px}
+.ui .g2{display:grid;grid-template-columns:repeat(2,minmax(200px,1fr));gap:10px}
+.ui .bar{height:8px;border-radius:99px;background:#ECECEC;overflow:hidden;margin:3px 0 6px}.ui .bar i{display:block;height:100%;background:#22C55E}.ui .bar i.b{background:#2563EB}
+.ui .chip{display:inline-block;font-size:11px;font-weight:600;border-radius:99px;padding:2px 8px;background:#F0F0F0;color:#4B4B4B;white-space:nowrap}
+.ui .chip.g{background:#E9F9EF;color:#15803D}.ui .chip.a{background:#FEF3E2;color:#92400E}.ui .chip.r{background:#FDECEC;color:#B42318}.ui .chip.on{background:#111;color:#fff}
+.ui .btn{display:inline-block;padding:6px 12px;border-radius:9px;font-weight:600;font-size:12.5px;background:#22C55E;color:#fff;font-family:'DM Sans',Inter,sans-serif}
+.ui .btn.sec{background:#fff;border:1px solid #DFDFDF;color:#111}
+.ui .field{border:1px solid #DFDFDF;background:#fff;border-radius:10px;padding:7px 10px;color:#9B9B9B;margin:4px 0 8px;font-size:12.5px}
+.ui .lab{font-size:12px;font-weight:600;color:#4B4B4B}
+.ui .note{border-left:3px solid #22C55E;background:#fff;border-radius:0 10px 10px 0;padding:8px 10px;margin-bottom:8px;border-top:1px solid #ECECEC;border-right:1px solid #ECECEC;border-bottom:1px solid #ECECEC}
+.ui .note.b{border-left-color:#2563EB}.ui .note.p{border-left-color:#7C3AED}.ui .note.o{border-left-color:#C2410C}
+.ui .nt{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#717171}
+.ui table{font-size:12px;background:#fff;min-width:520px}.ui th{font-size:10.5px;color:#717171}.ui td,.ui th{border-bottom:1px solid #F0F0F0;padding:6px 8px}
+.ui .disc{font-size:11px;color:#717171;margin-top:8px}
+.ui .tile-add{border:1.5px dashed #BDBDBD;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#4B4B4B;font-weight:600;min-height:92px}
+.ui .plus{width:30px;height:30px;border-radius:50%;border:1.5px solid #717171;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
+.ui .pos{color:#15803D;font-weight:600}.ui .neg{color:#C2410C;font-weight:600}
+@media(max-width:640px){.ui .g3,.ui .g2{grid-template-columns:1fr}}
+/* questions */
+.q{border-top:1px solid var(--line);padding:16px 0}
+.q h3{font-size:15.5px;margin:0 0 4px}
+.why{font-size:13px;color:var(--muted);margin:0 0 10px;max-width:78ch}
+.o{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
+.o:has(input:checked){border-color:var(--green);background:var(--greenbg)}
+.o input{margin-top:4px;flex:none}
+.o b{display:block;font-size:14px}
+.o span.d{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.badge.ans{background:var(--blue)}.badge.ch{background:var(--ink)}
+.badge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--surface);background:var(--green);padding:1px 8px;border-radius:99px;margin-left:6px}
+.q input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.qgroup{font-family:'DM Sans',Inter,sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin:22px 0 0}
+#out{width:100%;box-sizing:border-box;font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.row{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+#copy{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offset:2px}
+/* ---------- Desktop preview frame ---------- */
+.desk{margin:20px 0 6px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:16px;min-width:0}
+.desk-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.desk-h .t{font-family:'DM Sans',Inter,sans-serif;font-weight:700;font-size:16px}
+.desk-h .t small{display:block;font-family:Inter,sans-serif;font-weight:400;font-size:12.5px;color:var(--muted)}
+.desk-ctl{display:flex;gap:8px;flex-wrap:wrap}
+.desk-ctl button,.desk-tabs button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;min-height:32px}
+.desk-ctl button:hover,.desk-tabs button:hover{border-color:var(--green)}
+.desk-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.desk-tabs button[aria-selected="true"]{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.desk-tabs button:focus-visible,.desk-ctl button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.desk-cap{font-size:13.5px;color:var(--ink);margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--green);background:var(--greenbg);border-radius:0 8px 8px 0}
+.desk-vp{position:relative;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#E9E9E9}
+.desk-sc{position:absolute;top:0;left:0;width:1440px;transform-origin:0 0}
+.desk-full{position:fixed;inset:0;z-index:1000;background:rgba(10,10,10,.82);overflow:auto;padding:56px 24px 24px}
+.desk-full .desk-sc{position:relative;margin:0 auto;transform:none}
+.desk-full-bar{position:fixed;top:0;left:0;right:0;z-index:1001;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 16px;background:#111;color:#fff;font-size:13px}
+.desk-full-bar button{font:inherit;font-size:13px;padding:6px 14px;border-radius:99px;border:1px solid #444;background:#222;color:#fff;cursor:pointer}
+.chrome{height:38px;background:#E4E4E4;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #D4D4D4}
+.chrome i{width:11px;height:11px;border-radius:50%;background:#C9C9C9;display:inline-block}
+.chrome i:nth-child(1){background:#FF5F57}.chrome i:nth-child(2){background:#FEBC2E}.chrome i:nth-child(3){background:#28C840}
+.chrome span{margin-left:18px;flex:0 1 520px;height:24px;border-radius:7px;background:#F7F7F7;color:#6B6B6B;font:12px Inter,sans-serif;display:flex;align-items:center;padding:0 12px}
+
+/* ---------- The app (Unifolio desktop, 1440 wide) ---------- */
+.app{--p:#FCFCFC;--cd:#F5F5F5;--el:#FFFFFF;--dv:#ECECEC;--ln:#F3F3F3;--tx:#111111;--tb:#4B4B4B;--tm:#717171;--bi:#DFDFDF;--dis:#C4C4C4;--ac:#22C55E;
+ --pos:#15803D;--posbg:#EAFBF0;--wt:#B45309;--wbg:#FEF3E2;--wbd:#FCE0B0;--nt:#C1272D;--nbg:#FDECEC;--it:#3730A3;--ibg:#EEEDFC;--ibd:#D2CFF6;--hov:#ECECEC;--sk:#EFEFEF;
+ --c1:#22C55E;--c2:#0D9488;--c3:#2563EB;--c4:#6366F1;--c5:#8B5CF6;--c6:#D97706;--c7:#EC4899;
+ width:1440px;min-height:900px;display:flex;position:relative;background:var(--p);color:var(--tx);font-family:Manrope,Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;text-align:left;overflow:hidden}
+.app.dk{--p:#111111;--cd:#1A1A1A;--el:#1C1C1C;--dv:#2E2E2E;--ln:#262626;--tx:#FCFCFC;--tb:#A3A3A3;--tm:#A3A3A3;--bi:#2E2E2E;--dis:#5A5A5A;
+ --pos:#34D399;--posbg:rgba(34,197,94,.14);--wt:#FBBF24;--wbg:rgba(251,191,36,.12);--wbd:rgba(251,191,36,.35);--nt:#F87171;--nbg:rgba(248,113,113,.13);--it:#A5B4FC;--ibg:rgba(99,102,241,.16);--ibd:rgba(129,140,248,.35);--hov:#262626;--sk:#262626;
+ --c2:#2DD4BF;--c3:#60A5FA;--c4:#818CF8;--c5:#A78BFA;--c6:#FBBF24;--c7:#F472B6}
+.app *{box-sizing:border-box}
+.app svg{flex:none}
+.app .sb{width:224px;flex:none;background:var(--cd);border-right:1px solid var(--dv);padding:16px 12px;display:flex;flex-direction:column}
+.app .logo{display:flex;align-items:center;gap:9px;padding:2px 10px;margin-bottom:16px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:19px;letter-spacing:-.01em}
+.app .logo b{width:28px;height:28px;border-radius:8px;background:var(--ac);display:inline-grid;place-items:center;color:#fff;font-size:15px}
+.app .ni{position:relative;display:flex;align-items:center;gap:10px;min-height:40px;padding:8px 10px;font-size:14px;font-weight:500;color:var(--tm);border-radius:8px}
+.app .ni.on{color:var(--tx);font-weight:600;border-radius:0}
+.app .ni.on:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ac)}
+.app .ni.dis{color:var(--dis)}
+.app .ni.ch{padding-left:34px}
+.app .ni .new{margin-left:auto}
+.app .sbf{margin-top:auto;border-top:1px solid var(--dv);padding-top:12px}
+.app .mc{flex:1;min-width:0;display:flex;flex-direction:column}
+.app .tb{display:flex;align-items:center;gap:12px;background:var(--cd);border-bottom:1px solid var(--dv);padding:20px 24px}
+.app .mira{flex:1;min-width:256px;height:44px;display:flex;align-items:center;gap:12px;border-radius:12px;padding:0 16px;font-size:14px;border:1px solid color-mix(in srgb,var(--ac) 28%,var(--cd));background:color-mix(in srgb,var(--ac) 10%,var(--cd))}
+.app .tbr{margin-left:auto;display:flex;align-items:center;gap:12px}
+.app .ob{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border:1px solid var(--bi);border-radius:12px;background:var(--cd);font-weight:600;font-size:14px;color:var(--tx);white-space:nowrap}
+.app .sel{width:192px;justify-content:space-between;font-weight:500}
+.app .vsep{width:1px;height:24px;background:var(--bi)}
+.app .pg{padding:24px;position:relative;flex:1}
+.app .ph{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}
+.app h1{font-family:'DM Sans',sans-serif;font-size:24px;font-weight:600;margin:0;line-height:1.25;color:var(--tx)}
+.app .sub{margin-top:8px;font-size:14px;color:var(--tb)}
+.app .cd{background:var(--el);border:1px solid var(--dv);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.app .cd.dash{border-style:dashed;border-width:1.5px;border-color:color-mix(in srgb,var(--ac) 45%,var(--dv));background:color-mix(in srgb,var(--ac) 4%,var(--el))}
+.app .ghost{border:1.5px dashed var(--dv);border-radius:14px;padding:18px;text-align:center;color:var(--tm);font-size:13px}
+.app .h2{font-family:'DM Sans',sans-serif;font-size:18px;font-weight:600;line-height:1.3}
+.app .h3{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;line-height:1.3}
+.app .mu{color:var(--tm)}.app .bd{color:var(--tb)}.app .sm{font-size:12.5px}.app .xs{font-size:11.5px}.app .b6{font-weight:600}.app .b7{font-weight:700}
+.app .num{font-variant-numeric:tabular-nums}
+.app .mono{background:none;padding:0;border:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+.app .big{font-family:'DM Sans',sans-serif;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
+.app .mid{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.app .pos{color:var(--pos)}.app .neg{color:var(--nt)}.app .wrn{color:var(--wt)}
+.app .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tm)}
+.app .chip{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.app .k-pos{background:var(--posbg);color:var(--pos)}.app .k-w{background:var(--wbg);color:var(--wt)}.app .k-n{background:var(--nbg);color:var(--nt)}.app .k-i{background:var(--ibg);color:var(--it)}.app .k-m{background:var(--hov);color:var(--tb)}
+.app .new{background:var(--ac);color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 7px;letter-spacing:.04em;text-transform:uppercase}
+.app .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 16px;border-radius:10px;font-weight:600;font-size:14px;background:var(--ac);color:#fff;white-space:nowrap;border:1px solid var(--ac)}
+.app .btn.o{background:var(--el);color:var(--tx);border-color:var(--bi)}
+.app .btn.q{background:transparent;color:var(--tb);border-color:transparent}
+.app .btn.s{height:32px;padding:0 12px;font-size:13px;border-radius:9px}
+.app .btn.rd{border-radius:99px}
+.app .btn.off{background:var(--dv);border-color:var(--dv);color:var(--dis)}
+.app .lnk{color:var(--pos);font-weight:600}
+.app .tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--dv);background:var(--el);border-radius:16px;padding:8px;margin-bottom:16px}
+.app .tabs>div{display:flex;gap:4px;flex-wrap:wrap}
+.app .tab{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:12px;font-size:12.5px;font-weight:500;color:var(--tm)}
+.app .tab.on{background:var(--posbg);color:var(--pos);font-weight:600}
+.app .seg{display:inline-flex;border:1px solid var(--dv);border-radius:10px;padding:3px;background:var(--cd);gap:2px}
+.app .seg>span{padding:5px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--tm)}
+.app .seg>span.on{background:var(--el);color:var(--tx);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.app .ds{display:flex;align-items:center;gap:12px;border:1px solid var(--dv);background:var(--el);border-radius:12px;padding:8px 16px;font-size:12px;margin-bottom:16px}
+.app .g{display:grid;gap:16px}
+.app .f{display:flex;align-items:center;gap:10px}
+.app .fb{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.app .rw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ln);font-size:13.5px}
+.app .rw:last-child{border-bottom:0}
+.app table{width:100%;border-collapse:collapse;font-size:13px}
+.app th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tm);padding:8px 10px;border-bottom:1px solid var(--dv);white-space:nowrap}
+.app td{padding:11px 10px;border-bottom:1px solid var(--ln);font-variant-numeric:tabular-nums;vertical-align:middle}
+.app td,.app td b,.app b,.app strong{color:inherit}.app td{color:var(--tx)}
+.app tr:last-child td{border-bottom:0}
+.app .r{text-align:right}
+.app .bar{height:8px;background:var(--hov);border-radius:99px;overflow:hidden;display:flex}.app .bar i{display:block;height:100%}
+.app .inp{height:40px;border:1px solid var(--bi);border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:8px;color:var(--tx);background:var(--el);font-size:14px}
+.app .inp.ph{color:var(--tm)}.app .inp.err{border-color:var(--nt);box-shadow:0 0 0 3px var(--nbg)}.app .inp.wn{border-color:var(--wt)}.app .inp.fo{border-color:var(--ac);box-shadow:0 0 0 3px var(--posbg)}
+.app .ta{height:96px;align-items:flex-start;padding:10px 12px}
+.app .lbl{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.app .hint{font-size:12px;margin-top:5px;color:var(--tm)}.app .hint.e{color:var(--nt)}.app .hint.w{color:var(--wt)}
+.app .ov{position:absolute;inset:0;background:rgba(17,17,17,.45);z-index:5}
+.app .dlg{position:absolute;z-index:6;left:50%;top:150px;transform:translateX(-50%);width:500px;background:var(--el);border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.28);padding:24px;display:flex;flex-direction:column;gap:16px}
+.app .drw{position:absolute;z-index:6;right:0;top:0;bottom:0;width:480px;background:var(--el);box-shadow:-16px 0 48px rgba(0,0,0,.2);padding:24px;display:flex;flex-direction:column;gap:16px;border-left:1px solid var(--dv)}
+.app .x{width:32px;height:32px;border-radius:8px;display:inline-grid;place-items:center;color:var(--tm)}
+.app .ban{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45}
+.app .b-w{background:var(--wbg);border:1px solid var(--wbd);color:var(--tx)}.app .b-w svg{color:var(--wt)}
+.app .b-i{background:var(--ibg);border:1px solid var(--ibd);color:var(--tx)}.app .b-i svg{color:var(--it)}
+.app .b-p{background:var(--posbg);border:1px solid color-mix(in srgb,var(--ac) 30%,transparent);color:var(--tx)}.app .b-p svg{color:var(--pos)}
+.app .toast{position:absolute;z-index:7;bottom:28px;left:50%;transform:translateX(-50%);background:#2A2A2A;color:#fff;border-radius:12px;padding:12px 16px;font-size:13.5px;display:flex;gap:14px;align-items:center;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.app .toast .lnk{color:#4ADE80}
+.app .sk{background:var(--sk);border-radius:8px;position:relative;overflow:hidden}
+.app .sk:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent)}
+.app.dk .sk:after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)}
+.app .av{width:52px;height:52px;border-radius:50%;display:inline-grid;place-items:center;font-weight:700;color:#fff;font-family:'DM Sans',sans-serif;font-size:17px;flex:none}
+.app .av.s{width:32px;height:32px;font-size:12px}
+.app .av.dashv{background:transparent;border:2px dashed var(--bi);color:var(--tm)}
+.app .pn{position:sticky;top:8px;border:1px solid var(--dv);background:var(--el);border-radius:14px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.app .pi{display:flex;align-items:center;gap:12px;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;color:var(--tb)}
+.app .pi svg{color:var(--tm)}
+.app .pi.on{background:var(--posbg);color:var(--tx);font-weight:600}.app .pi.on svg{color:var(--pos)}
+.app .pi.sub{padding-left:42px;font-size:13.5px}
+.app .sw{width:38px;height:22px;border-radius:99px;background:var(--ac);position:relative;flex:none}
+.app .sw:after{content:"";position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#fff}
+.app .sw.off{background:var(--bi)}.app .sw.off:after{right:auto;left:3px}
+.app .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.app .donut{width:132px;height:132px;border-radius:50%;position:relative;flex:none}
+.app .donut:after{content:"";position:absolute;inset:22px;border-radius:50%;background:var(--el)}
+.app .donut b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;line-height:1.2}
+.app .note{border:1px solid var(--dv);border-left:3px solid var(--c1);background:var(--el);border-radius:0 12px 12px 0;padding:14px 16px}
+.app .step{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--tm)}
+.app .step i{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:12px;border:1.5px solid var(--bi);background:var(--el)}
+.app .step.on{color:var(--tx)}.app .step.on i{background:var(--ac);border-color:var(--ac);color:#fff}
+.app .step.dn i{background:var(--posbg);border-color:var(--posbg);color:var(--pos)}
+.app .stepline{flex:1;height:1.5px;background:var(--dv);min-width:24px}
+.app .heat td.h{text-align:center;font-weight:600;border-radius:6px}
+.app .disc{font-size:11.5px;color:var(--tm);margin-top:18px;padding-top:12px;border-top:1px solid var(--dv)}
+.app .ic{width:34px;height:34px;border-radius:9px;display:inline-grid;place-items:center;border:1px solid var(--bi);color:var(--tb);background:var(--el)}
+.app .tile-ic{width:36px;height:36px;border-radius:10px;display:inline-grid;place-items:center;flex:none}
+
+</style>
+<style>
+.flow{display:flex;flex-direction:column;gap:12px}
+.lane{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg)}
+.lane.bad-lane{border-color:var(--neg);background:var(--negbg)}
+.lane-t{font-family:'DM Sans',Inter,sans-serif;font-weight:700;font-size:13.5px;margin-bottom:10px}
+.steps{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.steps>i{align-self:center;font-style:normal;color:var(--muted)}
+.st{flex:1 1 140px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-weight:600;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.st small{font-weight:400;color:var(--muted);font-size:12px}
+.st .bad,.st .warn{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px;width:fit-content;background:var(--negbg);color:var(--neg)}
+.st .warn{background:var(--warnbg);color:var(--warn)}
+.side{font-size:13px;color:var(--ink);margin-top:10px}
+.tl{display:flex;flex-direction:column;border-left:3px solid var(--green);margin-left:6px}
+.tl>div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:6px 0 6px 14px;font-size:13.5px;position:relative}
+.tl>div:before{content:"";position:absolute;left:-7.5px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:3px solid var(--green)}
+@media(max-width:600px){.tl>div{grid-template-columns:1fr;gap:2px}}
+table.opt td{font-size:13px}
+.app .oc{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.app .oc:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.app .o-ok{background:var(--posbg);color:var(--pos)}.app .o-w{background:var(--wbg);color:var(--wt)}.app .o-n{background:var(--nbg);color:var(--nt)}.app .o-i{background:var(--ibg);color:var(--it)}.app .o-m{background:var(--hov);color:var(--tb)}
+.app .kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.app .drop{border:2px dashed color-mix(in srgb,var(--ac) 50%,var(--dv));border-radius:14px;background:color-mix(in srgb,var(--ac) 5%,var(--el));padding:26px;text-align:center}
+.app .dots{display:flex;gap:3px}.app .dots i{width:16px;height:16px;border-radius:4px;display:block;background:var(--hov)}
+.app .dots i.g{background:var(--ac)}.app .dots i.w{background:#F59E0B}.app .dots i.n{background:var(--nt)}
+.app .sbo .ni{font-size:13.5px}
+.app .cnt{margin-left:auto;font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px;background:var(--wbg);color:var(--wt)}
+.ext{position:absolute;z-index:8;right:24px;top:52px;width:380px;background:#fff;border:1px solid #DFDFDF;border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.25);font-family:Manrope,Inter,sans-serif;color:#111;font-size:13px;overflow:hidden}
+.ext .eh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #ECECEC;font-family:'DM Sans',sans-serif;font-weight:700}
+.ext .eh b{width:22px;height:22px;border-radius:6px;background:#22C55E;color:#fff;display:inline-grid;place-items:center;font-size:12px}
+.ext .er{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F3F3F3}
+.ext .er .mu{color:#717171;font-size:12px}
+.site{background:#fff;color:#1b1b1b;font-family:Arial,sans-serif;min-height:862px;width:1440px;position:relative}
+.site .nav{height:64px;background:#0b3d6e;color:#fff;display:flex;align-items:center;padding:0 40px;gap:28px;font-size:14px}
+.site .nav b{font-size:18px;margin-right:30px}
+.site .ct{padding:36px 40px}
+.site table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+.site td,.site th{border-bottom:1px solid #e3e3e3;padding:12px 8px;text-align:left}
+.site .dl{background:#0b3d6e;color:#fff;border-radius:4px;padding:6px 12px;font-size:13px}
+.mail{width:1440px;min-height:900px;background:#F2F2F2;padding:32px 0;font-family:Manrope,Inter,sans-serif;color:#111}
+.mail .mb{width:680px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #E5E5E5;padding:28px 32px}
+</style>
+</head><body>
+<main>
+<header style="display:flex;flex-direction:column;gap:10px">
+  <span class="pill g" style="width:fit-content">Planning only · nothing built</span>
+  <h1>AMC data pipelines: status check, fixes, strengthening and automation</h1>
+  <p class="sub">27 Nov 2026. One planning workbook for the four parts of the next phase: (S) a read-only check of where the factsheet and portfolio-disclosure jobs stand today, (F) the code fixes already proposed on 19 Nov, (H) the strengthening items from the 16 Oct plan, and (A) a deep dive on how to stop uploading files by hand every month. For each part: what changes in the database, the backend and the front end, with desktop mockups of the new Ops screens drawn in the live app's own look.</p>
+  <p class="small">Live code read: branch <code>leapswitch-redesign</code> at <code>53523fea</code> (Alembic head 0054), read straight from git without checking it out. Builds on <code>2026-11-19-disclosures-and-factsheets-solution-proposal.md</code> (fixes), <code>2026-10-16-analytics-strengthening-plan.md</code> (strengthening), the L-5 findings, the 19 Nov audit first pass, the by-hand runbook and the 31 Oct factsheet state note. Nothing in this page was run on staging. Phone views are out of scope.</p>
+  <nav class="toc" aria-label="Contents"><a href="#bottom">0 Bottom line</a><a href="#research">1 Research</a><a href="#today">2 How it works today</a><a href="#glance">3 At a glance</a><a href="#s">4 Status check</a><a href="#f">5 Fixes</a><a href="#h">6 Strengthening</a><a href="#a">7 Automation deep dive</a><a href="#db">8 Database</a><a href="#be">9 Backend</a><a href="#fe">10 Front end and mockups</a><a href="#exec">11 Execution</a><a href="#risk">12 Risks</a><a href="#questions">13 Open questions</a></nav>
+</header>
+
+<section id="bottom">
+<h2>0 · Bottom line</h2>
+<div class="callout ok"><p><b>Most of the monthly chaos is not the downloading. It is everything around it.</b> Today each by-hand file is found on a site, renamed, copied to the VM with <code>scp</code>, imported with a long <code>ssh … docker compose run …</code> command with exactly the right house name and flags, and the result is pasted back into chat. There is no dry run, no undo, no list of what is still due, and no record of what was done. That repeats for about <b>25 house imports a month</b> (11 disclosure houses, up to 14 factsheet houses).</p></div>
+<p>My recommendation, in order:</p>
+<ol>
+<li><b>Status check now, read-only (S).</b> Before the December cycle starts on 1 Dec, find out what the 20 Nov disclosure run and the 10 Nov factsheet run actually left in the database. Today nobody can say, because neither job keeps a log.</li>
+<li><b>Make failure visible, then fix the bugs (H1–H3, then F).</b> One outcome row per fund house per run, a daily digest email, non-zero exits. Then the eight code fixes, ordered by funds recovered. <b>Hard deadline: FX-L1 (the weekend date rule) must be live before 1 Feb 2027</b>, because 31 Jan 2027 is a Sunday and Franklin's files will be missed again.</li>
+<li><b>Replace the CLI routine with an Ops console (A1).</b> Drop files on a page; the house and month are detected from the file; a dry run shows what would be written, compared with last month; one click commits; one click undoes. Plus a due list, so nothing is forgotten. This removes most of the chaos on its own.</li>
+<li><b>Cut the clicks with a Collector browser extension (A2).</b> A person still opens each AMC page in their own browser (so we never get around a site's block), but the extension picks up each download, tags it and sends it to the Ops console. The monthly routine becomes "open the due list, click through, review, commit": about 30–40 minutes instead of an afternoon.</li>
+<li><b>Work towards real automation in parallel (A5–A7):</b> ask the blocked houses to allow our fixed server address, try an email inbox that receives AMC mailings (Amazon SES can receive mail in Mumbai), and get quotes from data vendors. Each one, when it works for a house, takes that house off the manual list.</li>
+</ol>
+<div class="callout"><p><b>What I do not recommend:</b> an unattended AI agent that drives a browser from a home or office connection to download files from sites that refuse our server. It would work technically, but it is exactly the "access-control workaround" the project ruled out in Run 7 (10 Oct), the sites' terms usually forbid automated access, and it fails silently when a page changes. A <i>supervised</i> pilot is offered as an option in Q12, so it is your call.</p></div>
+</section>
+
+<section id="research">
+<h2>1 · Research: what I checked and what I found</h2>
+<h3>What I read</h3>
+<ul>
+<li><b>Both jobs, end to end:</b> <code>portfolio_disclosure_client.py</code> (1,428 lines), <code>portfolio_disclosure_resolvers.py</code> (52 houses: 27 JSON/POST, 16 static-regex, 2 Wayback, 7 manual), <code>portfolio_disclosure_manual.py</code>, <code>portfolio_disclosure_writer.py</code>, <code>amfi_factsheet_client.py</code>, <code>fund_manager_resolvers.py</code> (55 houses: 30 static-link, 15 JSON, 10 manual), <code>fund_manager_layouts.py</code>, the four job scripts and <code>check_manual_factsheets.py</code>.</li>
+<li><b>Tables:</b> <code>disclosure_batches</code> (one row per scheme per as-of date; <code>parse_errors</code> JSON, <code>fetched_at</code>, <code>written_at</code>), <code>scheme_holdings</code>, <code>scheme_fund_managers</code> (no created/updated timestamp, no batch table at all for factsheets).</li>
+<li><b>Ops:</b> <code>deploy/leapswitch/crontab.leapswitch</code> and <code>run-job.sh</code> (alerts only on a non-zero exit; disclosures has no log file, nav-daily does).</li>
+<li><b>Earlier findings:</b> 16 Oct strengthening plan, 19 Nov audit first pass (44.1% of live series written; 66% for ordinary plan/option series), L-5 per-house findings, 19 Nov solution proposal (causes A–I), 31 Oct factsheet state, the by-hand runbook, the Priority 1 table in <code>DEFERRED_FEATURES.md</code>.</li>
+</ul>
+<h3>What I checked outside the code (plain GET requests, no project data sent)</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Question</th><th>Finding</th><th>What it means for us</th></tr></thead>
+<tbody>
+<tr><td>Does AMFI host every AMC's monthly portfolio files in one place?</td><td><b>No.</b> amfiindia.com's Portfolio Disclosure page is a Next.js page whose content is a list of links out to each AMC's own disclosure page (Nippon, PPFAS, WhiteOak, Bandhan, Choice, Groww…). The factsheet page is the same kind of directory (about 50 houses, logos and links).</td><td>There is no single official source to switch to. We already use AMFI's factsheet directory for landing URLs. A blocked AMC stays blocked when reached through AMFI.</td></tr>
+<tr><td>SEBI timing rule</td><td>HDFC's own notice says monthly and fortnightly portfolios are posted on the AMC's site and on AMFI's, under the SEBI Master Circular. The exact current deadline (the 16 Oct plan assumed "by the 10th") was <b>not confirmed</b> in what I could read; an older circular said 7 working days.</td><td>Alert days should come from each house's <i>observed</i> publishing day (H6), not from a rule we have not confirmed.</td></tr>
+<tr><td>Can we receive email automatically in India?</td><td><b>Yes.</b> AWS lists Asia Pacific (Mumbai) <code>ap-south-1</code> with the receiving endpoint <code>inbound-smtp.ap-south-1.amazonaws.com</code>. We already use SES for sending from the same account.</td><td>An "inbox that receives AMC mailings" (A5) is possible without a new provider. Which AMCs email portfolios or factsheets to subscribers is <b>unknown</b> and needs a two-month trial.</td></tr>
+<tr><td>Data vendors for holdings and fund managers</td><td>Search did not return usable product pages for Accord Fintech (ACE MF), CMOTS or ICRA's MFI Explorer. One exchange-licensed vendor (TrueData) lists a mutual-fund holdings endpoint. Third-party "wrappers" of Morningstar pages exist but are not official licences.</td><td>Prices, coverage and redistribution rights are <b>unknown</b>; only a quote answers them (Q16). Free APIs (mfapi.in and similar) carry NAVs and metadata, not holdings or managers.</td></tr>
+</tbody></table></div>
+<h3>Things you should know before reading the plan</h3>
+<ul>
+<li><b>Nobody can say today what the 20 Nov run did.</b> The disclosure job writes no log file, its container is removed after each run, and lateness alerts fire only on days 10 and 20. That is why S comes first.</li>
+<li><b>The factsheet job has no record per run at all.</b> <code>scheme_fund_managers</code> keeps only the reference month per row. Whether the 10 Nov run worked can be read only by comparing the newest reference month per house (query S2).</li>
+<li><b>The by-hand importers have no dry run and no undo.</b> The disclosure importer replaces a house's waiting rows in one transaction; the factsheet importer checks every file first. Neither can show "what would change" before writing. This is the main thing the Ops console adds.</li>
+<li><b>Two different "manual" lists exist and they do not match.</b> Disclosures: 7 registered manual houses plus 4 that refuse our server (Bajaj, WhiteOak, Trust, Angel One). Factsheets: 10 registered manual houses plus 4 registered as automatic that fail (Angel One, Sundaram, SBI, Mahindra Manulife), which the CLI refuses to import by hand.</li>
+<li><b>Upcoming dates.</b> December cycle: disclosure job days 1–20 Dec for 30 Nov (a Monday, so the weekend bug does not bite); factsheet job 10 Dec; manual-factsheet check 15 Dec. 31 Dec is a Thursday. <b>31 Jan 2027 is a Sunday</b> and 28 Feb 2027 too.</li>
+</ul>
+</section>
+
+<section id="today">
+<h2>2 · How it works today, and where it breaks</h2>
+<p class="sub">Both pipelines in one picture. The letters are the causes from the 19 Nov proposal.</p>
+<div class="flow">
+ <div class="lane"><div class="lane-t">Portfolio disclosures (holdings) · daily 05:45, days 1–20</div>
+  <div class="steps">
+   <div class="st">Registry<small>52 houses, keyed by <code>schemes.amc_name</code></small><span class="bad">D name drift</span></div><i>→</i>
+   <div class="st">Locate files<small>static page, JSON/POST, Wayback</small><span class="bad">B exact date</span><span class="bad">F Wayback</span><span class="bad">G 403/406</span></div><i>→</i>
+   <div class="st">Download<small>main host, then variants</small><span class="bad">C 404-only fallback</span></div><i>→</i>
+   <div class="st">Parse + match<small>sheets → scheme families</small><span class="bad">E 2nd workbook skipped</span></div><i>→</i>
+   <div class="st">Write batch<small>sum check 90–101%</small><span class="bad">I no reason kept</span></div>
+  </div>
+  <div class="side">By hand (11 houses): download → rename → <code>scp</code> → <code>ssh</code> + <code>docker compose run import_manual_portfolio_disclosures.py</code> → paste result to chat. No dry run, no undo.</div>
+ </div>
+ <div class="lane"><div class="lane-t">Factsheets (fund managers) · once, 06:00 on the 10th</div>
+  <div class="steps">
+   <div class="st">Registry<small>55 houses</small><span class="bad">D Zerodha too</span></div><i>→</i>
+   <div class="st">Find PDF<small>landing link or JSON</small><span class="bad">G blocked</span></div><i>→</i>
+   <div class="st">Date gate<small>"as on" within 45 days</small><span class="warn">one shot a month</span></div><i>→</i>
+   <div class="st">Read layout<small>per-house reader</small></div><i>→</i>
+   <div class="st">Write managers<small><code>scheme_fund_managers</code></small><span class="warn">no run record</span></div>
+  </div>
+  <div class="side">By hand (10–14 houses): same scp/ssh routine with <code>import_manual_fund_managers.py</code>. Refuses houses registered as automatic.</div>
+ </div>
+ <div class="lane bad-lane"><div class="lane-t">Around both (cause A): nothing fails loudly</div>
+  <div class="side" style="margin:0">Exit 0 even when 20 houses fail → <code>run-job.sh</code> sends no email. No log file for disclosures. Lateness alerts only on days 10 and 20. A failed download writes no row, so "blocked", "wrong date", "renamed" and "not published" all look the same. Error text cut at 300 characters.</div>
+ </div>
+</div>
+</section>
+
+<section id="glance">
+<h2>3 · At a glance</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Part</th><th>Items</th><th>What it gives you</th><th>DB</th><th>Backend</th><th>Front end</th><th class="n">Effort</th></tr></thead>
+<tbody>
+<tr><td><span class="pill b">S</span> Status check</td><td>S1–S6</td><td>A true picture of both jobs before the December cycle</td><td>none (read-only)</td><td>one read-only script</td><td>none</td><td class="n">1 d + your VM run</td></tr>
+<tr><td><span class="pill r">F</span> Fixes</td><td>FX-L1–L8, FX-F1–F5</td><td>Back the ~470 series lost in October, and the factsheet misses</td><td>none</td><td>client, resolvers, importer</td><td>none</td><td class="n">~11 d</td></tr>
+<tr><td><span class="pill w">H</span> Strengthening</td><td>H1–H10</td><td>Every failure visible the same day, with a reason</td><td>1 table, 3 columns</td><td>outcomes module, digest, cron</td><td>feeds the Ops console</td><td class="n">~10 d</td></tr>
+<tr><td><span class="pill g">A</span> Automation</td><td>A1–A8</td><td>The monthly routine in one page, then fewer manual houses</td><td>1 table, 2 columns</td><td>intake + ops API, email intake</td><td>Ops console (6 screens), Collector extension</td><td class="n">~17 d</td></tr>
+</tbody></table></div>
+<p class="small">Effort is worker-days (Codex or Antigravity), plus about 25% for Claude review gates. Total about 40 days, in two releases (R1: S + H1–H5 + F; R2: the rest of H and A). Phone views out of scope.</p>
+<h3>Order and dependencies</h3>
+<div class="tl">
+ <div><b>Now → 30 Nov</b><span>S1–S6 read-only status check (you or the intern runs the guide on the VM)</span></div>
+ <div><b>1–20 Dec</b><span>December cycle runs on today's code. By-hand files through today's runbook, one last time.</span></div>
+ <div><b>Dec, R1 build</b><span>H1–H3 visibility → FX-L1, L2, L5, L6 → H4, H5 → FX-L7, L8, F1–F5</span></div>
+ <div><b>Before 1 Jan</b><span>R1 on staging, so the January cycle is the first one with outcomes and the date fix</span></div>
+ <div><b>Jan, R2 build</b><span>A1 intake + Ops console → A2 Collector → A5 email intake; H6–H10</span></div>
+ <div><b>Before 1 Feb</b><span>Hard line: FX-L1 live (31 Jan is a Sunday). R2 on staging for the February by-hand round.</span></div>
+ <div><b>In parallel</b><span>A6 letters to the blocked houses, A7 vendor quotes, A5 mailbox subscriptions (results take 1–2 months)</span></div>
+</div>
+</section>
+
+<section id="s">
+<h2 class="part">4 · Status check (S): where both jobs stand today</h2>
+<p>Read-only. One new script, <code>backend/scripts/audit_pipelines/status.py</code>, that extends the existing <code>run_audit.py</code> (E1–E5) with the factsheet side and the proposal's verification queries. It opens the database read-only and refuses to run otherwise, exactly like <code>run_audit.py</code>. A guide in the style of the 18 Nov audit guide tells you or the intern how to run it on the VM and send the output back. I then write the status report.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>Question</th><th>How</th><th>Answers</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>Final October disclosure coverage after the last run (20 Nov) and the by-hand imports</td><td>E1–E5 for <code>2026-10-31</code>, as on 19 Nov</td><td>Did Samco, Zerodha, LIC, Motilal, Canara change on 20 Nov? Were all 7 by-hand houses imported?</td></tr>
+<tr><td>S2</td><td>Factsheet state per house after the 10 Nov run</td><td>Newest <code>reference_period</code> and scheme count per house (query 5a of the 31 Oct note), against the 31 Oct table</td><td>Which houses moved to the October/November issue, which stayed, which have nothing</td></tr>
+<tr><td>S3</td><td>LIC's second workbook (cause E)</td><td><code>count(DISTINCT source_url)</code> for LIC at 31 Oct</td><td>1 confirms the "stops after first workbook" bug</td></tr>
+<tr><td>S4</td><td>Which families dropped between September and October, per house</td><td>Families WRITTEN at 30 Sep and not at 31 Oct, with base fund name</td><td>Motilal, Canara, and any house nobody noticed</td></tr>
+<tr><td>S5</td><td>Which houses date files on the last working day (cause B's blast radius)</td><td>Discovery-only run of every JSON/custom locator with a 3-day window, nothing downloaded or written (the L-5 method)</td><td>The full list FX-L1 must cover</td></tr>
+<tr><td>S6</td><td>What the VM keeps</td><td>List <code>/var/log/unifolio-*</code>, root's cron mail, crontab as installed</td><td>Whether any run output survived; confirms H2 is needed</td></tr>
+</tbody></table></div>
+<p class="small">ICICI's 59 failed batches (the recorder dry run) belong to FX-L8, not here: it downloads the ZIP and needs more time. The status check writes nothing and runs no job.</p>
+<p><b>Ongoing status after R1:</b> the same questions are answered every day by the Coverage board (section 10) from the outcomes table, so this manual check is done once.</p>
+</section>
+
+<section id="f">
+<h2 class="part">5 · Fixes (F): the code bugs, ordered by funds recovered</h2>
+<p class="sub">From the 19 Nov proposal and the 16 Oct register. Each is test-first, through the Batch A review gate. "Series" means live scheme rows (plan × option).</p>
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>Fix</th><th>Cause</th><th>Change</th><th>Tests</th><th class="n">Series</th><th class="n">Days</th></tr></thead>
+<tbody>
+<tr><td><b>FX-L1</b></td><td>Weekend month-end</td><td>B: <code>_fetch_dated_records</code> keeps only <code>disclosed == as_of</code></td><td>Accept the last business day on or before month end, window <code>[target−3d, target]</code>, Mon–Fri, never the prior month. Compare by <b>calendar month</b> in <code>refresh</code>, <code>_written_prior_months</code>, <code>monthly_zero_batch_summary</code>, <code>stale_fallback</code> and audit E1/E4.</td><td>Saturday, Sunday, normal month end, holiday Friday, a house that re-dates 30→31 Oct (must not create two live batches per scheme per month)</td><td class="n">321 + unknown</td><td class="n">1.5</td></tr>
+<tr><td><b>FX-L2</b></td><td>House renamed (Zerodha)</td><td>D: both registries keyed by <code>schemes.amc_name</code></td><td>Each registry entry gets an alias set (old + new name). Lookups go through one helper used by both jobs, the importers and <code>stale_manual_houses</code>. Startup consistency check in H5.</td><td>Old name only, new name only, both in the scheme master</td><td class="n">25 + factsheet</td><td class="n">1</td></tr>
+<tr><td><b>FX-L5</b></td><td>Samco host fallback</td><td>C: next URL only on HTTP 404</td><td>For <code>prefer_site_variants</code> houses, try the next variant on any 4xx/5xx or network error. Drop the bare root-relative variant. Keep 404-only for deterministic templates.</td><td>500 then 200; network error then 200; template 500 stops</td><td class="n">31</td><td class="n">0.5</td></tr>
+<tr><td><b>FX-L6</b></td><td>LIC second workbook</td><td>E: <code>if single: break</code> after the first file</td><td>Never break when the locator returned more than one distinct as-of file; "single" keeps its "one URL, many sheets" meaning only.</td><td>Two workbooks covering different schemes</td><td class="n">~70</td><td class="n">1</td></tr>
+<tr><td><b>FX-L7</b></td><td>Wayback demoted</td><td>F: CDX <code>limit=-50</code> as primary source</td><td>Direct URL patterns first (Canara <code>wp-content/uploads/YYYY/MM/</code>, HDFC <code>s3fs-public/&lt;YYYY-MM&gt;/</code>), Wayback as labelled fallback; one CDX query per run, honour 429 retry hints, outcome <code>VIA_WAYBACK</code>.</td><td>Direct hit; direct miss then Wayback; 429 backoff</td><td class="n">~250</td><td class="n">2</td></tr>
+<tr><td><b>FX-L8</b></td><td>ICICI failed sum checks</td><td>I: no reason kept; suspected fraction/percent guess</td><td>Step 1 recorder dry run over the ZIP (writer replaced by a recorder). Step 2 the fix it points to, likely H8.</td><td>From the recorder's real cases, as text fixtures</td><td class="n">59 batches</td><td class="n">2</td></tr>
+<tr><td><b>FX-F1</b></td><td>Factsheet side of Zerodha</td><td>D</td><td>Covered by FX-L2's alias helper; one factsheet test</td><td>Reader on the saved Zerodha file under the new name</td><td class="n">25</td><td class="n">0.3</td></tr>
+<tr><td><b>FX-F2</b></td><td>Edelweiss factsheet link</td><td>Layout changed</td><td>Re-read the page, update <code>link_pattern</code>; if not stable in one bounded try, move to manual (standing rule)</td><td>Saved page fixture</td><td class="n">~25 families</td><td class="n">1</td></tr>
+<tr><td><b>FX-F3</b></td><td>Sundaram "internal error"</td><td>Unknown; text cut at 300 chars</td><td>After H2 logs the traceback, diagnose and fix</td><td>From the real traceback</td><td class="n">40 families</td><td class="n">1</td></tr>
+<tr><td><b>FX-F4</b></td><td>By-hand import for any house, this month only</td><td>CLI refuses automatic houses (Angel One, Sundaram, SBI, Mahindra)</td><td>The importer already has <code>--this-month-only</code>; make the intake path (A1) accept any registered house with that flag, recorded in the outcome</td><td>Automatic house imported by hand, stays automatic</td><td class="n">4 houses</td><td class="n">0.5</td></tr>
+<tr><td><b>FX-F5</b></td><td>HDFC passive factsheet</td><td>Never tested</td><td>Verify the reader on one real passive file (you supply it)</td><td>Text fixture from the file</td><td class="n">HDFC passive</td><td class="n">0.5</td></tr>
+</tbody></table></div>
+<p class="small">FX-L3 and FX-L4 from L-5 (keep the reason, alert when a house that wrote last month has nothing) are folded into H1 and H3 below.</p>
+</section>
+
+<section id="h">
+<h2 class="part">6 · Strengthening (H): make both jobs fail loudly and learn</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>Item</th><th>What changes</th><th class="n">Days</th></tr></thead>
+<tbody>
+<tr><td><b>H1</b></td><td>One outcome per house per run, both jobs</td><td>New module <code>pipeline_outcomes.py</code> with a closed set: <code>WRITTEN</code>, <code>PARTIAL</code>, <code>NOT_PUBLISHED</code>, <code>WRONG_DATE</code>, <code>BLOCKED</code> (status), <code>DOWNLOAD_ERROR</code> (status), <code>PARSE_ERROR</code>, <code>FAILED_SUM_CHECK</code>, <code>UNMATCHED</code>, <code>NO_SCHEME_ROWS</code>, <code>NOT_ONBOARDED</code>, <code>AWAITING_FILE</code>, <code>ALREADY_CURRENT</code>, <code>VIA_WAYBACK</code>. Every run writes one row per house to <code>pipeline_run_outcomes</code> (section 8), always, not only on days 10/20. Failed sum checks fill <code>parse_errors</code> with totals and the scale chosen. Full traceback stored, no 300-char cut.</td><td class="n">2.5</td></tr>
+<tr><td><b>H2</b></td><td>Exit codes and logs</td><td>Exit non-zero when (a) failed houses exceed a threshold or (b) any house WRITTEN last month is now not WRITTEN, NOT_PUBLISHED or ALREADY_CURRENT. Cron output to <code>/var/log/unifolio-disclosures.log</code> and <code>/var/log/unifolio-factsheets.log</code> with logrotate, like nav-daily.</td><td class="n">0.5</td></tr>
+<tr><td><b>H3</b></td><td>State-based alerts and a daily digest</td><td>Replace the day-10/20 gates: alert when a house that wrote last month has nothing by its usual publishing day + 3 (from H6; day 5 until history exists). One daily digest email after the morning runs: counts by outcome, changes since yesterday, by-hand houses still due. Through the existing SES path (<code>send_job_failure_alert.py</code> pattern).</td><td class="n">1.5</td></tr>
+<tr><td><b>H4</b></td><td>Factsheet job runs daily over a window</td><td>Days 8–25, 06:00, skip houses already current for the month (<code>ALREADY_CURRENT</code>). A house that publishes on the 11th no longer waits a month. The importer is already safe to repeat.</td><td class="n">1</td></tr>
+<tr><td><b>H5</b></td><td>Registry vs scheme master check</td><td>At each run start: every registry key (with aliases) must have live schemes, and every live <code>amc_name</code> must be in a registry or on an explicit "not expected" list. A miss is an outcome and an alert. Would have caught Zerodha the day it changed.</td><td class="n">0.5</td></tr>
+<tr><td><b>H6</b></td><td>Learn each house's publishing day</td><td>From outcome history: first day each house was WRITTEN per month. Shown on the house drawer; drives H3's alert day. Factsheets gain <code>imported_at</code> on <code>scheme_fund_managers</code> so the same works there.</td><td class="n">0.5</td></tr>
+<tr><td><b>H7</b></td><td>Disclosure window and re-run</td><td>Cron days 1–25 (five extra runs), plus <code>--target-month</code> to re-run a past month safely (idempotent per URL).</td><td class="n">0.5</td></tr>
+<tr><td><b>H8</b></td><td>Weights from market value, not a guessed scale</td><td>Derive each weight from market value ÷ total (or the declared total row); use the percent column only as a cross-check. Fixes the near-100%-one-holding gold/silver ETF sheets (Wealth Company, ICICI, DSP, Baroda, ABSL, Kotak).</td><td class="n">1.5</td></tr>
+<tr><td><b>H9</b></td><td>New launches before the scheme master</td><td>Measure the lag between a fund appearing in an AMC file and in AMFI's NAVAll (Navi, Mirae ETFs). Unmatched sheets keep their name in the outcome detail, so they can be matched on a later run instead of lost.</td><td class="n">1</td></tr>
+<tr><td><b>H10</b></td><td>Coverage line, the agreed way</td><td>Day-20 and day-25 coverage per job: houses, funds, share of expected; headline = open-ended plan and option series, ETFs and FMPs separately (your 19 Nov decision).</td><td class="n">0.5</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="a">
+<h2 class="part">7 · Automation deep dive (A): stop uploading files by hand</h2>
+<h3>7.1 What "manual" costs today, per month</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Pipeline</th><th>Houses by hand</th><th>Why</th><th class="n">Files</th><th class="n">Live series affected</th></tr></thead>
+<tbody>
+<tr><td>Disclosures</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC, Bandhan</td><td>Registered manual (encrypted lists, PDF-only, not collected)</td><td class="n">~9</td><td class="n">1,692</td></tr>
+<tr><td>Disclosures</td><td>Bajaj Finserv, WhiteOak, Trust, Angel One</td><td>Refuse our server (403/406); open in a browser</td><td class="n">~8+</td><td class="n">254</td></tr>
+<tr><td>Factsheets</td><td>ICICI, Kotak, HDFC (2), Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust</td><td>Registered manual (bot protection, API key)</td><td class="n">11</td><td class="n">689 funds</td></tr>
+<tr><td>Factsheets</td><td>Angel One, Sundaram, SBI (2), Mahindra Manulife</td><td>Automatic but failing; CLI refuses them</td><td class="n">5</td><td class="n">~200 funds</td></tr>
+</tbody></table></div>
+<p>Each file takes about eight steps today: find the right page and month, download, rename, copy to the VM, type the import command with the exact registry name, read the printed counts, decide whether they look right, report in chat. The steps that cause the chaos are the ones after the download: names, flags, the VM, and not knowing what is still due or what was already done.</p>
+
+<h3>7.2 Every way to get the files, compared</h3>
+<div class="tablewrap"><table class="opt">
+<thead><tr><th>Option</th><th>How it works</th><th>Removes manual work</th><th>Within our rules?</th><th>Risk</th><th>Cost</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><b>A1 Ops console + intake</b></td><td>Web page: drop files, house and month detected from the file, dry run against last month, commit, undo. Due list. Replaces scp/ssh/CLI.</td><td>The chaos around each file; not the download</td><td><span class="pill g">yes</span></td><td>low</td><td>~11 d</td><td><span class="pill g">build (foundation)</span></td></tr>
+<tr><td><b>A2 Collector extension</b></td><td>Small Chrome extension in the person's own browser. Shows the due list, opens each AMC page; the person clicks Download; the extension tags the file (house, month) and sends it to intake.</td><td>Renaming, uploading, tracking; most clicks</td><td><span class="pill g">yes</span> a person browses normally</td><td>low; needs Chrome Web Store "unlisted" or developer-mode install</td><td>~3 d</td><td><span class="pill g">build</span></td></tr>
+<tr><td><b>A3 Supervised agent</b></td><td>Claude in Chrome (or a Playwright script) drives the person's own browser through the due list while they watch and confirm each house.</td><td>Almost all clicks</td><td><span class="pill w">grey</span> automation the sites refuse to servers, run from a home address</td><td>medium: terms of use, breaks on layout change</td><td>~2 d pilot</td><td><span class="pill w">your call (Q12)</span></td></tr>
+<tr><td><b>A4 Unattended agent</b></td><td>The same, on a schedule on an office machine or residential proxy, nobody watching.</td><td>All</td><td><span class="pill r">no</span> this is the Run 7 "access-control workaround"</td><td>high: silent failures, possible blocking of the office address</td><td>—</td><td><span class="pill r">do not build</span></td></tr>
+<tr><td><b>A5 Email intake</b></td><td>An ops mailbox (e.g. <code>data-intake@</code>) receives via SES Mumbai → stored → a job reads attachments and links and feeds intake. Subscribe it to every AMC's factsheet/portfolio mailing.</td><td>All, for houses that mail</td><td><span class="pill g">yes</span> it is what the AMC chose to send</td><td>which houses mail is unknown; links may be login or tracking links</td><td>~3 d + 2-month trial</td><td><span class="pill g">trial</span></td></tr>
+<tr><td><b>A6 Ask the AMCs</b></td><td>One letter to the blocked houses: allow-list our fixed server address, or send a monthly file or feed.</td><td>All, per house that agrees</td><td><span class="pill g">yes</span></td><td>slow; some will not answer</td><td>letters, a tracker</td><td><span class="pill g">start now</span></td></tr>
+<tr><td><b>A7 Data vendor</b></td><td>Licensed holdings and fund-manager data (quotes from 2–3 vendors).</td><td>All, including the 5 houses with no factsheet</td><td><span class="pill g">yes</span></td><td>licence may forbid showing raw data to users; cost</td><td>unknown</td><td><span class="pill b">get quotes</span></td></tr>
+<tr><td><b>A8 Fixed egress address</b></td><td>The jobs leave from one known IP (staging VM's public IP; production AWS NAT Elastic IP), so A6 has something to allow-list.</td><td>Enables A6</td><td><span class="pill g">yes</span></td><td>low</td><td>config</td><td><span class="pill g">with A6</span></td></tr>
+</tbody></table></div>
+
+<h3>7.3 The recommended design: one intake, many ways in</h3>
+<div class="flow">
+ <div class="lane"><div class="lane-t">Ways in (each one marks its source)</div>
+  <div class="steps">
+   <div class="st">Daily jobs<small>server fetch, as today</small></div>
+   <div class="st">Ops console upload<small>drag and drop</small></div>
+   <div class="st">Collector extension<small>person's browser</small></div>
+   <div class="st">Email intake<small>SES Mumbai inbox</small></div>
+   <div class="st">Vendor / AMC feed<small>later, per house</small></div>
+  </div></div>
+ <div class="lane"><div class="lane-t">Intake (new): one path for every file</div>
+  <div class="steps">
+   <div class="st">Store<small>sha-256, de-duplicate, keep 90 days</small></div><i>→</i>
+   <div class="st">Detect<small>house, pipeline, as-of date from the file itself</small></div><i>→</i>
+   <div class="st">Dry run<small>same parse + match, recorder instead of writer</small></div><i>→</i>
+   <div class="st">Review<small>vs last month; auto-commit when rules pass</small></div><i>→</i>
+   <div class="st">Commit<small>existing writers, tagged with the intake id</small></div><i>→</i>
+   <div class="st">Undo<small>delete rows of that intake, restore waiting rows</small></div>
+  </div></div>
+ <div class="lane"><div class="lane-t">Visibility (H1)</div>
+  <div class="side" style="margin:0">Every path writes the same outcome rows → Coverage board, due list, daily digest, exit codes.</div></div>
+</div>
+<h3>7.4 How detection works (so nobody types a house name again)</h3>
+<ul>
+<li><b>Pipeline:</b> PDF → factsheet; <code>.xls/.xlsx/.zip</code> → disclosure (the same sniffing <code>sniff_workbook_format</code> already does).</li>
+<li><b>House:</b> match the file's text (title block, sheet names, the AMC name printed on every disclosure and factsheet) against registry keys and aliases; for the Collector and email, the page or sender domain is a second signal. Two signals must agree, or the console asks the person to pick.</li>
+<li><b>As-of date:</b> the date printed in the file (the factsheet reader's "as on" scan; the disclosure sheet header), never the file name, never the upload day. A date outside the expected month shows as a warning, and the existing 45-day and month-end rules still apply.</li>
+<li><b>Auto-commit (optional, Q19):</b> when house and date are certain, every sheet parses, matched series ≥ 90% of last month's, and no new sum-check failures, the intake commits by itself and the digest reports it. Otherwise it waits for a person.</li>
+</ul>
+<h3>7.5 What the monthly routine becomes</h3>
+<div class="grid2">
+<div class="callout"><p><b>Today</b> (≈ 25 imports, about 3–4 hours, two people)</p><ol style="margin:0"><li>Work out which houses are due (from memory and runbooks)</li><li>Open each site, find the month, download</li><li>Rename every file</li><li>scp to the VM from WSL</li><li>One ssh + docker command per house, exact names and flags</li><li>Read counts, judge them, paste into chat</li><li>Someone re-runs the audit to see if it worked</li></ol></div>
+<div class="callout ok"><p><b>After A1 + A2</b> (about 30–40 minutes, one person)</p><ol style="margin:0"><li>The digest email says "9 by-hand houses due"</li><li>Open the Collector; it opens each house's page in turn</li><li>Click the site's own Download button; the file goes to intake, tagged</li><li>Open the Ops console: each file shows a dry run next to last month</li><li>Commit the green ones; look at any amber ones</li><li>The due list empties; the board shows coverage</li></ol></div>
+</div>
+</section>
+
+<section id="db">
+<h2 class="part">8 · Database changes</h2>
+<p class="sub">Migrations 0055–0057 (numbers to be re-checked against the MF new-features plan, which also adds migrations). Reference data only: no user data, no PAN, no CAS. Each new table is justified against reusing an existing one first.</p>
+<h3>New table 1: <code>pipeline_run_outcomes</code> (H1)</h3>
+<div class="callout info"><p><b>Why not reuse <code>disclosure_batches</code>?</b> A batch is one row per <i>scheme</i> per as-of date. The failures we cannot see today are exactly the ones with no scheme to hang a row on (house blocked, file not found, wrong date, renamed house), and the factsheet pipeline has no batch table at all. Logs alone are what failed us in November. One small ops table serves both pipelines.</p></div>
+<pre>pipeline_run_outcomes
+  id               uuid pk
+  pipeline         text   check in ('disclosures','factsheets')
+  run_id           uuid   -- one per job run or intake commit
+  run_at           timestamptz
+  source           text   check in ('job','upload','collector','email','feed')
+  target_period    date   -- month end for disclosures; reference month for factsheets
+  amc_name         text   -- registry key (canonical name)
+  outcome          text   -- closed set from H1
+  http_status      int    null
+  files_found      int    null
+  series_expected  int    null
+  series_written   int    null
+  intake_file_id   uuid   null fk → intake_files.id
+  detail           jsonb  -- file URLs, dates seen, unmatched sheet names, traceback
+  index (pipeline, target_period, amc_name), index (run_at)
+  retention: 24 months (about 52 houses × 25 runs × 2 pipelines ≈ 2,600 rows a month)</pre>
+<h3>New table 2: <code>intake_files</code> (A1)</h3>
+<div class="callout info"><p><b>Why a table and not the batch rows?</b> The dry run happens before anything is written, a file can cover 60 schemes or none, and undo needs to know exactly which rows one file wrote. Public AMC files are not user data: the "no raw CAS PDF" rule (ADR-004) does not apply to them, but we still keep them only 90 days (Q17).</p></div>
+<pre>intake_files
+  id               uuid pk
+  sha256           text unique        -- same file twice = one row
+  pipeline         text null          -- detected
+  amc_name         text null          -- detected or chosen
+  as_of_date       date null          -- from the file's own text
+  source           text               -- upload | collector | email | job
+  original_name    text
+  size_bytes       int
+  storage_key      text null          -- object path; null after the 90-day purge
+  status           text  check in ('received','detected','needs_choice','dry_run_ok',
+                                     'dry_run_warn','dry_run_failed','committed','undone','rejected')
+  detection        jsonb              -- signals and confidence
+  dry_run          jsonb              -- matched / unmatched / failed / vs last month
+  received_at, committed_at, undone_at  timestamptz
+  received_by, committed_by             uuid null fk → users.id</pre>
+<h3>Columns added</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Table</th><th>Column</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>disclosure_batches</code></td><td><code>intake_file_id uuid null</code> fk</td><td>Undo deletes exactly the rows one file wrote. <code>raw_file_reference</code> already says <code>manual:&lt;file&gt;</code> but is free text.</td></tr>
+<tr><td><code>scheme_fund_managers</code></td><td><code>intake_file_id uuid null</code> fk</td><td>Same, for factsheets</td></tr>
+<tr><td><code>scheme_fund_managers</code></td><td><code>imported_at timestamptz null</code></td><td>Publishing-day history (H6); the 16 Oct plan noted the table has no timestamp. Null for old rows.</td></tr>
+</tbody></table></div>
+<p class="small"><b>Not added:</b> a <code>users.is_ops</code> column (Q18 recommends an environment allow-list, no migration), an alias table (aliases live in the registry code next to each house, reviewed like code), an outreach table (a tracker document is enough for 15 letters). <code>parse_errors</code> keeps its shape; only the sum-check case starts filling it.</p>
+</section>
+
+<section id="be">
+<h2 class="part">9 · Backend changes</h2>
+<h3>New and changed modules</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>File</th><th>New / changed</th><th>What</th></tr></thead>
+<tbody>
+<tr><td><code>services/analytics/pipeline_outcomes.py</code></td><td>new</td><td>Outcome enum, <code>record_outcome()</code>, run summary, the "should exit non-zero" rule, coverage numbers. Used by both jobs and by intake.</td></tr>
+<tr><td><code>services/analytics/amc_registry.py</code></td><td>new</td><td>One alias-aware lookup for both registries; the H5 consistency check.</td></tr>
+<tr><td><code>services/intake/</code> (<code>store.py</code>, <code>detect.py</code>, <code>dry_run.py</code>, <code>commit.py</code>)</td><td>new</td><td>Store and de-duplicate; detect pipeline/house/date; run parse + match with a recorder; commit through the <i>existing</i> <code>import_manual_files</code> and the factsheet importer's run path, then undo.</td></tr>
+<tr><td><code>portfolio_disclosure_client.py</code></td><td>changed</td><td>FX-L1, L5, L6, L7; emits outcomes; full tracebacks; recorder hook for dry runs.</td></tr>
+<tr><td><code>portfolio_disclosure_manual.py</code></td><td>changed</td><td>Split "prepare" (validate, parse, plan) from "write", so the dry run and the commit share one code path; accepts an <code>intake_file_id</code>.</td></tr>
+<tr><td><code>amfi_factsheet_client.py</code>, <code>import_manual_fund_managers.py</code></td><td>changed</td><td>Outcomes, alias lookup, <code>--this-month-only</code> for any house (FX-F4), the same prepare/write split, <code>imported_at</code>.</td></tr>
+<tr><td><code>scripts/jobs/refresh_*</code></td><td>changed</td><td>Non-zero exit rule (H2), <code>--target-month</code> (H7).</td></tr>
+<tr><td><code>scripts/jobs/pipelines_digest_daily.py</code></td><td>new</td><td>Daily digest email at 07:30 (after both morning runs).</td></tr>
+<tr><td><code>scripts/jobs/email_intake.py</code></td><td>new (A5)</td><td>Reads new messages from the SES receipt bucket every 30 min, saves attachments and allowed links into intake.</td></tr>
+<tr><td><code>scripts/audit_pipelines/status.py</code></td><td>new (S)</td><td>Read-only status check.</td></tr>
+<tr><td><code>deploy/leapswitch/crontab.leapswitch</code>, logrotate files</td><td>changed</td><td>Days 1–25 for disclosures, daily 8–25 for factsheets, log files, digest, email intake.</td></tr>
+</tbody></table></div>
+<h3>New API: <code>/ops/*</code> (ops users only)</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Method</th><th>Path</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/ops/coverage?pipeline=&amp;period=</code></td><td>KPI tiles + one row per house: mode, latest outcome, series written/expected, last month, first-seen day</td></tr>
+<tr><td>GET</td><td><code>/ops/houses/{amc}</code></td><td>House drawer: outcome timeline, publishing-day history, registry note and links, last intake files</td></tr>
+<tr><td>GET</td><td><code>/ops/due?period=</code></td><td>By-hand houses still due, with page links and deadlines</td></tr>
+<tr><td>GET</td><td><code>/ops/runs?pipeline=&amp;from=</code></td><td>Run log: one row per run with counts by outcome and exit code</td></tr>
+<tr><td>POST</td><td><code>/ops/intake</code></td><td>Multipart upload (one or many files); returns detection per file. 25 MB per file, xls/xlsx/zip/pdf only, magic-byte check</td></tr>
+<tr><td>POST</td><td><code>/ops/intake/{id}/choose</code></td><td>Set house/date when detection asks</td></tr>
+<tr><td>POST</td><td><code>/ops/intake/{id}/dry-run</code></td><td>Recorder run; stores and returns the preview</td></tr>
+<tr><td>POST</td><td><code>/ops/intake/{id}/commit</code> · <code>/undo</code> · <code>/reject</code></td><td>Commit through the existing writers; undo within the same cycle</td></tr>
+<tr><td>GET</td><td><code>/ops/intake?status=&amp;period=</code></td><td>Intake history</td></tr>
+<tr><td>POST</td><td><code>/ops/collector/files</code></td><td>Same as <code>/ops/intake</code> for the extension, authenticated with a per-device token issued from the console (revocable)</td></tr>
+</tbody></table></div>
+<p class="small"><b>Access:</b> <code>require_ops_user</code> dependency on top of <code>get_current_user</code>; the user must be in <code>OPS_USER_IDS</code> (env). Non-ops users get 404, so the routes are not discoverable. Every commit/undo is logged with the user id. <b>Heavy work:</b> dry runs of large ZIPs (ICICI ~150 members) run on the existing worker container, not in the API request; the console polls status.</p>
+<p class="small"><b>Storage:</b> intake files go to object storage, not the VM disk that also holds Postgres (the 29 Oct disk incident). Which bucket on CloudPe staging and on AWS production is Q17.</p>
+</section>
+
+<section id="fe">
+<h2 class="part">10 · Front end, with desktop mockups</h2>
+<p><b>New:</b> an Ops console inside the same React/Vite app at <code>/ops</code>, with its own small layout (the shell's tokens, sidebar and top bar; Ops items instead of Home/Portfolio). It is not linked from the user sidebar; ops users reach it from a "Ops console" item in the Profile menu. Six screens: Coverage board, House drawer, This month's by-hand, Upload and dry run, Intake history, Runs. Plus the Collector extension popup (its own tiny React build in <code>tools/collector/</code>) and the daily digest email.</p>
+<p><b>Changes users see:</b> none in the app layout. After FX-L1 a fund page shows "Holdings as of 30 Oct 2026" when that is the file's real date (the date labels from batch E already read the batch date). More funds will simply have current holdings and managers.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Screen</th><th>Route</th><th>Components (new unless noted)</th><th>Data</th></tr></thead>
+<tbody>
+<tr><td>Coverage board</td><td><code>/ops</code></td><td><code>OpsLayout</code>, <code>PipelineSwitch</code>, <code>CycleSelect</code>, <code>KpiTiles</code>, <code>CoverageTable</code>, <code>OutcomeChip</code></td><td><code>/ops/coverage</code></td></tr>
+<tr><td>House drawer</td><td><code>/ops?house=…</code></td><td><code>HouseDrawer</code>, <code>OutcomeTimeline</code>, <code>PublishDayStrip</code></td><td><code>/ops/houses/{amc}</code></td></tr>
+<tr><td>This month's by-hand</td><td><code>/ops/due</code></td><td><code>DueList</code>, <code>DueRow</code></td><td><code>/ops/due</code></td></tr>
+<tr><td>Upload and dry run</td><td><code>/ops/upload</code></td><td><code>DropZone</code> (reuses the CAS upload drop zone styles), <code>DetectionCard</code>, <code>DryRunPreview</code>, <code>CommitBar</code></td><td><code>/ops/intake*</code></td></tr>
+<tr><td>Intake history</td><td><code>/ops/intake</code></td><td><code>IntakeTable</code>, <code>UndoDialog</code></td><td><code>/ops/intake</code></td></tr>
+<tr><td>Runs</td><td><code>/ops/runs</code></td><td><code>RunsTable</code>, <code>OutcomeBars</code></td><td><code>/ops/runs</code></td></tr>
+</tbody></table></div>
+<p class="small">Mockups below use real fund-house names and the real October numbers from the 19 Nov audit where they exist; the rest is illustrative. Use the state buttons, "Full size ↗" for actual size (arrow keys move, Esc closes) and "Dark app" for dark mode.</p>
+<div class="desk" data-k="OPS"></div>
+<div class="desk" data-k="COL"></div>
+</section>
+
+<section id="exec">
+<h2 class="part">11 · Execution</h2>
+<p>As you described: Claude orchestrates and reviews, Codex builds the backend, Antigravity builds the front end. Test-first everywhere (superpowers TDD), Sonnet by default, Opus for the riskiest review and the final whole-release review, affected tests only per step. No lanes or plans until you say go.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Release</th><th>Batch</th><th>Worker</th><th>Contents</th><th>Gate</th></tr></thead>
+<tbody>
+<tr><td rowspan="1">—</td><td>S</td><td>Claude (script), you (VM run)</td><td>Status script + guide, then the status report</td><td>Read-only proof (refuses non-read-only connection)</td></tr>
+<tr><td rowspan="4"><b>R1</b><br><span class="small">target before 1 Jan</span></td><td>R1-a visibility</td><td>Codex</td><td>Migration 0055 (<code>pipeline_run_outcomes</code>), H1, H2, H3, H5</td><td>Review: a fixture run where every outcome appears once</td></tr>
+<tr><td>R1-b fixes 1</td><td>Codex</td><td>FX-L1, FX-L2 (+F1), FX-L5, FX-L6</td><td>Each with its fixtures; Opus review on FX-L1 (calendar-month change touches five call sites)</td></tr>
+<tr><td>R1-c windows</td><td>Codex</td><td>H4, H7, cron + logrotate</td><td>Deploy guide dry run</td></tr>
+<tr><td>R1-d fixes 2</td><td>Codex</td><td>FX-L7, FX-L8 (recorder first), FX-F2, F3, F5, H8</td><td>Real-file text fixtures</td></tr>
+<tr><td rowspan="5"><b>R2</b><br><span class="small">target before 1 Feb</span></td><td>R2-a intake backend</td><td>Codex</td><td>Migrations 0056–0057, <code>services/intake</code>, prepare/write split, FX-F4, <code>/ops/*</code>, access guard</td><td>Opus review (undo correctness, access)</td></tr>
+<tr><td>R2-b Ops console</td><td>Antigravity</td><td>Six screens from the mockups</td><td>Visual check against this page, light and dark</td></tr>
+<tr><td>R2-c Collector</td><td>Antigravity + Codex</td><td>Extension, device tokens</td><td>Real browser proof (lesson 9)</td></tr>
+<tr><td>R2-d email intake</td><td>Codex + you (AWS console)</td><td>SES receipt rule, bucket, <code>email_intake.py</code></td><td>One real mailing received end to end</td></tr>
+<tr><td>R2-e learning</td><td>Codex</td><td>H6, H9, H10</td><td>—</td></tr>
+</tbody></table></div>
+<p class="small">Both releases deploy to staging (CloudPe) with a deploy guide that names terminals and starts/stops nothing it does not need. Production AWS gets them through the usual merge.</p>
+</section>
+
+<section id="risk">
+<h2>12 · Risks and how the plan handles them</h2>
+<ul>
+<li><b>FX-L1 creates two live batches for one month</b> if a house later re-dates 30 Oct to 31 Oct. Covered by a fixture and by comparing by calendar month everywhere.</li>
+<li><b>Auto-detection picks the wrong house.</b> Two signals must agree; otherwise the person chooses. Commit is never automatic without certainty (Q19), and undo exists.</li>
+<li><b>Undo after users already saw the data.</b> Holdings consumers read the newest WRITTEN batch, so undo simply falls back to the previous month's batch; analytics recompute runs nightly.</li>
+<li><b>Outcome noise floods the digest.</b> The digest shows changes since yesterday, not the full table.</li>
+<li><b>Extension distribution.</b> An unlisted Chrome Web Store item or developer-mode install for two or three people; token revocable from the console.</li>
+<li><b>Email intake links are login or tracking links.</b> Only links to registered AMC domains are followed, plain GET, no credentials.</li>
+<li><b>Vendor licence forbids showing raw holdings</b> to users. Read before signing; derived numbers may still be allowed.</li>
+<li><b>Migration numbering clash</b> with the MF new-features work. The plan writer re-checks the head before writing migrations.</li>
+</ul>
+</section>
+
+<section id="questions">
+<h2>13 · Open questions</h2>
+<p class="sub">Pick an option and add a note if you like. Your choices stay in this browser. Use "Copy my answers" at the end and paste them back to me. <span class="badge" style="margin-left:0">Recommended</span> marks my pick. Answers are not a go: plans are written only when you say so.</p>
+<div id="qs"></div>
+<div style="border-top:1px solid var(--line);padding-top:16px;margin-top:8px">
+ <h3 style="margin-top:0">Your answers</h3>
+ <textarea id="out" rows="8" readonly aria-label="Your answers as text"></textarea>
+ <div class="row"><button id="copy" type="button">Copy my answers</button><span id="copied" class="small" role="status"></span></div>
+</div>
+</section>
+</main>
+<script>
+(function(){
+var G=[
+["Order and scope",[
+{id:"Q1",t:"Order of the four parts",why:"Visibility first means every fix after it can be seen working. The December cycle runs on today's code either way.",o:[
+ {k:"a",rec:1,l:"S now (read-only) → H1–H3 visibility → fixes → Ops console and Collector → automation trials",d:"As drawn in section 3."},
+ {k:"b",l:"Fixes first, visibility after",d:"Faster recovery of Franklin/Zerodha; fixes cannot be verified from outcomes."},
+ {k:"c",l:"Everything in one release",d:"One deploy; lands late January at best, close to the 31 Jan Sunday."}]},
+{id:"Q2",t:"Release shape",why:"Your usual pattern is one release deployed together. Here a deadline exists: FX-L1 must be live before 1 Feb 2027.",o:[
+ {k:"a",rec:1,l:"Two releases: R1 (S, H1–H5, fixes) before 1 Jan; R2 (Ops console, Collector, email intake, H6–H10) before 1 Feb",d:"January is the first cycle with outcomes and the date fix."},
+ {k:"b",l:"One release before 1 Feb",d:"Matches your usual way; no visibility in January."}]},
+{id:"Q3",t:"Who runs the status check on the VM?",why:"It is read-only, about 15 minutes, same shape as the 18 Nov audit guide.",o:[
+ {k:"a",rec:1,l:"I write the script and guide; you or the intern run it before 30 Nov",d:"The script ships to the VM with the next backend build, or is run from a mounted folder (the guide says which)."},
+ {k:"b",l:"Skip it; rely on R1's outcomes from January",d:"December is planned blind."}]},
+{id:"Q4",t:"October gaps for Franklin and Zerodha",why:"Franklin's November file will be dated 30 Nov (a Monday), so December's run picks it up with today's code. Zerodha stays empty until FX-L2.",o:[
+ {k:"a",rec:1,l:"Leave October as is; December fixes Franklin by itself; Zerodha waits for R1",d:"No hand import without undo."},
+ {k:"b",l:"Hand-import Franklin's October files now with --allow-any-date",d:"The strict audit will not count them; no undo."}]}]],
+["Strengthening",[
+{id:"Q5",t:"Where do run outcomes live?",why:"The proposal of 19 Nov suggested a disclosures-only table. Factsheets have the same blind spot and no batch table at all.",o:[
+ {k:"a",rec:1,l:"One shared table pipeline_run_outcomes for both pipelines",d:"Section 8; ~2,600 rows a month, kept 24 months."},
+ {k:"b",l:"Disclosures-only table; factsheets in logs",d:"Factsheets stay half-blind."},
+ {k:"c",l:"Logs and parse_errors only, no table",d:"No migration; the Ops console cannot be built on it."}]},
+{id:"Q6",t:"Job windows",why:"Disclosures stop on day 20 today; factsheets run once on the 10th.",o:[
+ {k:"a",rec:1,l:"Disclosures days 1–25; factsheets daily days 8–25 with skip-if-current",d:"About 5 + 17 extra short runs a month."},
+ {k:"b",l:"Keep the current windows",d:""}]},
+{id:"Q7",t:"Alert channel",why:"SES email already works for job failures.",o:[
+ {k:"a",rec:1,l:"Daily digest email at 07:30 + immediate email on a non-zero exit",d:"To the ops address list."},
+ {k:"b",l:"Also Slack or WhatsApp",d:"Needs a webhook or provider; plan separately."}]},
+{id:"Q8",t:"Who receives the digest?",why:"The ops-alerts subscriptions were still pending confirmation in October.",o:[
+ {k:"a",rec:1,l:"You and the intern (say the addresses in the note)",d:""},
+ {k:"b",l:"Also the manager",d:""}]}]],
+["Automation",[
+{id:"Q9",t:"The foundation: how should by-hand files get in?",why:"The chaos is the steps after the download: names, flags, scp, ssh, no dry run, no undo.",o:[
+ {k:"a",rec:1,l:"Ops console inside the app at /ops (upload, detection, dry run, commit, undo, due list, coverage)",d:"About 11 days with the backend."},
+ {k:"b",l:"A separate small admin app",d:"Second build and deploy to look after."},
+ {k:"c",l:"Only improve the CLI (auto-detect, --dry-run, undo)",d:"About 4 days; still needs the VM and WSL."}]},
+{id:"Q10",t:"Build the Collector browser extension?",why:"A person still opens each page in their own browser; the extension tags and uploads each download.",o:[
+ {k:"a",rec:1,l:"Yes, after the Ops console (R2)",d:"About 3 days. Installed unlisted for 2–3 people."},
+ {k:"b",l:"No; drag and drop into the console is enough",d:""}]},
+{id:"Q11",t:"Which browser for the Collector?",why:"One browser keeps it small.",o:[
+ {k:"a",rec:1,l:"Chrome (and Edge, same build)",d:""},
+ {k:"b",l:"Firefox too",d:"About +1 day."}]},
+{id:"Q12",t:"An AI agent that downloads for us",why:"Technically possible. The sites refuse servers on purpose; Run 7 (10 Oct) ruled out access-control workarounds.",o:[
+ {k:"a",rec:1,l:"Not now. Revisit per house only with written permission from that AMC",d:"Keeps the Run 7 rule."},
+ {k:"b",l:"Supervised pilot: Claude in Chrome on the intern's laptop drives the due list while they watch, 2 houses, 1 month",d:"Grey area; your decision. About 2 days."},
+ {k:"c",l:"Unattended agent on an office machine",d:"Not recommended: the Run 7 workaround, silent failures."}]},
+{id:"Q13",t:"Email intake trial",why:"SES can receive mail in Mumbai. We do not know which AMCs mail portfolios or factsheets to subscribers.",o:[
+ {k:"a",rec:1,l:"Yes: create the inbox, subscribe it to every AMC's mailings now, build the reader in R2, judge after two cycles",d:"Subscriptions cost nothing and start the evidence early."},
+ {k:"b",l:"No",d:""}]},
+{id:"Q14",t:"Write to the blocked AMCs?",why:"Allow-listing our fixed address, or a monthly feed, is the only durable fix within our rules.",o:[
+ {k:"a",rec:1,l:"Yes: one letter to the 15 blocked or manual houses; I draft it, you or the manager send",d:"With a tracker in Docs/orchestration."},
+ {k:"b",l:"Only the five largest (ICICI, Kotak, HDFC, Axis, Bandhan)",d:""},
+ {k:"c",l:"Not now",d:""}]},
+{id:"Q15",t:"Which address do we ask them to allow?",why:"Staging runs on the CloudPe VM; production will run on AWS.",o:[
+ {k:"a",rec:1,l:"Both: the CloudPe VM's public IP and the production AWS NAT Elastic IP",d:"Production's address must exist first (confirm)."},
+ {k:"b",l:"Production only",d:"Staging stays by hand."}]},
+{id:"Q16",t:"Data vendor quotes",why:"The only option that also covers the 5 houses with no factsheet. Price and licence unknown.",o:[
+ {k:"a",rec:1,l:"Ask 2–3 vendors (Accord Fintech ACE MF, CMOTS, ICRA Analytics/Morningstar) for holdings + fund managers; decide on price",d:"I draft the request."},
+ {k:"b",l:"Not now",d:""}]}]],
+["Intake details",[
+{id:"Q17",t:"Keep the AMC files, and where?",why:"These are public AMC files, not user data. Keeping them allows a re-run and an audit. The VM disk also holds Postgres.",o:[
+ {k:"a",rec:1,l:"Keep 90 days in object storage (CloudPe object storage on staging, S3 on production)",d:"Confirm CloudPe has object storage on our plan."},
+ {k:"b",l:"Keep 13 months",d:"Year-on-year re-runs possible."},
+ {k:"c",l:"Do not keep the bytes; only the sha-256 and the dry-run result",d:"No re-run from the stored file."}]},
+{id:"Q18",t:"How is someone made an ops user?",why:"Two or three people need access.",o:[
+ {k:"a",rec:1,l:"An allow-list of user ids in the environment (OPS_USER_IDS)",d:"No migration; a redeploy to change."},
+ {k:"b",l:"A users.is_ops column set by a script",d:"One migration; no redeploy to change."}]},
+{id:"Q19",t:"Auto-commit when every check passes?",why:"House and date certain, all sheets parse, matched ≥ 90% of last month, no new sum-check failures.",o:[
+ {k:"a",rec:1,l:"Off at first; turn on after one month of matching human decisions",d:""},
+ {k:"b",l:"On from day one, with the digest reporting each one",d:""},
+ {k:"c",l:"Never; a person always commits",d:""}]},
+{id:"Q20",t:"Automatic houses that fail (Angel One, Sundaram, SBI, Mahindra factsheets)",why:"The CLI refuses them today.",o:[
+ {k:"a",rec:1,l:"Intake accepts any registered house for this month only; the house stays automatic",d:"FX-F4."},
+ {k:"b",l:"Move them to manual in the registry",d:""}]}]]
+];
+var KEY="amc-pipelines-answers-v1",ANS={};
+try{ANS=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){ANS={};}
+var DONE={};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ANS));}catch(e){}render();}
+var host=document.getElementById("qs"),all=[];
+G.forEach(function(g){
+ var h=document.createElement("div");h.className="qgroup";h.textContent=g[0];host.appendChild(h);
+ g[1].forEach(function(q){all.push(q);
+  var d=document.createElement("div");d.className="q";
+  var t=document.createElement("h3");t.textContent=q.id+" · "+q.t;d.appendChild(t);
+  var w=document.createElement("p");w.className="why";w.textContent=q.why;d.appendChild(w);
+  q.o.forEach(function(o){
+   var id=q.id+"-"+o.k,l=document.createElement("label");l.className="o";l.htmlFor=id;
+   var i=document.createElement("input");i.type="radio";i.name=q.id;i.id=id;i.value=o.k;
+   if(ANS[q.id]&&ANS[q.id].c===o.k)i.checked=true;
+   i.addEventListener("change",function(){ANS[q.id]=ANS[q.id]||{};ANS[q.id].c=o.k;save();});
+   var s=document.createElement("span"),b=document.createElement("b");b.textContent=o.k+") "+o.l;
+   if(o.rec){var r=document.createElement("span");r.className="badge";r.textContent="Recommended";b.appendChild(r);}
+   s.appendChild(b);if(o.d){var dd=document.createElement("span");dd.className="d";dd.textContent=o.d;s.appendChild(dd);}
+   l.appendChild(i);l.appendChild(s);d.appendChild(l);});
+  var n=document.createElement("input");n.type="text";n.id=q.id+"-note";n.placeholder="Note (optional)";n.setAttribute("aria-label",q.id+" note");
+  n.value=(ANS[q.id]&&ANS[q.id].n)||"";
+  n.addEventListener("input",function(){ANS[q.id]=ANS[q.id]||{};ANS[q.id].n=n.value;save();});
+  d.appendChild(n);host.appendChild(d);});});
+function render(){
+ var lines=all.map(function(q){var a=ANS[q.id]||{};var o=q.o.filter(function(x){return x.k===a.c;})[0];
+  return q.id+": "+(o?o.k+") "+o.l:"(no answer)")+(a.n?" | note: "+a.n:"");});
+ document.getElementById("out").value=lines.join("\n");}
+render();
+document.getElementById("copy").addEventListener("click",function(){
+ var ta=document.getElementById("out"),msg=document.getElementById("copied");
+ function fb(){ta.focus();ta.select();msg.textContent="Selected. Press Ctrl+C to copy.";}
+ try{navigator.clipboard.writeText(ta.value).then(function(){msg.textContent="Copied.";},fb);}catch(e){fb();}});
+})();
+</script>
+<script>
+(function(){
+/* ===== icons (lucide-style strokes) ===== */
+var I={
+home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
+brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+receipt:'<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 1-1 1.7M12 17h.01"/>',
+pie:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>',
+trend:'<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+land:'<path d="M3 21h18M5 21V10M19 21V10M9.5 21V10M14.5 21V10M3 10l9-6 9 6z"/>',
+coins:'<circle cx="9" cy="9" r="6"/><path d="M15.5 9.5a6 6 0 1 1-6 6"/>',
+bld:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>',
+shapes:'<rect x="3" y="13" width="8" height="8" rx="1"/><circle cx="17" cy="17" r="4"/><path d="m12 3 5 8H7z"/>',
+candle:'<path d="M7 4v16M17 4v16"/><rect x="5" y="8" width="4" height="7"/><rect x="15" y="6" width="4" height="9"/>',
+globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+piggy:'<path d="M5 11a7 6 0 0 1 13-2h2v4h-2a7 6 0 0 1-3 4v3h-3v-2H9v2H6v-3a6 6 0 0 1-1-6z"/><path d="M15 10h.01"/>',
+cd:'<path d="m6 9 6 6 6-6"/>',cu:'<path d="m6 15 6-6 6 6"/>',cl:'<path d="m15 18-6-6 6-6"/>',cr:'<path d="m9 18 6-6-6-6"/>',
+moon:'<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
+dl:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',up:'<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+chat:'<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.2-4.6A8 8 0 1 1 21 12z"/>',
+info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+alert:'<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+check:'<path d="m5 12 5 5 9-10"/>',x:'<path d="M6 6l12 12M18 6 6 18"/>',
+file:'<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/>',
+shield:'<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>',
+gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
+link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+book:'<path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M4 17a3 3 0 0 1 3-3h11"/>',
+edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',pin:'<path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/>',
+cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',spark:'<path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>',
+bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+scan:'<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 12h8"/>',
+logout:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
+refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/>'
+};
+function ic(n,s){s=s||18;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+I[n]+'</svg>';}
+var NEW='<span class="new">New</span>';
+var DISC='<div class="disc">Estimates are not guaranteed. Tax figures are indicative. Mutual fund investments are subject to market risks. Illustrative data, not a real family.</div>';
+var COL={R:'var(--c3)',P:'var(--c7)',A:'var(--c5)',N:'var(--c2)'};
+
+/* ===== shell ===== */
+function ni(icon,label,cls,extra){return '<div class="ni '+(cls||'')+'">'+ic(icon)+'<span>'+label+'</span>'+(extra||'')+'</div>';}
+function sidebar(o){
+ var h='<aside class="sb"><div class="logo"><b>U</b>Unifolio</div><div style="display:flex;flex-direction:column;gap:2px">';
+ if(o.mode==='pf'){
+  h+=ni('cl','Back','')+ni('brief','Investments','')+'<div class="ni" style="color:var(--tx)">'+ic('trend')+'<span>Equity</span><span style="margin-left:auto">'+ic('cu',14)+'</span></div>'
+   +ni('candle','Direct Stocks','ch dis')+ni('pie','Mutual Fund','ch on')+ni('globe','US Stock','ch dis')+ni('piggy','FDs & bonds','ch dis')
+   +ni('land','Debt','dis')+ni('coins','Gold','dis')+ni('bld','Real Estate','dis')+ni('shapes','Others','dis');
+ }else{
+  h+=ni('home','Home',o.nav==='home'?'on':'')+ni('brief','Portfolio',o.nav==='pf'?'on':'')+ni('receipt','Liabilities','dis')+ni('target','Planning',o.nav==='plan'?'on':'')+(o.jnav?ni('book','Journal',o.nav==='journal'?'on':'','<span class="new">New</span>'):'');
+ }
+ h+='</div><div class="sbf">'+ni('user','Profile',o.nav==='profile'?'on':'')+ni('help','Help & Support','dis')+'</div></aside>';
+ return h;
+}
+function topbar(o){
+ return '<header class="tb"><div class="mira"><span style="color:var(--ac)">✦</span><b>Ask Mira</b><span class="mu">Ask anything about your funds…</span></div>'
+ +'<div class="tbr"><span class="ob">'+ic('dl',16)+'Export</span><span class="ob sel">'+(o.scope||'Sharma family')+ic('cd',16)+'</span>'+(o.noteBtn?'<span class="ob" style="border-color:var(--ac);color:var(--pos)">'+ic('edit',16)+'Note</span>':'')+'<span class="ob"'+(o.addMenu?' style="border-color:var(--ac)"':'')+'>+ Add data'+(o.addMenu?ic('cd',15):'')+'</span><span class="vsep"></span><span class="ob" style="width:40px;padding:0;justify-content:center">'+ic('moon',17)+'</span></div></header>';
+}
+function shell(o,body){return '<div class="app">'+sidebar(o)+'<div class="mc">'+topbar(o)+'<div class="pg">'+body+'</div></div>'+(o.over||'')+'</div>';}
+function page(t,s,body,act){return '<div class="ph"><div><h1>'+t+'</h1>'+(s?'<div class="sub">'+s+'</div>':'')+'</div>'+(act?'<div class="f">'+act+'</div>':'')+'</div>'+body;}
+var MFT=['Overview','Performance','Allocation','Holdings','Transactions','Overlap','Other Analytics'];
+var MFS={Overview:["All Investments","Your family's mutual fund portfolio — holdings, allocation, and performance in one place."],Performance:["Performance","Returns, portfolio value over time, and how you stack up against the market."],'Other Analytics':["Other Analytics","X-Ray, tax and what-if views of your mutual funds."],Journal:["Journal","Your notes and the people who help you invest."]};
+function mf(tab,body,o){o=o||{};var tabs=MFT.slice();if(o.journal)tabs.push('Journal');
+ var t=MFS[tab]||[tab,''];
+ var bar='<div class="tabs"><div>'+tabs.map(function(x){return '<span class="tab'+(x===tab?' on':'')+'">'+x+(x==='Journal'?' '+NEW:'')+'</span>';}).join('')+'</div><span class="btn rd s" style="height:36px">Add Investment</span></div>';
+ var ds='<div class="ds"><span class="mu b6">Data as on</span><span>NAV 25 Nov 2026</span><span class="mu">·</span><span>Statements up to 31 Oct 2026</span>'+(o.dsWarn?'<span class="chip k-w" style="margin-left:auto">'+ic('alert',13)+o.dsWarn+'</span>':'')+'</div>';
+ return page(t[0],t[1],bar+(o.noDs?'':ds)+body);
+}
+function sub(items,on){return '<div class="seg" style="margin-bottom:16px">'+items.map(function(x){return '<span class="'+(x===on?'on':'')+'">'+x+(/X-Ray|Tax|What-If/.test(x)?' <span class="new" style="font-size:9px">New</span>':'')+'</span>';}).join('')+'</div>';}
+var OA=['Insights','Scenarios','X-Ray','Tax & gains','What-If'];
+var PN=[['user','Personal Information'],['users','Family Members'],['link','Connected Accounts'],['shield','Folio health',1],['file','Documents',1],['gear','Settings'],['card','Subscription & Billing'],['receipt','Tax Information'],['shield','Data & Privacy']];
+function profile(on,body,subOn){
+ var nav='<div class="pn">'+PN.map(function(p){var h='<div class="pi'+(p[1]===on?' on':'')+'">'+ic(p[0],19)+'<span>'+p[1]+'</span>'+(p[2]?'<span style="margin-left:auto">'+NEW+'</span>':'')+'</div>';
+  if(p[1]==='Settings'&&subOn)h+=['Notifications','Preferences','Security','Import History'].map(function(s){return '<div class="pi sub'+(s===subOn?' on':'')+'">'+s+'</div>';}).join('');return h;}).join('')
+  +'<div style="border-top:1px solid var(--dv);margin-top:6px;padding-top:6px"><div class="pi">'+ic('logout',19)+'<span>Log out</span></div></div></div>';
+ return page('Profile','Manage your account, family members, preferences and data.','<div class="g" style="grid-template-columns:232px minmax(0,1fr);gap:20px;align-items:start">'+nav+'<div style="min-width:0">'+body+'</div></div>');
+}
+function av(l,c,s){return '<span class="av'+(s?' s':'')+'" style="background:'+(c||COL[l])+'">'+l+'</span>';}
+function bars(rows,col){return rows.map(function(r,i){return '<div style="margin-bottom:12px"><div class="fb sm" style="margin-bottom:5px"><span class="b6">'+r[0]+'</span><span class="num bd">'+r[1]+'</span></div><div class="bar"><i style="width:'+r[2]+'%;background:'+(r[3]||col||'var(--c1)')+'"></i></div>'+(r[4]?'<div class="xs mu" style="margin-top:3px">'+r[4]+'</div>':'')+'</div>';}).join('');}
+function ov(inner,kind){return '<div class="ov"></div><div class="'+(kind||'dlg')+'">'+inner+'</div>';}
+function fld(l,v,o){o=o||{};return '<div><div class="lbl">'+l+(o.tag||'')+'</div><div class="inp'+(o.cls?' '+o.cls:'')+'">'+v+'</div>'+(o.hint?'<div class="hint'+(o.hc?' '+o.hc:'')+'">'+o.hint+'</div>':'')+'</div>';}
+function dhead(t,s){return '<div class="fb" style="align-items:flex-start"><div><div class="h2">'+t+'</div>'+(s?'<div class="sm mu" style="margin-top:4px">'+s+'</div>':'')+'</div><span class="x">'+ic('x')+'</span></div>';}
+function existing(t){return '<div class="ghost" style="margin-top:16px">'+(t||'Existing Overview content continues below (summary bar, holdings, allocation) — unchanged')+'</div>';}
+function donut(){return '<div class="donut" style="background:conic-gradient(var(--c1) 0 72%,var(--c3) 72% 93%,var(--c6) 93% 97%,var(--c5) 97% 100%)"><b>₹48.62 L<br><span class="mu xs">4 classes</span></b></div>';}
+function legend(rows){return '<div style="flex:1;min-width:0">'+rows.map(function(r){return '<div class="rw sm" style="padding:6px 0"><span class="f" style="gap:8px"><span class="dot" style="background:'+r[2]+'"></span>'+r[0]+'</span><span class="num b6">'+r[1]+'</span></div>';}).join('')+'</div>';}
+
+
+/* ===== Ops console ===== */
+function oc(k,t){return '<span class="oc o-'+k+'">'+t+'</span>';}
+function opsSide(on,due){
+ var it=[['pie','Coverage'],['check','By-hand this month',due],['up','Upload'],['file','Intake history'],['clock','Runs'],['bld','Fund houses']];
+ var h='<aside class="sb sbo"><div class="logo"><b>U</b>Unifolio <span class="chip k-m" style="margin-left:2px;font-size:10.5px">Ops</span></div><div style="display:flex;flex-direction:column;gap:2px">';
+ it.forEach(function(x){h+=ni(x[0],x[1],x[1]===on?'on':'',x[2]?'<span class="cnt">'+x[2]+'</span>':'');});
+ return h+'</div><div class="sbf">'+ni('cl','Back to the app','')+ni('user','Prateek · ops','')+'</div></aside>';
+}
+function opsTop(o){o=o||{};var p=o.pipe||'Disclosures';
+ return '<header class="tb"><div class="seg"><span class="'+(p==='Disclosures'?'on':'')+'">Portfolio disclosures</span><span class="'+(p==='Factsheets'?'on':'')+'">Factsheets</span></div>'
+ +'<span class="ob sel" style="width:300px">'+ic('cal',16)+(o.cycle||'Cycle Nov 2026 · data as of 31 Oct')+ic('cd',16)+'</span>'
+ +'<div class="tbr"><span class="sm mu">'+ic('refresh',14)+' Last run today 05:45 · digest 07:30</span><span class="ob">'+ic('up',16)+'Upload files</span><span class="vsep"></span><span class="ob" style="width:40px;padding:0;justify-content:center">'+ic('moon',17)+'</span></div></header>';}
+function ops(on,o,body,over){return '<div class="app">'+opsSide(on,o.due===undefined?9:o.due)+'<div class="mc">'+opsTop(o)+'<div class="pg">'+body+'</div></div>'+(over||'')+'</div>';}
+function kpi(rows){return '<div class="kpi">'+rows.map(function(r){return '<div class="cd" style="padding:16px"><div class="eyebrow">'+r[0]+'</div><div class="big" style="margin-top:6px">'+r[1]+'</div><div class="sm '+(r[3]||'mu')+'" style="margin-top:4px">'+r[2]+'</div></div>';}).join('')+'</div>';}
+var DROWS=[
+ ['Franklin Templeton','Auto','n','WRONG_DATE','0 / 321','171','—','Files dated 30 Oct (31 Oct was a Saturday). Fix FX-L1.'],
+ ['ICICI Prudential','Auto','w','PARTIAL','551 / 2,512','569','day 6','59 failed sum checks · reasons kept'],
+ ['Edelweiss','By hand','i','AWAITING_FILE','0 / 312','281','—','Due · open site'],
+ ['Bandhan','By hand','i','AWAITING_FILE','0 / 435','0','—','Due · open site'],
+ ['Bajaj Finserv','Auto → by hand','n','BLOCKED 403','0 / 108','108','—','Refuses our server; letter sent 2 Dec'],
+ ['WhiteOak Capital','Auto → by hand','n','BLOCKED 403','0 / 82','70','—','Refuses our server'],
+ ['Zerodha CASE','Auto','n','NO_SCHEME_ROWS','0 / 25','20','—','Registry name differs from scheme master. Fix FX-L2.'],
+ ['Samco','Auto','n','DOWNLOAD_ERROR 500','0 / 31','26','—','Main host 500; second host not tried. Fix FX-L5.'],
+ ['LIC','Auto','w','PARTIAL','75 / 145','145','day 8','1 of 2 workbooks read. Fix FX-L6.'],
+ ['HDFC','Auto','w','VIA_WAYBACK','355 / 579','352','day 9','Found through the Internet Archive'],
+ ['AlphaGrep','Auto','m','NOT_PUBLISHED','0 / 12','12','—','Newest file September'],
+ ['Nippon India','Auto','ok','WRITTEN','610 / 1,870','604','day 7','']
+];
+function covTable(rows,sel){
+ return '<div class="cd" style="padding:0"><div class="fb" style="padding:16px 20px 8px"><span class="h3">Fund houses · 50 expected</span><span class="f"><span class="chip k-n">8 failing</span><span class="chip k-w">3 partial</span><span class="chip k-i">9 due by hand</span><span class="chip k-pos">30 written</span><span class="inp ph" style="height:34px;width:220px">'+ic('search',15)+'Find a house</span></span></div>'
+ +'<table><thead><tr><th style="padding-left:20px">House</th><th>Mode</th><th>Latest outcome</th><th class="r">Series written</th><th class="r">Last month</th><th>Published</th><th>Last 6 cycles</th><th>Note</th></tr></thead><tbody>'
+ +rows.map(function(r,i){var hist=['g','g','g','g','g',r[2]==='ok'?'g':r[2]==='w'?'w':r[2]==='i'?'':'n'];if(r[0]==='Bandhan')hist=['','','','','',''];return '<tr'+(sel===i?' style="background:var(--posbg)"':'')+'><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="mu sm">'+r[1]+'</td><td>'+oc(r[2],r[3])+'</td><td class="r">'+r[4]+'</td><td class="r mu">'+r[5]+'</td><td class="mu sm">'+r[6]+'</td><td><span class="dots">'+hist.map(function(c){return '<i class="'+c+'"></i>';}).join('')+'</span></td><td class="sm bd" style="max-width:300px">'+r[7]+'</td></tr>';}).join('')
+ +'</tbody></table><div class="sm mu" style="padding:12px 20px">Showing 12 of 50 · sorted by series lost</div></div>';
+}
+function boardD(sel,over){return ops('Coverage',{},page('Coverage','Portfolio disclosures for 31 Oct 2026. One row per fund house, from every run and every upload.',
+ kpi([['Series written (headline)','≈66%','Open-ended plan and option series · 6,351 of 14,403 all series','pos'],['Fund houses written','35 / 50','8 worked last month and have nothing now','neg'],['By hand still due','9 houses','1,946 series waiting · 4 refuse our server','wrn'],['ETFs and FMPs','9.1%','Reported separately (your 19 Nov decision)']])
+ +covTable(DROWS,sel),'<span class="btn o s">'+ic('dl',15)+'CSV</span><span class="btn s">'+ic('refresh',15)+'Re-run a house</span>'),over);}
+var FROWS=[
+ ['Axis','By hand','i','AWAITING_FILE','0 / 89 families','Oct issue','—','Due · open site'],
+ ['HDFC (active + passive)','By hand','w','PARTIAL','53 / 112','Oct issue','day 12','Passive file not supplied'],
+ ['ICICI Prudential','By hand','ok','WRITTEN','152 / 158','Nov issue','day 14','Imported by Prateek via Collector'],
+ ['SBI (active + passive)','Auto','n','WRONG_DATE','0 / 120','Aug issue','—','Newest file older than 45 days → by hand this month'],
+ ['Sundaram','Auto','n','PARSE_ERROR','0 / 40','Sep issue','—','Traceback kept · FX-F3'],
+ ['Angel One','Auto → by hand','n','BLOCKED 403','0 / 11','Aug issue','—','Refuses our server'],
+ ['UTI','Auto','ok','WRITTEN','84 / 88','Nov issue','day 9',''],
+ ['Mirae Asset','Auto','ok','ALREADY_CURRENT','98 / 99','Nov issue','day 8','Skipped: already current'],
+ ['Bajaj Finserv','Off','m','NOT_PUBLISHED','0 / 25','Jul issue','—','No current factsheet anywhere']
+];
+function boardF(){return ops('Coverage',{pipe:'Factsheets',cycle:'Cycle Nov 2026 · November issues',due:9},page('Coverage','Fund managers from factsheets, November issues. The job now runs daily from the 8th to the 25th and skips houses already current.',
+ kpi([['Families with managers','82.4%','2,914 of 3,536 live families','pos'],['Houses current','37 / 55','Up from 6 on 30 Oct','pos'],['By hand still due','9 houses','11 files','wrn'],['No factsheet published','5 houses','33 funds · vendor or nothing']])
+ +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">House</th><th>Mode</th><th>Latest outcome</th><th class="r">Matched</th><th>Newest issue</th><th>Published</th><th>Note</th></tr></thead><tbody>'
+ +FROWS.map(function(r){return '<tr><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="mu sm">'+r[1]+'</td><td>'+oc(r[2],r[3])+'</td><td class="r">'+r[4]+'</td><td class="mu sm">'+r[5]+'</td><td class="mu sm">'+r[6]+'</td><td class="sm bd">'+r[7]+'</td></tr>';}).join('')
+ +'</tbody></table></div>'));}
+function drawer(){
+ var tl=[['20 Nov 05:45','n','WRONG_DATE','32 records found, all dated 30 Oct 2026; rule accepts 31 Oct only'],['12 Nov 05:45','n','WRONG_DATE','same 32 records'],['8 Nov 05:45','n','WRONG_DATE','32 records appeared (uploaded 8 Nov)'],['1–7 Nov','m','NOT_PUBLISHED','no record for October yet'],['9 Oct 05:45','ok','WRITTEN','171 series · 31 workbooks dated 30 Sep']];
+ var inner=dhead('Franklin Templeton','Portfolio disclosures · automatic (JSON API) · 321 live series')
+ +'<div class="f" style="gap:8px;flex-wrap:wrap">'+oc('n','WRONG_DATE')+'<span class="chip k-m">Usually publishes day 8</span><span class="chip k-m">Dates files on the last working day</span></div>'
+ +'<div class="ban b-w">'+ic('alert',18)+'<div><b>Weekend month-end.</b> 31 Oct 2026 was a Saturday. Fixed by FX-L1; next weekend month-ends 31 Jan and 28 Feb 2027.</div></div>'
+ +'<div><div class="eyebrow" style="margin-bottom:8px">Publishing day, last 6 months</div><div class="f" style="gap:6px">'+['May 7','Jun 9','Jul 8','Aug 7','Sep 9','Oct 8'].map(function(x){return '<span class="chip k-m">'+x+'</span>';}).join('')+'</div></div>'
+ +'<div><div class="eyebrow" style="margin-bottom:6px">Run history</div>'+tl.map(function(t){return '<div class="rw" style="align-items:flex-start"><span class="sm mu" style="width:110px;flex:none">'+t[0]+'</span><span style="flex:1;min-width:0">'+oc(t[1],t[2])+'<div class="xs mu" style="margin-top:4px">'+t[3]+'</div></span></div>';}).join('')+'</div>'
+ +'<div class="f" style="margin-top:auto"><span class="btn o s">'+ic('ext',15)+'Open the AMC page</span><span class="btn o s">'+ic('up',15)+'Upload a file by hand</span><span class="btn s">'+ic('refresh',15)+'Re-run now</span></div>';
+ return boardD(0,ov(inner,'drw'));
+}
+var DUE=[['Edelweiss','Disclosures','Workbook (not the notice PDF)','312','day 9','Due','i'],['Bandhan','Disclosures','Monthly holdings workbook','435','day 10','Due','i'],['HSBC','Disclosures','All scheme-wise spreadsheets','282','day 11','Due','i'],['JM Financial','Disclosures','One workbook per scheme (2)','178','day 9','Received · dry run ok','ok'],['Invesco','Disclosures','XLS/ZIP, not PDF','249','day 10','Received · needs a look','w'],['Bajaj Finserv','Disclosures','Monthly portfolio (server refused)','108','day 7','Due','i'],['WhiteOak Capital','Disclosures','Scheme portfolios (server refused)','82','day 8','Committed','ok'],['Axis','Factsheets','Monthly factsheet PDF','89 fam.','day 12','Due','i'],['HDFC','Factsheets','Active and passive PDFs (2)','112 fam.','day 12','1 of 2 received','w']];
+function due(){return ops('By-hand this month',{},page('By-hand this month','Files only a person can fetch. The Collector opens each page in turn; drop anything else on Upload.',
+ '<div class="ban b-i" style="margin-bottom:16px">'+ic('info',18)+'<div><b>9 of 14 still to do.</b> Usual finish: day 12. Today is day 6 of the cycle. Nothing is late yet. <span class="lnk">Open all in the Collector</span></div></div>'
+ +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">House</th><th>Pipeline</th><th>What to download</th><th class="r">Series</th><th>Usually out</th><th>Status</th><th></th></tr></thead><tbody>'
+ +DUE.map(function(r){return '<tr><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="sm mu">'+r[1]+'</td><td class="sm">'+r[2]+'</td><td class="r">'+r[3]+'</td><td class="sm mu">'+r[4]+'</td><td>'+oc(r[6],r[5])+'</td><td class="r"><span class="btn o s">'+ic('ext',14)+'Open page</span></td></tr>';}).join('')
+ +'</tbody></table></div>'));}
+function upload(){
+ var f=[['Edelweiss_Monthly_Portfolio_Oct2026.xlsx','1.8 MB','Edelweiss · disclosures · 31 Oct 2026','ok','Ready for dry run','text + sheet header agree'],['JM_Flexicap_Oct26.xlsx','212 KB','JM Financial · disclosures · 31 Oct 2026','ok','Dry run ok','1 scheme'],['JM_ValueFund_Oct26.xlsx','198 KB','JM Financial · disclosures · 31 Oct 2026','ok','Dry run ok','1 scheme'],['Portfolio.xlsx','3.1 MB','House unclear: "Mahindra Manulife" or "Bandhan"?','w','Choose a house','sheet names match both registries'],['HSBC_Factsheet_Oct2026.pdf','6.4 MB','HSBC · factsheets · as on 31 Oct 2026','ok','Ready for dry run','HSBC is automatic: imports for this month only'],['Monthly-Portfolio-Notice.pdf','120 KB','A notice, not a workbook or factsheet','n','Rejected','no holdings table found'],['Edelweiss_Monthly_Portfolio_Oct2026 (1).xlsx','1.8 MB','Same file as row 1 (sha-256)','m','Duplicate, skipped','']];
+ return ops('Upload',{},page('Upload','Drop the files you downloaded. House, pipeline and date are read from inside each file.',
+ '<div class="drop"><div style="color:var(--pos)">'+ic('up',28)+'</div><div class="h3" style="margin-top:6px">Drop .xlsx, .xls, .zip or .pdf here</div><div class="sm mu" style="margin-top:4px">or <span class="lnk">choose files</span> · up to 25 MB each · several at once</div></div>'
+ +'<div class="cd" style="padding:0;margin-top:16px"><div class="fb" style="padding:14px 20px"><span class="h3">7 files received</span><span class="f"><span class="btn o s">Reject selected</span><span class="btn s">'+ic('check',15)+'Dry run all ready</span></span></div><table><thead><tr><th style="padding-left:20px">File</th><th>Detected as</th><th>Status</th><th>Why</th><th></th></tr></thead><tbody>'
+ +f.map(function(r){return '<tr><td style="padding-left:20px"><div class="b6 sm">'+r[0]+'</div><div class="xs mu">'+r[1]+'</div></td><td class="sm">'+r[2]+'</td><td>'+oc(r[3],r[4])+'</td><td class="xs mu">'+r[5]+'</td><td class="r">'+(r[3]==='w'?'<span class="btn s">Choose</span>':r[3]==='ok'?'<span class="btn o s">Open</span>':'')+'</td></tr>';}).join('')
+ +'</tbody></table></div>'));}
+function dry(){
+ var rows=[['Edelweiss Large Cap','Large Cap','4 series','99.8%','ok','matched'],['Edelweiss Mid Cap','Mid Cap','4 series','100.1%','ok','matched'],['Edelweiss Balanced Advantage','Dynamic Asset','4 series','99.6%','ok','matched'],['EDEL ARB 2','—','—','—','w','unmatched: "Edelweiss Arbitrage Fund Series 2" not in scheme master'],['Edelweiss Gold ETF','Gold ETF','1 series','87.4%','n','sum check failed (90–101%)'],['Edelweiss US Tech FOF','FOF','4 series','100.0%','ok','matched']];
+ return ops('Upload',{},page('Dry run · Edelweiss, 31 Oct 2026','Nothing has been written. This is what a commit would write, next to last month.',
+ '<div class="kpi"><div class="cd" style="padding:16px"><div class="eyebrow">Would write</div><div class="big pos">279 series</div><div class="sm mu">58 scheme families</div></div><div class="cd" style="padding:16px"><div class="eyebrow">Last month</div><div class="big">281</div><div class="sm mu">30 Sep 2026 · 99.3% of it</div></div><div class="cd" style="padding:16px"><div class="eyebrow">Unmatched sheets</div><div class="big wrn">4</div><div class="sm mu">kept for a later match</div></div><div class="cd" style="padding:16px"><div class="eyebrow">Sum check failed</div><div class="big neg">2</div><div class="sm mu">stored as failed, with totals</div></div></div>'
+ +'<div class="ban b-p" style="margin-bottom:16px">'+ic('check',18)+'<div><b>Looks right.</b> House and date agree in two places (title block and sheet header). 64 sheets read, 0 unreadable. Within 1% of last month.</div></div>'
+ +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">Sheet → fund</th><th>Category</th><th>Writes</th><th class="r">Weights total</th><th>Result</th></tr></thead><tbody>'
+ +rows.map(function(r){return '<tr><td style="padding-left:20px" class="b6 sm">'+r[0]+'</td><td class="sm mu">'+r[1]+'</td><td class="sm">'+r[2]+'</td><td class="r">'+r[3]+'</td><td>'+oc(r[4],r[5])+'</td></tr>';}).join('')
+ +'</tbody></table><div class="sm mu" style="padding:12px 20px">Showing 6 of 64 sheets · <span class="lnk">show all</span></div></div>',
+ '<span class="btn o s">Reject</span><span class="btn">'+ic('check',16)+'Commit 279 series</span>'));}
+function history(dlg){
+ var r=[['Edelweiss_Monthly_Portfolio_Oct2026.xlsx','Edelweiss · disclosures','Upload','279 series','ok','Committed','6 Nov 11:42 · Prateek'],['WhiteOak_Portfolios_Oct2026.zip','WhiteOak Capital · disclosures','Collector','76 series','ok','Committed','6 Nov 11:20 · Prateek'],['ICICI_Factsheet_Nov2026.pdf','ICICI Prudential · factsheets','Collector','152 families','ok','Committed','5 Nov 17:03 · intern'],['Kotak_Factsheet_Nov2026.pdf','Kotak · factsheets','Email','118 families','i','Auto-committed','5 Nov 09:30'],['Invesco_Holdings_Oct2026.zip','Invesco · disclosures','Upload','201 series','w','Waiting: 31 unmatched','5 Nov 16:10 · intern'],['JM_Flexicap_Sep26.xlsx','JM Financial · disclosures','Upload','—','m','Undone (wrong month)','4 Nov 12:01 · intern']];
+ var over=dlg?ov(dhead('Undo this commit?','Edelweiss · 31 Oct 2026 · 279 series written 6 Nov 11:42')+'<div class="sm bd">The 279 series go back to "waiting for a file". Users see the 30 Sep holdings for these funds again after tonight\'s analytics run. The file stays here, so you can commit it again.</div><div class="ban b-w">'+ic('alert',18)+'<div>Only this file\'s rows are removed. Other files for Edelweiss are not touched.</div></div><div class="f" style="justify-content:flex-end"><span class="btn o">Cancel</span><span class="btn" style="background:var(--nt);border-color:var(--nt)">Undo commit</span></div>'):'';
+ return ops('Intake history',{due:8},page('Intake history','Every file that came in, from any route, and what happened to it.',
+ '<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">File</th><th>House · pipeline</th><th>Came from</th><th>Wrote</th><th>Status</th><th>When · who</th><th></th></tr></thead><tbody>'
+ +r.map(function(x,i){return '<tr'+(dlg&&i===0?' style="background:var(--posbg)"':'')+'><td style="padding-left:20px" class="sm b6">'+x[0]+'</td><td class="sm">'+x[1]+'</td><td class="sm mu">'+x[2]+'</td><td class="sm">'+x[3]+'</td><td>'+oc(x[4],x[5])+'</td><td class="xs mu">'+x[6]+'</td><td class="r">'+(x[4]==='ok'||x[4]==='i'?'<span class="btn q s">Undo</span>':x[4]==='w'?'<span class="btn o s">Review</span>':'')+'</td></tr>';}).join('')
+ +'</tbody></table></div>'),over+(dlg?'':'<div class="toast">'+ic('check',16)+'Committed 279 series for Edelweiss · 31 Oct 2026<span class="lnk">Undo</span></div>'));}
+function runs(){
+ var r=[['20 Nov 05:45','Disclosures','1','35','3','8','4','0 → email sent'],['20 Nov 06:00','Factsheets','0','31','0','2','22','0'],['19 Nov 05:45','Disclosures','0','35','3','8','4','1 → email sent'],['19 Nov 06:00','Factsheets','0','30','0','3','22','0'],['18 Nov 05:45','Disclosures','0','34','3','9','4','1 → email sent']];
+ return ops('Runs',{},page('Runs','One row per job run. Exit code 1 means the run alerted (a house that wrote last month has nothing now).',
+ '<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">Started</th><th>Job</th><th class="r">Exit</th><th class="r">Written</th><th class="r">Partial</th><th class="r">Failing</th><th class="r">Skipped</th><th>Outcomes</th><th>Alert</th></tr></thead><tbody>'
+ +r.map(function(x){var w=+x[3],p=+x[4],f=+x[5],s=+x[6],t=w+p+f+s;return '<tr><td style="padding-left:20px" class="sm">'+x[0]+'</td><td class="sm b6">'+x[1]+'</td><td class="r '+(x[2]==='1'?'neg b6':'')+'">'+x[2]+'</td><td class="r">'+w+'</td><td class="r">'+p+'</td><td class="r">'+f+'</td><td class="r">'+s+'</td><td style="width:220px"><div class="bar"><i style="width:'+(w/t*100)+'%;background:var(--c1)"></i><i style="width:'+(p/t*100)+'%;background:#F59E0B"></i><i style="width:'+(f/t*100)+'%;background:var(--nt)"></i><i style="width:'+(s/t*100)+'%;background:var(--dv)"></i></div></td><td class="xs mu">'+x[7]+'</td></tr>';}).join('')
+ +'</tbody></table></div><div class="sm mu" style="margin-top:12px">Logs: /var/log/unifolio-disclosures.log and /var/log/unifolio-factsheets.log, rotated daily, 30 kept.</div>'));}
+var OPS=[
+ {s:'Coverage · disclosures',c:'The home of the console. One row per fund house with the latest outcome and its reason, the last six cycles as dots, and the agreed headline (open-ended plan and option series; ETFs and FMPs separately). Numbers are the real October figures from the 19 Nov audit, shown as if the console had existed.',h:boardD()},
+ {s:'Coverage · factsheets',c:'Same board for fund managers. "ALREADY_CURRENT" appears because the job now runs daily from the 8th to the 25th and skips houses that are up to date (H4). Illustrative numbers.',h:boardF()},
+ {s:'House drawer',c:'Click any row: the run-by-run history with reasons, the publishing day learned from history (H6), and the three actions a person needs. This is exactly what L-5 had to rebuild by hand on 19 Nov.',h:drawer(),u:'/ops?house=franklin-templeton'},
+ {s:'By-hand this month',c:'The due list replaces memory and runbooks: what to download, from where, when it usually appears, and where each one stands. Server-refused houses (Bajaj, WhiteOak) appear here automatically when the job records BLOCKED.',h:due(),u:'/ops/due'},
+ {s:'Upload and detection',c:'Drop several files at once. House, pipeline and date are read from inside each file. An unclear house asks the person; a notice PDF is rejected; the same file twice is skipped. An automatic house can be imported for this month only (FX-F4).',h:upload(),u:'/ops/upload'},
+ {s:'Dry run',c:'The step that does not exist today: what a commit would write, next to last month, with unmatched and failed sheets named. Commit uses the existing writer, tagged with the intake id.',h:dry(),u:'/ops/intake/7f3c…/dry-run'},
+ {s:'Committed + history',c:'Every file from any route (upload, Collector, email) and what it wrote. Undo is offered in the toast and in the table.',h:history(false),u:'/ops/intake'},
+ {s:'Undo',c:'Undo removes only that file\'s rows and puts the series back to "waiting"; consumers fall back to last month\'s holdings.',h:history(true),u:'/ops/intake'},
+ {s:'Runs',c:'One line per job run with counts by outcome and the exit code. A run that alerts shows it here and in the email.',h:runs(),u:'/ops/runs'}
+];
+/* ===== Collector ===== */
+function amcSite(pop){return '<div class="app" style="display:block;background:#fff"><div class="site"><div class="nav"><b>Fund house website</b><span>Funds</span><span>Investor services</span><span>Downloads</span><span>Statutory disclosures</span></div><div class="ct"><div style="font-size:26px;font-weight:700">Monthly Portfolio Disclosure</div><div style="color:#666;margin-top:6px">Illustrative AMC page, not a real site</div><table><thead><tr><th>Document</th><th>Month</th><th></th></tr></thead><tbody>'
+ +[['Monthly Portfolio Disclosure - Mid Cap Fund','31 October 2026'],['Monthly Portfolio Disclosure - Flexi Cap Fund','31 October 2026'],['Monthly Portfolio Disclosure - Liquid Fund','31 October 2026'],['Monthly Portfolio Disclosure - All schemes (ZIP)','31 October 2026'],['Monthly Portfolio Disclosure - All schemes (ZIP)','30 September 2026']].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td><span class="dl">Download</span></td></tr>';}).join('')
+ +'</tbody></table></div></div>'+pop+'</div>';}
+function ext(body){return '<div class="ext"><div class="eh"><b>U</b>Unifolio Collector<span style="margin-left:auto;font-size:11px;color:#717171;font-weight:600">Cycle Nov 2026</span></div>'+body+'</div>';}
+var COLS=[
+ {s:'Due list in the browser',c:'The person opens the Collector in their own Chrome. It lists what is due and opens each house\'s page. The person browses and clicks Download as normal: nothing is fetched behind the site\'s back.',u:'fund-house-website › downloads',h:amcSite(ext('<div style="padding:10px 14px;font-size:12px;color:#717171">9 due · 5 done</div>'+[['WhiteOak Capital','Disclosures · ZIP of all schemes','On this page','#15803D'],['Bajaj Finserv','Disclosures','Next',''],['Edelweiss','Disclosures · workbook, not the notice PDF','',''],['Axis','Factsheet PDF','',''],['HDFC','Factsheets · active + passive','1 of 2','']].map(function(r,i){return '<div class="er" style="'+(i===0?'background:#EAFBF0':'')+'"><div style="flex:1;min-width:0"><div style="font-weight:700">'+r[0]+'</div><div class="mu">'+r[1]+'</div></div>'+(r[2]?'<span style="font-size:11px;font-weight:700;color:'+(r[3]||'#92400E')+'">'+r[2]+'</span>':'')+'</div>';}).join('')+'<div style="padding:12px 14px;display:flex;gap:8px"><span class="btn s" style="background:#22C55E;color:#fff;border:0;border-radius:9px;padding:6px 12px;font-weight:700">Open next page</span><span style="padding:6px 12px;border:1px solid #DFDFDF;border-radius:9px;font-weight:600">Ops console</span></div>'))},
+ {s:'File captured and sent',c:'When the download finishes, the extension reads the file name and the page it came from, sends the file to intake, and shows what intake detected. The dry run is waiting in the console.',u:'fund-house-website › downloads',h:amcSite(ext('<div style="padding:14px"><div style="display:flex;gap:10px;align-items:flex-start"><span style="color:#15803D;margin-top:2px">'+ic('check',18)+'</span><div><div style="font-weight:700">Sent to intake</div><div class="mu" style="margin-top:2px;font-size:12px;color:#717171">Monthly-Portfolio-Oct-2026.zip · 4.2 MB</div></div></div><div style="margin-top:12px;border:1px solid #ECECEC;border-radius:10px;padding:10px;font-size:12.5px"><div style="display:flex;justify-content:space-between"><span style="color:#717171">House</span><b>WhiteOak Capital</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">Pipeline</span><b>Disclosures</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">As of (from the file)</span><b>31 Oct 2026</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">Dry run</span><b style="color:#15803D">76 series · ok</b></div></div><div style="margin-top:12px;display:flex;gap:8px"><span style="background:#22C55E;color:#fff;border-radius:9px;padding:6px 12px;font-weight:700">Next: Bajaj Finserv</span><span style="padding:6px 12px;border:1px solid #DFDFDF;border-radius:9px;font-weight:600">Review in console</span></div></div>'))},
+ {s:'Daily digest email',c:'One email at 07:30 after the morning runs. It leads with what changed since yesterday, then what is due by hand. An immediate email still goes out on a non-zero exit.',u:'mail · Unifolio data digest',h:'<div class="app" style="display:block"><div class="mail"><div class="mb"><div style="display:flex;align-items:center;gap:8px;font-family:DM Sans,sans-serif;font-weight:700;font-size:18px"><span style="width:26px;height:26px;border-radius:7px;background:#22C55E;color:#fff;display:inline-grid;place-items:center;font-size:14px">U</span>Data digest · 6 Nov 2026</div><div style="color:#717171;font-size:13px;margin-top:6px">Disclosures for 31 Oct (run 05:45, exit 1) · Factsheets, November issues (run 06:00, exit 0)</div><div style="margin-top:18px;font-weight:700">Changed since yesterday</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li><b>Franklin Templeton</b> · WRONG_DATE: 32 files dated 30 Oct (Saturday month-end)</li><li><b>Nippon India</b> · now WRITTEN, 610 series</li><li><b>UTI factsheet</b> · November issue imported, 84/88 families</li></ul><div style="margin-top:14px;font-weight:700">Needs a person</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li>9 by-hand houses due (Edelweiss, Bandhan, HSBC, Invesco, Bajaj, Axis, HDFC ×2, SBI)</li><li>Invesco upload waiting: 31 unmatched sheets</li></ul><div style="margin-top:14px;font-weight:700">Coverage</div><div style="font-size:14px;margin-top:4px">Disclosures ≈66% of open-ended series (35/50 houses) · Factsheets 82.4% of families (37/55 houses)</div><div style="margin-top:20px"><span style="background:#22C55E;color:#fff;border-radius:10px;padding:9px 16px;font-weight:700;font-family:DM Sans,sans-serif">Open the Ops console</span></div></div></div></div>'}
+];
+/* ===== register ===== */
+var SETS={OPS:['Ops console',OPS],COL:['Collector extension and daily digest',COLS]};
+var URL={OPS:'/ops',COL:'/'};
+var DARK=false;try{DARK=localStorage.getItem('amc-desk-dark')==='1';}catch(e){}
+function frame(k,i){var st=SETS[k][1][i];return '<div class="chrome"><i></i><i></i><i></i><span>'+(st.u&&st.u.charAt(0)!=='/'?st.u:'unifolio · '+(st.u||URL[k]))+'</span></div>'+st.h.replace('<div class="app">','<div class="app'+(DARK?' dk':'')+'">');}
+function fit(vp){var sc=vp.firstChild;if(!sc)return;var s=vp.clientWidth/1440;sc.style.transform='scale('+s+')';vp.style.height=Math.ceil(sc.offsetHeight*s)+'px';}
+var desks=[];
+document.querySelectorAll('.desk[data-k]').forEach(function(el){
+ var k=el.getAttribute('data-k'),set=SETS[k];if(!set)return;var cur=0;
+ el.innerHTML='<div class="desk-h"><div class="t">Desktop preview · '+set[0]+'<small>1440 × 900 desktop, the live app\'s tokens. '+set[1].length+' states. Illustrative data.</small></div><div class="desk-ctl"><button type="button" data-a="theme">'+(DARK?'Light app':'Dark app')+'</button><button type="button" data-a="full">Full size ↗</button></div></div><div class="desk-tabs" role="tablist" aria-label="'+set[0]+' states"></div><p class="desk-cap"></p><div class="desk-vp"><div class="desk-sc"></div></div>';
+ var tabs=el.querySelector('.desk-tabs'),cap=el.querySelector('.desk-cap'),vp=el.querySelector('.desk-vp'),sc=el.querySelector('.desk-sc');
+ set[1].forEach(function(st,i){var b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=(i+1)+'. '+st.s;b.addEventListener('click',function(){cur=i;draw();});tabs.appendChild(b);});
+ function draw(){[].forEach.call(tabs.children,function(b,i){b.setAttribute('aria-selected',i===cur?'true':'false');});cap.textContent=set[1][cur].c;sc.innerHTML=frame(k,cur);fit(vp);}
+ el.querySelector('[data-a=full]').addEventListener('click',function(){openFull(k,cur);});
+ el.querySelector('[data-a=theme]').addEventListener('click',function(){DARK=!DARK;try{localStorage.setItem('amc-desk-dark',DARK?'1':'0');}catch(e){}desks.forEach(function(d){d();});});
+ desks.push(function(){el.querySelector('[data-a=theme]').textContent=DARK?'Light app':'Dark app';draw();});
+ draw();
+ if(window.ResizeObserver)new ResizeObserver(function(){fit(vp);}).observe(vp);else window.addEventListener('resize',function(){fit(vp);});
+});
+function openFull(k,i){var set=SETS[k],o=document.createElement('div');o.className='desk-full';o.setAttribute('role','dialog');o.setAttribute('aria-label',set[0]+' full size');
+ function render(){o.innerHTML='<div class="desk-full-bar"><span><b>'+set[0]+'</b> · '+(i+1)+'/'+set[1].length+' · '+set[1][i].s+' · actual size (1440 px)</span><span style="display:flex;gap:8px"><button type="button" data-a="p">‹ Prev</button><button type="button" data-a="n">Next ›</button><button type="button" data-a="c">Close ✕</button></span></div><div class="desk-sc" style="border-radius:10px;overflow:hidden">'+frame(k,i)+'</div>';
+  o.querySelector('[data-a=p]').onclick=function(){i=(i-1+set[1].length)%set[1].length;render();};o.querySelector('[data-a=n]').onclick=function(){i=(i+1)%set[1].length;render();};o.querySelector('[data-a=c]').onclick=close;o.querySelector('[data-a=c]').focus();}
+ function close(){document.removeEventListener('keydown',key);o.remove();}
+ function key(e){if(e.key==='Escape')close();if(e.key==='ArrowRight'){i=(i+1)%set[1].length;render();}if(e.key==='ArrowLeft'){i=(i-1+set[1].length)%set[1].length;render();}}
+ document.addEventListener('keydown',key);document.body.appendChild(o);render();}
+})();
+</script></body></html>
