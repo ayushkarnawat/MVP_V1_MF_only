@@ -75,6 +75,7 @@ h2.part{font-size:23px;border-top:3px solid var(--green);padding-top:18px;margin
 .o input{margin-top:4px;flex:none}
 .o b{display:block;font-size:14px}
 .o span.d{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.badge.ans{background:var(--blue)}.badge.ch{background:var(--ink)}
 .badge{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--surface);background:var(--green);padding:1px 8px;border-radius:99px;margin-left:6px}
 .q input[type=text]{width:100%;box-sizing:border-box;margin-top:4px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
 .qgroup{font-family:'DM Sans',Inter,sans-serif;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin:22px 0 0}
@@ -229,6 +230,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
   <span class="pill g" style="width:fit-content">Planning only · nothing built</span>
   <h1>Mutual Funds: new features, Add family member and the NSE address fix</h1>
   <p class="sub">26 Nov 2026. Covers the 8 features in <i>Unifolio New Feature Proposal v2.0</i>, plus three items you added: manual Add family member, a Contact Directory and the NSE address change. For each one: what we already do, what is missing, and what would change in the database, backend and front end. Also how each one affects MF Central, mockups, the execution strategy, and the open questions with my recommendations.</p>
+  <p class="small"><b>Answers recorded 27 Nov:</b> Q1, Q2, Q3, Q6, Q24, Q30 and Q32 (marked "Answered" in section 7). The rest of the page reflects them. Answers are not a go: nothing is built, and plans are written only when you say so.</p>
   <p class="small">Live code read: branch <code>leapswitch-redesign</code> at <code>b0e655c5</code> (Alembic head 0054), read straight from git without checking it out. The checked-out <code>main</code> is stale (Aug 2026). Phone views are out of scope, as for every batch.</p>
   <nav class="toc" aria-label="Contents"><a href="#research">1 Research</a><a href="#glance">2 At a glance</a><a href="#items">3 Items in detail</a><a href="#mfc">4 MF Central</a><a href="#debt">5 Debt open items</a><a href="#exec">6 Execution</a><a href="#questions">7 Open questions</a></nav>
 </header>
@@ -266,7 +268,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 <div class="tablewrap"><table>
 <thead><tr><th>Item</th><th>What we already do</th><th>What is missing</th><th>MF Central</th><th>Size</th><th>Proposed phase</th></tr></thead>
 <tbody>
-<tr><td><b>N1</b> NSE address fix</td><td>Weekly book-value job, hard-wired to <code>www.nseindia.com</code></td><td>New address and host check, both in two places</td><td>None</td><td class="n">0.5–1 d</td><td><span class="pill r">Hotfix now</span></td></tr>
+<tr><td><b>N1</b> NSE address fix</td><td>Weekly book-value job, hard-wired to <code>www.nseindia.com</code></td><td>New address and host check, both in two places</td><td>None</td><td class="n">0.5–1 d</td><td><span class="pill g">1 (bundled)</span></td></tr>
 <tr><td><b>A</b> Add family member</td><td>Backend <code>POST /household-members</code> with origin <code>manual</code>; onboarding uses it</td><td>Entry points and dialog on Profile and Add data</td><td>Low: PAN and contact may be needed later for OTP pull</td><td class="n">2–3 d</td><td><span class="pill g">1</span></td></tr>
 <tr><td><b>01</b> Portfolio Synopsis</td><td>Portfolio insights: largest fund, fund and AMC count, largest AMC, plan split, SIPs. Asset allocation, look-through stocks</td><td>Allocation, top 3 stocks, folio count and data age on Overview; merging the Synopsis into Overview (three cards removed); a fund-level synopsis</td><td>None</td><td class="n">5–7 d</td><td><span class="pill g">1</span></td></tr>
 <tr><td><b>02</b> Investment Journal</td><td>Nothing (life goals exist only as onboarding labels)</td><td>Everything: a notes workspace in the left panel, rich-text editor, templates, custom types, review dates, fund snapshots, search, fund-page notes</td><td>None</td><td class="n">9–11 d</td><td><span class="pill g">1</span></td></tr>
@@ -278,7 +280,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 <tr><td><b>05</b> SOA Downloads</td><td>CAMS request flow with checklist; import history; 30-day encrypted CAS copy; PDF export</td><td>A Documents page; guided requests for folio SOA and gains statements</td><td>High: CAS by API</td><td class="n">3–4 d (no storage) or 8–10 d</td><td><span class="pill b">2</span></td></tr>
 <tr><td><b>03</b> What-If &amp; Tax</td><td>Nothing; the "what if" scenarios are market stress tests, a different thing</td><td>Everything, on top of the 07 engine: per-member sale simulation, multi-fund, blocked units, break-even, sensitivity; exit-load data</td><td>Low (lien and redemption flags, M8)</td><td class="n">10–12 d</td><td><span class="pill w">3</span></td></tr>
 </tbody></table></div>
-<p class="small">d = developer days, backend and front end together, tests included, staging deploy excluded. Phase 1 ≈ 36–45 d, Phase 2 ≈ 21–28 d, Phase 3 ≈ 10–12 d plus the MF Central-gated parts.</p>
+<p class="small"><b>Decided (Q1):</b> all 11 items are built now, in this order, and deployed together once everything is done, as usual. The phases below are build order, not separate releases. , backend and front end together, tests included, staging deploy excluded. Phase 1 ≈ 36–45 d, Phase 2 ≈ 21–28 d, Phase 3 ≈ 10–12 d plus the MF Central-gated parts.</p>
 </section>
 
 <h2 class="part" id="items">3 · Items in detail</h2>
@@ -286,7 +288,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 
 <!-- N1 -->
 <section id="n1">
-<div class="ihead"><span class="id">N1</span><h2 style="margin:0">NSE address change (filings book value)</h2><span class="pill r">Hotfix</span></div>
+<div class="ihead"><span class="id">N1</span><h2 style="margin:0">NSE address change (filings book value)</h2><span class="pill g">Phase 1 (bundled)</span></div>
 <div class="kv"><b>Earlier finding</b><div>The 15 Nov run stopped at step 1 with HTTP 301; 0 stocks processed. NSE now sends <code>www.nseindia.com</code> to <code>www.nseindia.in</code>. The code has a fixed address, does not follow redirects and only accepts hosts ending in <code>nseindia.com</code>.</div></div>
 <div class="kv"><b>Re-checked today</b><div>
 <ul>
@@ -305,7 +307,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 <li>Tests first: a 301 gives the <code>moved_to</code> reason; an <code>.in</code> XBRL link is accepted; a foreign host is still rejected; a run where every row is dropped raises the new alert. Then re-run the job on staging and confirm it processes stocks.</li>
 </ol></div></div>
 <div class="kv"><b>DB / FE</b><div>No migration, no front-end change.</div></div>
-<div class="kv"><b>Timing</b><div>The job runs Sundays 04:30 IST. Without a fix it fails again on 29 Nov. I recommend a standalone patch ahead of this whole phase (Q2).</div></div>
+<div class="kv"><b>Timing</b><div><b>Decided 27 Nov: bundled with Phase 1 (Q2)</b>, and with Q1 the whole release deploys together once every item is done. So the job keeps failing every Sunday 04:30 IST (next: 29 Nov) until that release goes live, and book values stay at the last good run. Nothing else breaks, and the failure email keeps firing each week as a reminder. The fix is the first task in the build order, so it is ready on day one; if the wait gets long, it can still go out on its own with a one-line change of mind.</div></div>
 </section>
 
 <!-- A -->
@@ -403,7 +405,7 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 <li>Safety: the body is stored as editor JSON, never raw HTML, and rendered through the editor's schema, so pasted scripts can't run.</li>
 </ul></div></div>
 <div class="kv"><b>Not in v1 (my proposal)</b><div>Attachments (Q7: storage, malware scanning, DPDP); "shared with family" visibility (one login per family today); review-date emails until 04's email exists (then they reuse it); folders or nested pages (types and tags cover it).</div></div>
-<div class="kv"><b>Libraries</b><div>TipTap (MIT, built on ProseMirror) for the editor: a new front-end dependency, so it needs your OK (Q30). It brings tables, checklists, Markdown shortcuts and the "/" menu without our own editor code.</div></div>
+<div class="kv"><b>Libraries</b><div><b>Decided 27 Nov (Q30): rich text with TipTap</b> (MIT, built on ProseMirror), a new front-end dependency. It brings tables, checklists, Markdown shortcuts and the "/" menu without our own editor code.</div></div>
 <div class="kv"><b>Size</b><div>9–11 d (was 6–8): the editor, templates, custom types, review dates and the snapshot block.</div></div>
 
 <div class="desk" data-k="02"></div>
@@ -683,16 +685,20 @@ button:focus-visible,.o:focus-within{outline:2px solid var(--blue);outline-offse
 
 <section id="exec">
 <h2>6 · Execution strategy</h2>
+<div class="callout ok"><p><b>Decided 27 Nov.</b> One release: all 11 items are built now and deployed together once every change is done, as usual (Q1). We execute here: Claude orchestrates, Codex does the backend, Antigravity the front end (Q3). Lanes are <b>not</b> set up yet, because this may move to another account, and writing plans start only when you say so.</p></div>
 <h3>Our process</h3>
 <ol>
-<li><b>This planning page.</b> You answer the questions below (answers are not a go).</li>
+<li><b>Finish planning on this page.</b> You answer the remaining questions (answers are not a go).</li>
 <li><b>Resolve open items</b> with your manager (MF Central M1–M11), the CA (tax rules, Q14) and legal (03 wording, Q21).</li>
-<li><b>Writing plans</b>, one per batch, each with named failing tests first, exact files, migration numbers and a deploy guide.</li>
+<li><b>Writing plans, when you say so:</b> one per batch, each with named failing tests first, exact files, migration numbers, and one combined deploy guide for the release.</li>
+<li><b>Lanes, when you say so:</b> set up on whichever account we end up on.</li>
 <li><b>Execution:</b> Claude orchestrates; Codex is the backend worker, Antigravity the front-end worker; task branches PR into the integration branch; reviews at every gate, as for M1–M4, the XIRR display fix and the Head of Family change.</li>
+<li><b>One staging deploy and one production deploy</b> at the end, after the whole-release review.</li>
 </ol>
-<h3>Proposed batches</h3>
+<div class="callout"><p><b>What one release means for the gates.</b> The CA sign-off (P2-a, Q14) and the legal review of the What-If wording (P3) now gate the whole release, not just their own items. Every item waits for the slowest of them. Building goes on while they are pending; only the deploy waits. Worth starting both reviews early.</p></div>
+<h3>Build order (batches)</h3>
 <div class="tablewrap"><table><thead><tr><th>Batch</th><th>Contents</th><th>Backend (Codex)</th><th>Front end (Antigravity)</th><th>Migration</th><th>Gate</th></tr></thead><tbody>
-<tr><td><b>P0</b></td><td>N1 NSE fix</td><td>Config, allow-list, two alerts, tests</td><td>None</td><td>None</td><td>Staging job run processes stocks</td></tr>
+<tr><td><b>P1-0</b></td><td>N1 NSE fix (first task of Phase 1)</td><td>Config, allow-list, two alerts, tests</td><td>None</td><td>None</td><td>Job run on the release staging deploy processes stocks</td></tr>
 <tr><td><b>P1-a</b></td><td>A Add member, 01 Synopsis</td><td>Insights fields, fund synopsis route, people-resolution test</td><td>Tile, dialog, picker row, Synopsis row on Overview (three cards removed), fund card</td><td>None</td><td>Family total = sum of members</td></tr>
 <tr><td><b>P1-b</b></td><td>04 Freshness and reminder, 06 detection</td><td>Freshness envelope, cron, change summary, folio fields, health route</td><td>Freshness card, banner, Notifications page, Folio health page</td><td>0055 (<code>app_settings</code>, member/user/folio columns)</td><td>Email sent once on staging; KYC kept from real CAS</td></tr>
 <tr><td><b>P1-c</b></td><td>08 X-Ray, 02 Journal, C Contacts</td><td>Diff engine, journal service, contacts service, ARN suggestions, weekly SEBI register job, escalation directory seed</td><td>X-Ray page, Journal workspace (left panel, TipTap editor), Contacts page (left panel footer), fund-page notes</td><td>0056 (journal tables, <code>contacts</code>, <code>intermediary_register</code>, <code>escalation_directory</code>)</td><td>Diff known-answer tests</td></tr>
@@ -861,13 +867,15 @@ var G=[
 ];
 var KEY="mf-newfeat-answers-v1",ANS={};
 try{ANS=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){ANS={};}
+var DONE={Q1:{c:"a",n:"all the items will be executed now only together, and then deployed together once all changes are done, just like how we usually do"},Q2:{c:"b"},Q3:{c:"b",n:"first we finish all the planning, then i'll tell you when to write the writing plans and start. do not set up the lanes yet, there is a slight chance we might have too shift to another account"},Q6:{c:"a"},Q24:{c:"a"},Q30:{c:"a"},Q32:{c:"a"}};
+Object.keys(DONE).forEach(function(k){if(!ANS[k]||!ANS[k].c)ANS[k]={c:DONE[k].c,n:(ANS[k]&&ANS[k].n)||DONE[k].n||""};});
 function save(){try{localStorage.setItem(KEY,JSON.stringify(ANS));}catch(e){}render();}
 var host=document.getElementById("qs"),all=[];
 G.forEach(function(g){
  var h=document.createElement("div");h.className="qgroup";h.textContent=g[0];host.appendChild(h);
  g[1].forEach(function(q){all.push(q);
   var d=document.createElement("div");d.className="q";
-  var t=document.createElement("h3");t.textContent=q.id+" · "+q.t;d.appendChild(t);
+  var t=document.createElement("h3");t.textContent=q.id+" · "+q.t;if(DONE[q.id]){var ab=document.createElement("span");ab.className="badge ans";ab.textContent="Answered";t.appendChild(ab);}d.appendChild(t);
   var w=document.createElement("p");w.className="why";w.textContent=q.why;d.appendChild(w);
   q.o.forEach(function(o){
    var id=q.id+"-"+o.k,l=document.createElement("label");l.className="o";l.htmlFor=id;
@@ -875,7 +883,7 @@ G.forEach(function(g){
    if(ANS[q.id]&&ANS[q.id].c===o.k)i.checked=true;
    i.addEventListener("change",function(){ANS[q.id]=ANS[q.id]||{};ANS[q.id].c=o.k;save();});
    var s=document.createElement("span"),b=document.createElement("b");b.textContent=o.k+") "+o.l;
-   if(o.rec){var r=document.createElement("span");r.className="badge";r.textContent="Recommended";b.appendChild(r);}
+   if(o.rec){var r=document.createElement("span");r.className="badge";r.textContent="Recommended";b.appendChild(r);}if(DONE[q.id]&&DONE[q.id].c===o.k){var cb=document.createElement("span");cb.className="badge ch";cb.textContent="Chosen option";b.appendChild(cb);}
    s.appendChild(b);if(o.d){var dd=document.createElement("span");dd.className="d";dd.textContent=o.d;s.appendChild(dd);}
    l.appendChild(i);l.appendChild(s);d.appendChild(l);});
   var n=document.createElement("input");n.type="text";n.id=q.id+"-note";n.placeholder="Note (optional)";n.setAttribute("aria-label",q.id+" note");
@@ -1496,5 +1504,4 @@ function openFull(k,i){var set=SETS[k],o=document.createElement('div');o.classNa
 })();
 
 </script>
-
 </body></html>
