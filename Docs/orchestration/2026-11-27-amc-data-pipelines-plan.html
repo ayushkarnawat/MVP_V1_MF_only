@@ -20,6 +20,7 @@ pre{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--code)
 .pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--code);color:var(--muted);white-space:nowrap}
 .pill.g{background:var(--greenbg);color:var(--green)}.pill.w{background:var(--warnbg);color:var(--warn)}.pill.b{background:var(--bluebg);color:var(--blue)}.pill.r{background:var(--negbg);color:var(--neg)}
 .callout{border-left:4px solid var(--warn);background:var(--warnbg);padding:12px 16px;border-radius:0 10px 10px 0;margin-bottom:10px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:8px 0 14px}.kpi-row .kp{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}.kpi-row .kl{font-size:12px;color:var(--muted)}.kpi-row .kv{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}.kpi-row .ks{font-size:12.5px;color:var(--muted)}
 .callout.ok{border-color:var(--green);background:var(--greenbg)}.callout.info{border-color:var(--blue);background:var(--bluebg)}
 .callout p:last-child,.callout ul:last-child{margin-bottom:0}
 .tablewrap{overflow-x:auto}
@@ -261,17 +262,35 @@ table.opt td{font-size:13px}
 .site table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
 .site td,.site th{border-bottom:1px solid #e3e3e3;padding:12px 8px;text-align:left}
 .site .dl{background:#0b3d6e;color:#fff;border-radius:4px;padding:6px 12px;font-size:13px}
+.spn,.cpn{position:absolute;z-index:8;right:0;top:0;bottom:0;width:440px;background:#fff;border-left:1px solid #DFDFDF;box-shadow:-8px 0 24px rgba(0,0,0,.08);font-family:Manrope,Inter,sans-serif;color:#111;font-size:13px;overflow:hidden}
+.spn .eh,.cpn .eh{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid #ECECEC;font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px}
+.spn .eh b{width:22px;height:22px;border-radius:6px;background:#22C55E;color:#fff;display:inline-grid;place-items:center;font-size:12px}
+.spn .env,.cpn .env{margin-left:auto;font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;background:#EAFBF0;color:#15803D}
+.spn .sec{padding:14px 16px;border-bottom:1px solid #F3F3F3}.spn .sec.act{background:#F6FDF8}
+.spn .tag{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;background:#22C55E;color:#fff}
+.spn .hint{margin-top:10px;border:1px solid #DCEFE2;background:#F3FBF6;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.spn .prog{height:6px;border-radius:99px;background:#ECECEC;margin-top:10px;overflow:hidden}.spn .prog i{display:block;height:100%;background:#22C55E}
+.spn .er{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #F3F3F3}
+.spn .ck{display:flex;gap:10px;align-items:flex-start;padding:7px 0}
+.mu2{color:#717171;font-size:12px;line-height:1.45}
+.pb{display:inline-block;padding:6px 12px;border:1px solid #DFDFDF;border-radius:9px;font-weight:700;font-size:12.5px;background:#fff;color:#111}.pb.p{background:#22C55E;border-color:#22C55E;color:#fff}
+.cpn{background:#FAF9F5;font-family:Inter,system-ui,sans-serif}.cpn .eh{background:#FAF9F5}
+.cpn .cm{margin:12px 14px 0;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #E8E6DC;line-height:1.5}.cpn .cm.me{background:#F0EEE6;font-family:'JetBrains Mono',monospace;font-size:12.5px;width:fit-content;margin-left:auto}
+.cpn .cplan,.cpn .cperm{margin:12px 14px 0;padding:12px;border-radius:12px;background:#fff;border:1px solid #E8E6DC}.cpn .cperm{border-color:#D97757;box-shadow:0 0 0 3px rgba(217,119,87,.12)}
+.cpn .cs{display:flex;gap:8px;align-items:flex-start;margin:10px 14px 0;font-size:12.5px;line-height:1.45}
+.cpn .cnote{margin:12px 14px;font-size:12px;color:#5E5D59;border-top:1px dashed #E8E6DC;padding-top:10px}
+.cpn .pb.p{background:#D97757;border-color:#D97757}
 .mail{width:1440px;min-height:900px;background:#F2F2F2;padding:32px 0;font-family:Manrope,Inter,sans-serif;color:#111}
 .mail .mb{width:680px;margin:0 auto;background:#fff;border-radius:14px;border:1px solid #E5E5E5;padding:28px 32px}
 </style>
 </head><body>
 <main>
 <header style="display:flex;flex-direction:column;gap:10px">
-  <span class="pill g" style="width:fit-content">Planning only · nothing built</span>
+  <span class="pill g" style="width:fit-content">Planning only · nothing built</span> <span class="pill b" style="width:fit-content">v3 · status check results added 27 Nov</span> <span class="pill b" style="width:fit-content">v8 · answers Q2–Q4, Q6–Q8 recorded 28 Nov</span>
   <h1>AMC data pipelines: status check, fixes, strengthening and automation</h1>
   <p class="sub">27 Nov 2026. One planning workbook for the four parts of the next phase: (S) a read-only check of where the factsheet and portfolio-disclosure jobs stand today, (F) the code fixes already proposed on 19 Nov, (H) the strengthening items from the 16 Oct plan, and (A) a deep dive on how to stop uploading files by hand every month. For each part: what changes in the database, the backend and the front end, with desktop mockups of the new Ops screens drawn in the live app's own look.</p>
-  <p class="small">Live code read: branch <code>leapswitch-redesign</code> at <code>53523fea</code> (Alembic head 0054), read straight from git without checking it out. Builds on <code>2026-11-19-disclosures-and-factsheets-solution-proposal.md</code> (fixes), <code>2026-10-16-analytics-strengthening-plan.md</code> (strengthening), the L-5 findings, the 19 Nov audit first pass, the by-hand runbook and the 31 Oct factsheet state note. Nothing in this page was run on staging. Phone views are out of scope.</p>
-  <nav class="toc" aria-label="Contents"><a href="#bottom">0 Bottom line</a><a href="#research">1 Research</a><a href="#today">2 How it works today</a><a href="#glance">3 At a glance</a><a href="#s">4 Status check</a><a href="#f">5 Fixes</a><a href="#h">6 Strengthening</a><a href="#a">7 Automation deep dive</a><a href="#db">8 Database</a><a href="#be">9 Backend</a><a href="#fe">10 Front end and mockups</a><a href="#exec">11 Execution</a><a href="#risk">12 Risks</a><a href="#questions">13 Open questions</a></nav>
+  <p class="small">Live code read: branch <code>leapswitch-redesign</code> at <code>53523fea</code> (Alembic head 0054), read straight from git without checking it out. Builds on <code>2026-11-19-disclosures-and-factsheets-solution-proposal.md</code> (fixes), <code>2026-10-16-analytics-strengthening-plan.md</code> (strengthening), the L-5 findings, the 19 Nov audit first pass, the by-hand runbook and the 31 Oct factsheet state note. Nothing in this page was run on staging except the read-only status check (section 4), run on 27 Nov at 15:35. Phone views are out of scope.</p>
+  <nav class="toc" aria-label="Contents"><a href="#bottom">0 Bottom line</a><a href="#research">1 Research</a><a href="#today">2 How it works today</a><a href="#glance">3 At a glance</a><a href="#s">4 Status check</a><a href="#f">5 Fixes</a><a href="#h">6 Strengthening</a><a href="#a">7 Automation deep dive</a><a href="#a2">A2 in depth</a><a href="#a3">A3 in depth</a><a href="#a23">A2/A3 coverage</a><a href="#ag">7b Agentic pipeline</a><a href="#db">8 Database</a><a href="#be">9 Backend</a><a href="#fe">10 Front end and mockups</a><a href="#exec">11 Execution</a><a href="#risk">12 Risks</a><a href="#questions">13 Open questions</a></nav>
 </header>
 
 <section id="bottom">
@@ -279,13 +298,16 @@ table.opt td{font-size:13px}
 <div class="callout ok"><p><b>Most of the monthly chaos is not the downloading. It is everything around it.</b> Today each by-hand file is found on a site, renamed, copied to the VM with <code>scp</code>, imported with a long <code>ssh … docker compose run …</code> command with exactly the right house name and flags, and the result is pasted back into chat. There is no dry run, no undo, no list of what is still due, and no record of what was done. That repeats for about <b>25 house imports a month</b> (11 disclosure houses, up to 14 factsheet houses).</p></div>
 <p>My recommendation, in order:</p>
 <ol>
-<li><b>Status check now, read-only (S).</b> Before the December cycle starts on 1 Dec, find out what the 20 Nov disclosure run and the 10 Nov factsheet run actually left in the database. Today nobody can say, because neither job keeps a log.</li>
+<li><b>Status check (S): done 27 Nov.</b> October holdings cover 82% of fund money but only 44% of live series, unchanged since 18 Nov; 15 of 51 houses have nothing for October and no October by-hand import was done. Every testable cause from 19 Nov is confirmed, and three new problems were found (Groww now refuses us, Taurus never fetched, matured funds still live). Section 4.</li>
 <li><b>Make failure visible, then fix the bugs (H1–H3, then F).</b> One outcome row per fund house per run, a daily digest email, non-zero exits. Then the eight code fixes, ordered by funds recovered. <b>Hard deadline: FX-L1 (the weekend date rule) must be live before 1 Feb 2027</b>, because 31 Jan 2027 is a Sunday and Franklin's files will be missed again.</li>
 <li><b>Replace the CLI routine with an Ops console (A1).</b> Drop files on a page; the house and month are detected from the file; a dry run shows what would be written, compared with last month; one click commits; one click undoes. Plus a due list, so nothing is forgotten. This removes most of the chaos on its own.</li>
 <li><b>Cut the clicks with a Collector browser extension (A2).</b> A person still opens each AMC page in their own browser (so we never get around a site's block), but the extension picks up each download, tags it and sends it to the Ops console. The monthly routine becomes "open the due list, click through, review, commit": about 30–40 minutes instead of an afternoon.</li>
 <li><b>Work towards real automation in parallel (A5–A7):</b> ask the blocked houses to allow our fixed server address, try an email inbox that receives AMC mailings (Amazon SES can receive mail in Mumbai), and get quotes from data vendors. Each one, when it works for a house, takes that house off the manual list.</li>
 </ol>
 <div class="callout"><p><b>What I do not recommend:</b> an unattended AI agent that drives a browser from a home or office connection to download files from sites that refuse our server. It would work technically, but it is exactly the "access-control workaround" the project ruled out in Run 7 (10 Oct), the sites' terms usually forbid automated access, and it fails silently when a page changes. A <i>supervised</i> pilot is offered as an option in Q12, so it is your call.</p></div>
+<div class="callout ok"><p><b>Decided 28 Nov (your answers).</b> Two releases: R1 (status check, H1–H5, fixes) before 1 Jan and R2 (Ops console, Collector, email intake, H6–H10) before 1 Feb (Q2). The status check stays a one-off script and guide, already run on 27 Nov (Q3). October stays as it is for Franklin and Zerodha: no hand import; December's run picks up Franklin's 30 Nov file with today's code, and Zerodha waits for R1 (Q4). Job windows widen to days 1–25 for disclosures and daily on days 8–25 for factsheets, skipping houses already current (Q6). Alerts: one daily digest email at 07:30 plus an immediate email when a run exits non-zero (Q7), to three people: the intern, the manager and the stakeholder (Q8, section 6, H3). Q1, Q5 and Q9–Q30 are still open. Answers are not a go: no plans are written until you say so.</p></div>
+<div class="callout info"><p><b>Status check results (27 Nov, section 4).</b> LIC loses a whole workbook every month (145 series, twice the estimate), Franklin is the only house October's 30 Oct date hurt, and neither job leaves a log on the VM, so the alert counts of 0 mean nothing. October's by-hand round is still due before December starts (Q27). New questions Q27–Q29.</p></div>
+<div class="callout info"><p><b>Added 27 Nov, after your questions.</b> <b>Section 7b</b> is the deep dive on a fully agentic pipeline: agents that find, fetch and read the files by themselves. In short, agents can make every fund house that lets our server in fully automatic, including HSBC, Mahindra, JM and Kotak, which are by hand today. For the 12 houses that refuse our server, zero touch needs their permission or a data vendor (or a workaround I do not recommend). <b>The Ops console is an internal admin panel for the Unifolio team only.</b> App users never see it, cannot open it, and are never involved in any of this (section 10).</p></div>
 </section>
 
 <section id="research">
@@ -308,7 +330,7 @@ table.opt td{font-size:13px}
 </tbody></table></div>
 <h3>Things you should know before reading the plan</h3>
 <ul>
-<li><b>Nobody can say today what the 20 Nov run did.</b> The disclosure job writes no log file, its container is removed after each run, and lateness alerts fire only on days 10 and 20. That is why S comes first.</li>
+<li><b>Nobody could say what the 20 Nov run did</b> until the status check read the database (section 4): it added nothing. The disclosure job writes no log file, its container is removed after each run, and lateness alerts fire only on days 10 and 20. The VM confirms it: no job logs, no cron mail.</li>
 <li><b>The factsheet job has no record per run at all.</b> <code>scheme_fund_managers</code> keeps only the reference month per row. Whether the 10 Nov run worked can be read only by comparing the newest reference month per house (query S2).</li>
 <li><b>The by-hand importers have no dry run and no undo.</b> The disclosure importer replaces a house's waiting rows in one transaction; the factsheet importer checks every file first. Neither can show "what would change" before writing. This is the main thing the Ops console adds.</li>
 <li><b>Two different "manual" lists exist and they do not match.</b> Disclosures: 7 registered manual houses plus 4 that refuse our server (Bajaj, WhiteOak, Trust, Angel One). Factsheets: 10 registered manual houses plus 4 registered as automatic that fail (Angel One, Sundaram, SBI, Mahindra Manulife), which the CLI refuses to import by hand.</li>
@@ -351,15 +373,17 @@ table.opt td{font-size:13px}
 <div class="tablewrap"><table>
 <thead><tr><th>Part</th><th>Items</th><th>What it gives you</th><th>DB</th><th>Backend</th><th>Front end</th><th class="n">Effort</th></tr></thead>
 <tbody>
-<tr><td><span class="pill b">S</span> Status check</td><td>S1–S6</td><td>A true picture of both jobs before the December cycle</td><td>none (read-only)</td><td>one read-only script</td><td>none</td><td class="n">1 d + your VM run</td></tr>
+<tr><td><span class="pill b">S</span> Status check</td><td>S1–S6</td><td>A true picture of both jobs before the December cycle</td><td>none (read-only)</td><td>one read-only script</td><td>none</td><td class="n">done 27 Nov</td></tr>
 <tr><td><span class="pill r">F</span> Fixes</td><td>FX-L1–L8, FX-F1–F5</td><td>Back the ~470 series lost in October, and the factsheet misses</td><td>none</td><td>client, resolvers, importer</td><td>none</td><td class="n">~11 d</td></tr>
 <tr><td><span class="pill w">H</span> Strengthening</td><td>H1–H10</td><td>Every failure visible the same day, with a reason</td><td>1 table, 3 columns</td><td>outcomes module, digest, cron</td><td>feeds the Ops console</td><td class="n">~10 d</td></tr>
 <tr><td><span class="pill g">A</span> Automation</td><td>A1–A8</td><td>The monthly routine in one page, then fewer manual houses</td><td>1 table, 2 columns</td><td>intake + ops API, email intake</td><td>Ops console (6 screens), Collector extension</td><td class="n">~17 d</td></tr>
+<tr><td><span class="pill g">7b</span> Agents</td><td>AG-0–AG-5</td><td>Every house that lets our server in becomes hands-off, layout changes included</td><td>1 column</td><td>browser worker, locator / reader / inbox agents</td><td>agent activity in the Ops console</td><td class="n">~15 d</td></tr>
 </tbody></table></div>
-<p class="small">Effort is worker-days (Codex or Antigravity), plus about 25% for Claude review gates. Total about 40 days, in two releases (R1: S + H1–H5 + F; R2: the rest of H and A). Phone views out of scope.</p>
+<p class="small">Effort is worker-days (Codex or Antigravity), plus about 25% for Claude review gates. Total about 40 days, in two releases (R1: S + H1–H5 + F before 1 Jan; R2: the rest of H and A before 1 Feb; <b>decided, Q2</b>). Phone views out of scope.</p>
 <h3>Order and dependencies</h3>
 <div class="tl">
- <div><b>Now → 30 Nov</b><span>S1–S6 read-only status check (you or the intern runs the guide on the VM)</span></div>
+ <div><b>27 Nov ✓</b><span>S1–S7 read-only status check done (section 4)</span></div>
+ <div><b>Now → 30 Nov</b><span>October by-hand imports still due for the 7 by-hand houses, through today's runbook (Q27). Franklin and Zerodha stay as they are (Q4, decided)</span></div>
  <div><b>1–20 Dec</b><span>December cycle runs on today's code. By-hand files through today's runbook, one last time.</span></div>
  <div><b>Dec, R1 build</b><span>H1–H3 visibility → FX-L1, L2, L5, L6 → H4, H5 → FX-L7, L8, F1–F5</span></div>
  <div><b>Before 1 Jan</b><span>R1 on staging, so the January cycle is the first one with outcomes and the date fix</span></div>
@@ -371,20 +395,81 @@ table.opt td{font-size:13px}
 
 <section id="s">
 <h2 class="part">4 · Status check (S): where both jobs stand today</h2>
-<p>Read-only. One new script, <code>backend/scripts/audit_pipelines/status.py</code>, that extends the existing <code>run_audit.py</code> (E1–E5) with the factsheet side and the proposal's verification queries. It opens the database read-only and refuses to run otherwise, exactly like <code>run_audit.py</code>. A guide in the style of the 18 Nov audit guide tells you or the intern how to run it on the VM and send the output back. I then write the status report.</p>
+<p class="sub"><b>Done 27 Nov 2026.</b> Run read-only on the staging VM by your manager's Claude (VM at <code>48f8b6a4</code>, script <code>backend/scripts/audit_pipelines/status.py</code> at <code>9ccb1369</code>, target month end 31 Oct 2026). Steps 3 and 4 took 15:35–15:38. Nothing was written. The two output files (29,742 and 29,802 lines) were read in full for this section.</p>
+
+<div class="callout ok"><p><b>In one paragraph.</b> October holdings cover <b>82% of fund money</b> but only <b>44% of live series</b> (6,351 of 14,415), and that is <b>exactly the same 6,351 as the 18 Nov audit</b>. The last run (20 Nov) added nothing, and <b>no October by-hand import was done</b> for any of the 7 by-hand houses. <b>15 of 51 fund houses have no October holdings at all.</b> Every cause in the 19 Nov proposal that the check could test is confirmed: Franklin's 30 Oct date (B), Samco's host fallback (C), Zerodha's rename in both registries (D), LIC's second workbook (E, worse than thought), Wayback missing files for Canara and HDFC (F), and failures with no reason kept (A). It also found three new problems: <b>Groww now refuses our server</b>, <b>Taurus has never been fetched</b>, and four matured September-2026 index funds are still live. Factsheets are in better shape: <b>49 of 56 houses are on the November issue</b>, 62% of live series have a manager from it, and Axis is the one by-hand house still on October. <b>Neither job leaves any log on the VM</b>, so none of this was visible before today.</p></div>
+
+<h3>4.1 Portfolio disclosures for 31 Oct (S1, S3, S4)</h3>
+<div class="kpi-row">
+<div class="kp"><span class="kl">Fund money with October holdings</span><span class="kv">82%</span><span class="ks">Weighted by September AAUM. Missing 18%: Bandhan 2.5, ICICI 2.5, Edelweiss 2.1, Invesco 1.9, HSBC 1.8, Franklin 1.5 points</span></div>
+<div class="kp"><span class="kl">Live series with October holdings</span><span class="kv">44%</span><span class="ks">6,351 of 14,415. Same count as 18 Nov: the 20 Nov run added nothing</span></div>
+<div class="kp"><span class="kl">Fund houses with nothing for October</span><span class="kv">15 / 51</span><span class="ks">10 of them were written for September</span></div>
+<div class="kp"><span class="kl">Failed batches with no reason kept</span><span class="kv">159 / 172</span><span class="ks">ICICI 103, UTI 20, quant 12, Tata 12, DSP 4 (both months)</span></div>
+</div>
 <div class="tablewrap"><table>
-<thead><tr><th>#</th><th>Question</th><th>How</th><th>Answers</th></tr></thead>
+<thead><tr><th>Fund house</th><th class="n">Oct written / live</th><th class="n">Sep written</th><th>What the check shows</th><th>Cause → fix</th></tr></thead>
 <tbody>
-<tr><td>S1</td><td>Final October disclosure coverage after the last run (20 Nov) and the by-hand imports</td><td>E1–E5 for <code>2026-10-31</code>, as on 19 Nov</td><td>Did Samco, Zerodha, LIC, Motilal, Canara change on 20 Nov? Were all 7 by-hand houses imported?</td></tr>
-<tr><td>S2</td><td>Factsheet state per house after the 10 Nov run</td><td>Newest <code>reference_period</code> and scheme count per house (query 5a of the 31 Oct note), against the 31 Oct table</td><td>Which houses moved to the October/November issue, which stayed, which have nothing</td></tr>
-<tr><td>S3</td><td>LIC's second workbook (cause E)</td><td><code>count(DISTINCT source_url)</code> for LIC at 31 Oct</td><td>1 confirms the "stops after first workbook" bug</td></tr>
-<tr><td>S4</td><td>Which families dropped between September and October, per house</td><td>Families WRITTEN at 30 Sep and not at 31 Oct, with base fund name</td><td>Motilal, Canara, and any house nobody noticed</td></tr>
-<tr><td>S5</td><td>Which houses date files on the last working day (cause B's blast radius)</td><td>Discovery-only run of every JSON/custom locator with a 3-day window, nothing downloaded or written (the L-5 method)</td><td>The full list FX-L1 must cover</td></tr>
-<tr><td>S6</td><td>What the VM keeps</td><td>List <code>/var/log/unifolio-*</code>, root's cron mail, crontab as installed</td><td>Whether any run output survived; confirms H2 is needed</td></tr>
+<tr><td><b>LIC</b></td><td class="n">75 / 220</td><td class="n">145</td><td>The site lists <b>2</b> October workbooks (S5). September wrote 145 series from one, October wrote 75 from the other, each from one file (S3). 145 + 75 = 220 = every live LIC series. So each month we keep only <i>one</i> workbook, and which one changes.</td><td><span class="pill r">E confirmed</span> FX-L6 recovers 145 series now (was estimated at ~70)</td></tr>
+<tr><td><b>Franklin Templeton</b></td><td class="n">0 / 321</td><td class="n">171</td><td>The site lists 2,177 records: <b>32 files dated 30 Oct</b>, none dated 31 Oct. 171 series show September holdings, 150 have none.</td><td><span class="pill r">B confirmed</span> FX-L1</td></tr>
+<tr><td><b>Samco</b></td><td class="n">0 / 31</td><td class="n">26</td><td>The site lists <b>36 files dated 31 Oct</b>, yet nothing was written: the download fails on the main host and the second host is never tried.</td><td><span class="pill r">C confirmed</span> FX-L5</td></tr>
+<tr><td><b>Zerodha</b></td><td class="n">0 / 25</td><td class="n">20</td><td>Registry key "Zerodha Mutual Fund" has no live schemes; the live house is "Zerodha CASE Mutual Fund", known to neither registry (S7, both pipelines).</td><td><span class="pill r">D confirmed</span> FX-L2, FX-F1</td></tr>
+<tr><td><b>Canara Robeco</b></td><td class="n">82 / 130</td><td class="n">112</td><td>Wayback now lists 26 October files; the October run wrote from 17. Seven families short (34 series), all with September holdings.</td><td><span class="pill r">F confirmed</span> FX-L7</td></tr>
+<tr><td><b>HDFC</b></td><td class="n">355 / 579</td><td class="n">0</td><td>Wayback now lists 222 October files; October was written from 109. 216 series have no holdings at all. (HDFC is 97% covered by money: the gaps are small funds.)</td><td><span class="pill r">F confirmed</span> FX-L7</td></tr>
+<tr><td><b>Motilal Oswal</b></td><td class="n">161 / 231</td><td class="n">191</td><td>72 October files listed, 71 written. The short families are three debt funds: Liquid (16 series), Ultra Short Term (12), 5 Year G-Sec FoF (2). Not a missing file: the sheets did not match.</td><td><span class="pill w">I narrowed</span> FX-L8's recorder covers it</td></tr>
+<tr><td><b>ICICI Prudential</b></td><td class="n">551 / 2,512</td><td class="n">569</td><td>59 failed sum checks for October (44 in September), none with a reason. Ultra Short Term (15 series) failed whole.</td><td><span class="pill w">I, A</span> FX-L8, H1</td></tr>
+<tr><td><b>Groww</b> <span class="pill r">new</span></td><td class="n">186 / 217</td><td class="n">194</td><td><b>The site answered 403 to our server on 27 Nov</b> (it worked for October earlier in the month). Also 12 failed batches with the one reason the check did find: "declared total scale disagrees with row weights".</td><td><span class="pill r">G, new</span> FX-L9; H8 for the scale</td></tr>
+<tr><td><b>Taurus</b> <span class="pill r">new</span></td><td class="n">0 / 36</td><td class="n">0</td><td>Registered as automatic (JSON), but its locator returns <b>0 records</b>. No batch has ever been written. Nobody noticed because the house never had a "last month" to lose.</td><td><span class="pill r">new</span> FX-L10</td></tr>
+<tr><td>7 by-hand houses</td><td class="n">0 / 1,698</td><td class="n">297</td><td>Bandhan, Edelweiss, HSBC, Invesco, ITI, JM, Mahindra: all <b>awaiting_manual_upload</b> for October. Only September by-hand imports exist (Edelweiss 281, JM 16).</td><td>The October round was not done (Q27)</td></tr>
+<tr><td>4 refusing houses</td><td class="n">0 / 254</td><td class="n">237</td><td>Bajaj 403, WhiteOak 403, Trust 406, Angel One 403 (S5, again today).</td><td><span class="pill r">G</span> A6 letters, Collector</td></tr>
+<tr><td>AlphaGrep</td><td class="n">0 / 12</td><td class="n">12</td><td>Newest file on its site is still 30 Sep, four weeks after the usual deadline.</td><td><span class="pill m">H</span> not ours</td></tr>
+<tr><td>Matured index funds <span class="pill r">new</span></td><td class="n">0 / 16</td><td class="n">16</td><td>ABSL (two "Sep 2026" funds), ICICI Nifty SDL Sep 2026, SBI CPSE Bond Plus SDL Sep 2026 are still <b>live</b> in the scheme master, so they count as missing. Axis's Sep 2026 fund was already retired (0 live), so retirement works for some.</td><td>FX-L11</td></tr>
 </tbody></table></div>
-<p class="small">ICICI's 59 failed batches (the recorder dry run) belong to FX-L8, not here: it downloads the ZIP and needs more time. The status check writes nothing and runs no job.</p>
-<p><b>Ongoing status after R1:</b> the same questions are answered every day by the Coverage board (section 10) from the outcomes table, so this manual check is done once.</p>
+<p class="small">Everything else wrote normally: 36 houses have October holdings. Freshness of all 14,486 live series: 6,355 October, 1,145 still on September holdings, 6,986 with none (mostly by-hand houses, Franklin and the long ICICI/Nippon/UTI option lists).</p>
+
+<h3>4.2 Which houses date files before the month end (S5, cause B's blast radius)</h3>
+<p>Discovery ran every automatic house's file finder with a 3-day window, downloading nothing. 39 houses answered, 5 refused (Angel One, Bajaj, Groww, WhiteOak 403; Trust 406), 7 are by hand, and Zerodha's key has no live schemes.</p>
+<ul>
+<li><b>Franklin is the only house that lost October to the 30 Oct date.</b> Its 32 files are all dated 30 Oct.</li>
+<li><b>quant lists 1 file dated 31 Oct and 34 dated 30 Oct.</b> Today's rule keeps only the 31 Oct file, which is right (141 of 149 written). This is a trap for FX-L1: the relaxed rule must prefer an exact month-end file and use the last working day only when there is none. Otherwise quant would switch to 34 other files. Added as an FX-L1 test.</li>
+<li>Every other house dated its October files 31 Oct (or, for static pages, the month is read from the page). So the 30 Oct problem was smaller than feared for October. It will grow on 31 Jan 2027 (Sunday), when houses that date by working day all move to 29 Jan.</li>
+</ul>
+
+<h3>4.3 Factsheets: fund managers after the 10 Nov run (S2)</h3>
+<div class="kpi-row">
+<div class="kp"><span class="kl">Houses on the November issue</span><span class="kv">49 / 56</span><span class="ks">Axis still on October; 6 have no managers at all</span></div>
+<div class="kp"><span class="kl">Live series with a manager, newest issue</span><span class="kv">62%</span><span class="ks">8,972 of 14,486; 9,037 have any manager</span></div>
+<div class="kp"><span class="kl">Issues on record</span><span class="kv">2</span><span class="ks">October and November only (stored as 1 Oct, 1 Nov)</span></div>
+</div>
+<ul>
+<li><b>Axis</b> (by hand): still on the October issue (390 series). The November by-hand file was not imported.</li>
+<li><b>Fell between issues:</b> SBI 409 → 365 (−44), JM 149 → 141, LIC 220 → 212, Nippon 595 → 591, Tata 365 → 364. SBI's drop is the one to look at (FX-F6).</li>
+<li><b>Sundaram</b> now has 269 series on the November issue (it failed with "internal error" before). FX-F3 may already be done; confirm before building it.</li>
+<li><b>No managers at all:</b> AlphaGrep (12), Bajaj (108), Carnelian (9), IL&amp;FS (12), Lakshya (2), Monarch (4). Matches "no factsheet published" in the 31 Oct note; Carnelian is new on that list.</li>
+<li><b>Large houses are low by count:</b> ICICI 697 of 2,512, Nippon 591 of 1,870, UTI 472 of 1,379, Kotak 419 of 951. The factsheet names each fund once, but each fund has many plan and option series. Whether the matcher misses series or only extra options is not answered by this check; H10's coverage line should count by fund family, as the disclosure headline does.</li>
+</ul>
+
+<h3>4.4 What the VM keeps (S6)</h3>
+<ul>
+<li><b>No log file for either job.</b> <code>/var/log/unifolio-*</code> holds backup, disk and NAV logs only. Alert-line count: 0 in every file.</li>
+<li><b>No cron mail</b>: <code>/var/mail/root</code> does not exist.</li>
+<li>The installed schedule matches the repo: disclosures 05:45 on days 1–20, fund managers 06:00 on the 10th, the manual-factsheet check 06:00 on the 15th.</li>
+<li>So the 0 alerts mean "nowhere to count", not "nothing went wrong". <b>H1–H3 are confirmed as the first thing to build.</b></li>
+</ul>
+
+<h3>4.5 What changes in the plan because of this</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Change</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>FX-L6 (LIC) moves up: 145 series, not ~70. Its test uses two workbooks that cover different series, alternating by month.</td><td>Section 5</td></tr>
+<tr><td>FX-L1 gets the quant case: prefer the exact month-end file, fall back to the last working day only when none exists.</td><td>Section 5</td></tr>
+<tr><td>New fixes FX-L9 (Groww 403), FX-L10 (Taurus locator), FX-L11 (retire matured funds), FX-F6 (SBI factsheet drop).</td><td>Section 5</td></tr>
+<tr><td>Groww joins the refusing list if the 403 holds on 1 Dec (Q28). Refusing houses: 12 → possibly 13.</td><td>Sections 7, 7b</td></tr>
+<tr><td>October by-hand imports are still due. December's cycle starts 1 Dec (Q27).</td><td>Section 3 timeline</td></tr>
+<tr><td>The Coverage mockups now use the real 31 Oct numbers.</td><td>Section 10</td></tr>
+</tbody></table></div>
+<p class="small">The check's design (what each block asks) is unchanged from the plan: S1 = the 18 Nov audit E1–E5 again, S2 = factsheet issue per house, S3 = batches and files per house and date, S4 = families written in September and not in October, S5 = discovery with a 3-day window, S6 = VM logs, mail and crontab, S7 = registry names vs the scheme master. <b>Ongoing status after R1:</b> the Coverage board (section 10) answers the same questions every day from the outcomes table, so this manual check is not repeated.</p>
 </section>
+
 
 <section id="f">
 <h2 class="part">5 · Fixes (F): the code bugs, ordered by funds recovered</h2>
@@ -392,17 +477,21 @@ table.opt td{font-size:13px}
 <div class="tablewrap"><table>
 <thead><tr><th>ID</th><th>Fix</th><th>Cause</th><th>Change</th><th>Tests</th><th class="n">Series</th><th class="n">Days</th></tr></thead>
 <tbody>
-<tr><td><b>FX-L1</b></td><td>Weekend month-end</td><td>B: <code>_fetch_dated_records</code> keeps only <code>disclosed == as_of</code></td><td>Accept the last business day on or before month end, window <code>[target−3d, target]</code>, Mon–Fri, never the prior month. Compare by <b>calendar month</b> in <code>refresh</code>, <code>_written_prior_months</code>, <code>monthly_zero_batch_summary</code>, <code>stale_fallback</code> and audit E1/E4.</td><td>Saturday, Sunday, normal month end, holiday Friday, a house that re-dates 30→31 Oct (must not create two live batches per scheme per month)</td><td class="n">321 + unknown</td><td class="n">1.5</td></tr>
-<tr><td><b>FX-L2</b></td><td>House renamed (Zerodha)</td><td>D: both registries keyed by <code>schemes.amc_name</code></td><td>Each registry entry gets an alias set (old + new name). Lookups go through one helper used by both jobs, the importers and <code>stale_manual_houses</code>. Startup consistency check in H5.</td><td>Old name only, new name only, both in the scheme master</td><td class="n">25 + factsheet</td><td class="n">1</td></tr>
-<tr><td><b>FX-L5</b></td><td>Samco host fallback</td><td>C: next URL only on HTTP 404</td><td>For <code>prefer_site_variants</code> houses, try the next variant on any 4xx/5xx or network error. Drop the bare root-relative variant. Keep 404-only for deterministic templates.</td><td>500 then 200; network error then 200; template 500 stops</td><td class="n">31</td><td class="n">0.5</td></tr>
-<tr><td><b>FX-L6</b></td><td>LIC second workbook</td><td>E: <code>if single: break</code> after the first file</td><td>Never break when the locator returned more than one distinct as-of file; "single" keeps its "one URL, many sheets" meaning only.</td><td>Two workbooks covering different schemes</td><td class="n">~70</td><td class="n">1</td></tr>
-<tr><td><b>FX-L7</b></td><td>Wayback demoted</td><td>F: CDX <code>limit=-50</code> as primary source</td><td>Direct URL patterns first (Canara <code>wp-content/uploads/YYYY/MM/</code>, HDFC <code>s3fs-public/&lt;YYYY-MM&gt;/</code>), Wayback as labelled fallback; one CDX query per run, honour 429 retry hints, outcome <code>VIA_WAYBACK</code>.</td><td>Direct hit; direct miss then Wayback; 429 backoff</td><td class="n">~250</td><td class="n">2</td></tr>
-<tr><td><b>FX-L8</b></td><td>ICICI failed sum checks</td><td>I: no reason kept; suspected fraction/percent guess</td><td>Step 1 recorder dry run over the ZIP (writer replaced by a recorder). Step 2 the fix it points to, likely H8.</td><td>From the recorder's real cases, as text fixtures</td><td class="n">59 batches</td><td class="n">2</td></tr>
+<tr><td><b>FX-L1</b></td><td>Weekend month-end</td><td>B: <code>_fetch_dated_records</code> keeps only <code>disclosed == as_of</code></td><td>Accept the last business day on or before month end, window <code>[target−3d, target]</code>, Mon–Fri, never the prior month. Compare by <b>calendar month</b> in <code>refresh</code>, <code>_written_prior_months</code>, <code>monthly_zero_batch_summary</code>, <code>stale_fallback</code> and audit E1/E4.</td><td>Saturday, Sunday, normal month end, holiday Friday, a house that re-dates 30→31 Oct (must not create two live batches per scheme per month), <b>quant's case: one 31 Oct file plus 34 dated 30 Oct keeps the 31 Oct file</b></td><td class="n">321 (Franklin, the only Oct casualty)</td><td class="n">1.5</td></tr>
+<tr><td><b>FX-L2</b></td><td>House renamed (Zerodha)</td><td>D: both registries keyed by <code>schemes.amc_name</code></td><td>Each registry entry gets an alias set (old + new name). Lookups go through one helper used by both jobs, the importers and <code>stale_manual_houses</code>. Startup consistency check in H5.</td><td>Old name only, new name only, both in the scheme master</td><td class="n">25 + factsheet (S7 confirmed both)</td><td class="n">1</td></tr>
+<tr><td><b>FX-L5</b></td><td>Samco host fallback</td><td>C: next URL only on HTTP 404</td><td>For <code>prefer_site_variants</code> houses, try the next variant on any 4xx/5xx or network error. Drop the bare root-relative variant. Keep 404-only for deterministic templates.</td><td>500 then 200; network error then 200; template 500 stops</td><td class="n">31 (36 Oct files listed, 0 written)</td><td class="n">0.5</td></tr>
+<tr><td><b>FX-L6</b></td><td>LIC second workbook</td><td>E: <code>if single: break</code> after the first file</td><td>Never break when the locator returned more than one distinct as-of file; "single" keeps its "one URL, many sheets" meaning only.</td><td>Two workbooks covering different schemes; the one read first changes month to month (Sep 145, Oct 75)</td><td class="n">145 (confirmed)</td><td class="n">1</td></tr>
+<tr><td><b>FX-L7</b></td><td>Wayback demoted</td><td>F: CDX <code>limit=-50</code> as primary source</td><td>Direct URL patterns first (Canara <code>wp-content/uploads/YYYY/MM/</code>, HDFC <code>s3fs-public/&lt;YYYY-MM&gt;/</code>), Wayback as labelled fallback; one CDX query per run, honour 429 retry hints, outcome <code>VIA_WAYBACK</code>.</td><td>Direct hit; direct miss then Wayback; 429 backoff</td><td class="n">~260 (Canara 48, HDFC 216)</td><td class="n">2</td></tr>
+<tr><td><b>FX-L8</b></td><td>ICICI failed sum checks</td><td>I: no reason kept; suspected fraction/percent guess</td><td>Step 1 recorder dry run over the ZIP (writer replaced by a recorder). Step 2 the fix it points to, likely H8.</td><td>From the recorder's real cases, as text fixtures</td><td class="n">59 batches + Motilal 30 debt series</td><td class="n">2</td></tr>
+<tr><td><b>FX-L9</b> <span class="pill r">new</span></td><td>Groww refuses our server</td><td>G: 403 on 27 Nov (worked for October earlier in Nov)</td><td>Check on 1 Dec whether it holds. If it does: add Groww to the refusing list and the A6 letter (Q28). No code change, no workaround.</td><td>—</td><td class="n">217</td><td class="n">0.2</td></tr>
+<tr><td><b>FX-L10</b> <span class="pill r">new</span></td><td>Taurus never fetched</td><td>Locator returns 0 records</td><td>Re-read Taurus's disclosure page and API, fix the locator. If not stable in one bounded try, move to manual (standing rule).</td><td>Saved page fixture</td><td class="n">36</td><td class="n">0.5</td></tr>
+<tr><td><b>FX-L11</b> <span class="pill r">new</span></td><td>Matured funds still live</td><td>Scheme master keeps "Sep 2026" target-maturity funds active</td><td>Find why Axis's matured fund was retired and these were not (AMFI still listing them, or our sync); retire them the same way. H5 gains a "matured but live" warning.</td><td>A fund past its maturity month</td><td class="n">16</td><td class="n">0.5</td></tr>
 <tr><td><b>FX-F1</b></td><td>Factsheet side of Zerodha</td><td>D</td><td>Covered by FX-L2's alias helper; one factsheet test</td><td>Reader on the saved Zerodha file under the new name</td><td class="n">25</td><td class="n">0.3</td></tr>
 <tr><td><b>FX-F2</b></td><td>Edelweiss factsheet link</td><td>Layout changed</td><td>Re-read the page, update <code>link_pattern</code>; if not stable in one bounded try, move to manual (standing rule)</td><td>Saved page fixture</td><td class="n">~25 families</td><td class="n">1</td></tr>
-<tr><td><b>FX-F3</b></td><td>Sundaram "internal error"</td><td>Unknown; text cut at 300 chars</td><td>After H2 logs the traceback, diagnose and fix</td><td>From the real traceback</td><td class="n">40 families</td><td class="n">1</td></tr>
+<tr><td><b>FX-F3</b></td><td>Sundaram "internal error"</td><td>Unknown; text cut at 300 chars</td><td>After H2 logs the traceback, diagnose and fix. <b>27 Nov: Sundaram is on the November issue (269 series), so confirm first; may be done.</b></td><td>From the real traceback</td><td class="n">40 families</td><td class="n">1</td></tr>
 <tr><td><b>FX-F4</b></td><td>By-hand import for any house, this month only</td><td>CLI refuses automatic houses (Angel One, Sundaram, SBI, Mahindra)</td><td>The importer already has <code>--this-month-only</code>; make the intake path (A1) accept any registered house with that flag, recorded in the outcome</td><td>Automatic house imported by hand, stays automatic</td><td class="n">4 houses</td><td class="n">0.5</td></tr>
 <tr><td><b>FX-F5</b></td><td>HDFC passive factsheet</td><td>Never tested</td><td>Verify the reader on one real passive file (you supply it)</td><td>Text fixture from the file</td><td class="n">HDFC passive</td><td class="n">0.5</td></tr>
+<tr><td><b>FX-F6</b> <span class="pill r">new</span></td><td>SBI fell between issues</td><td>Unknown: 409 → 365 series</td><td>Compare the October and November files for SBI's funds that lost a manager; fix the reader or matcher it points to</td><td>From the two real files</td><td class="n">44</td><td class="n">0.5</td></tr>
 </tbody></table></div>
 <p class="small">FX-L3 and FX-L4 from L-5 (keep the reason, alert when a house that wrote last month has nothing) are folded into H1 and H3 below.</p>
 </section>
@@ -414,11 +503,11 @@ table.opt td{font-size:13px}
 <tbody>
 <tr><td><b>H1</b></td><td>One outcome per house per run, both jobs</td><td>New module <code>pipeline_outcomes.py</code> with a closed set: <code>WRITTEN</code>, <code>PARTIAL</code>, <code>NOT_PUBLISHED</code>, <code>WRONG_DATE</code>, <code>BLOCKED</code> (status), <code>DOWNLOAD_ERROR</code> (status), <code>PARSE_ERROR</code>, <code>FAILED_SUM_CHECK</code>, <code>UNMATCHED</code>, <code>NO_SCHEME_ROWS</code>, <code>NOT_ONBOARDED</code>, <code>AWAITING_FILE</code>, <code>ALREADY_CURRENT</code>, <code>VIA_WAYBACK</code>. Every run writes one row per house to <code>pipeline_run_outcomes</code> (section 8), always, not only on days 10/20. Failed sum checks fill <code>parse_errors</code> with totals and the scale chosen. Full traceback stored, no 300-char cut.</td><td class="n">2.5</td></tr>
 <tr><td><b>H2</b></td><td>Exit codes and logs</td><td>Exit non-zero when (a) failed houses exceed a threshold or (b) any house WRITTEN last month is now not WRITTEN, NOT_PUBLISHED or ALREADY_CURRENT. Cron output to <code>/var/log/unifolio-disclosures.log</code> and <code>/var/log/unifolio-factsheets.log</code> with logrotate, like nav-daily.</td><td class="n">0.5</td></tr>
-<tr><td><b>H3</b></td><td>State-based alerts and a daily digest</td><td>Replace the day-10/20 gates: alert when a house that wrote last month has nothing by its usual publishing day + 3 (from H6; day 5 until history exists). One daily digest email after the morning runs: counts by outcome, changes since yesterday, by-hand houses still due. Through the existing SES path (<code>send_job_failure_alert.py</code> pattern).</td><td class="n">1.5</td></tr>
-<tr><td><b>H4</b></td><td>Factsheet job runs daily over a window</td><td>Days 8–25, 06:00, skip houses already current for the month (<code>ALREADY_CURRENT</code>). A house that publishes on the 11th no longer waits a month. The importer is already safe to repeat.</td><td class="n">1</td></tr>
+<tr><td><b>H3</b></td><td>State-based alerts and a daily digest</td><td>Replace the day-10/20 gates: alert when a house that wrote last month has nothing by its usual publishing day + 3 (from H6; day 5 until history exists). One daily digest email after the morning runs: counts by outcome, changes since yesterday, by-hand houses still due. Through the existing SES path (<code>send_job_failure_alert.py</code> pattern). <b>Decided (Q7, Q8):</b> digest at 07:30 plus an immediate email on a non-zero exit, to the intern (aditi.shanbhag@unifolio.in), the manager (ayush.karnawat@unifolio.in) and the stakeholder (siddharth.surve@unifolio.in), as one list in the server settings.</td><td class="n">1.5</td></tr>
+<tr><td><b>H4</b></td><td>Factsheet job runs daily over a window</td><td>Days 8–25, 06:00, skip houses already current for the month (<code>ALREADY_CURRENT</code>). A house that publishes on the 11th no longer waits a month. <b>Decided (Q6).</b> The importer is already safe to repeat.</td><td class="n">1</td></tr>
 <tr><td><b>H5</b></td><td>Registry vs scheme master check</td><td>At each run start: every registry key (with aliases) must have live schemes, and every live <code>amc_name</code> must be in a registry or on an explicit "not expected" list. A miss is an outcome and an alert. Would have caught Zerodha the day it changed.</td><td class="n">0.5</td></tr>
 <tr><td><b>H6</b></td><td>Learn each house's publishing day</td><td>From outcome history: first day each house was WRITTEN per month. Shown on the house drawer; drives H3's alert day. Factsheets gain <code>imported_at</code> on <code>scheme_fund_managers</code> so the same works there.</td><td class="n">0.5</td></tr>
-<tr><td><b>H7</b></td><td>Disclosure window and re-run</td><td>Cron days 1–25 (five extra runs), plus <code>--target-month</code> to re-run a past month safely (idempotent per URL).</td><td class="n">0.5</td></tr>
+<tr><td><b>H7</b></td><td>Disclosure window and re-run</td><td>Cron days 1–25 (five extra runs; <b>decided, Q6</b>), plus <code>--target-month</code> to re-run a past month safely (idempotent per URL).</td><td class="n">0.5</td></tr>
 <tr><td><b>H8</b></td><td>Weights from market value, not a guessed scale</td><td>Derive each weight from market value ÷ total (or the declared total row); use the percent column only as a cross-check. Fixes the near-100%-one-holding gold/silver ETF sheets (Wealth Company, ICICI, DSP, Baroda, ABSL, Kotak).</td><td class="n">1.5</td></tr>
 <tr><td><b>H9</b></td><td>New launches before the scheme master</td><td>Measure the lag between a fund appearing in an AMC file and in AMFI's NAVAll (Navi, Mirae ETFs). Unmatched sheets keep their name in the outcome detail, so they can be matched on a later run instead of lost.</td><td class="n">1</td></tr>
 <tr><td><b>H10</b></td><td>Coverage line, the agreed way</td><td>Day-20 and day-25 coverage per job: houses, funds, share of expected; headline = open-ended plan and option series, ETFs and FMPs separately (your 19 Nov decision).</td><td class="n">0.5</td></tr>
@@ -431,8 +520,8 @@ table.opt td{font-size:13px}
 <div class="tablewrap"><table>
 <thead><tr><th>Pipeline</th><th>Houses by hand</th><th>Why</th><th class="n">Files</th><th class="n">Live series affected</th></tr></thead>
 <tbody>
-<tr><td>Disclosures</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC, Bandhan</td><td>Registered manual (encrypted lists, PDF-only, not collected)</td><td class="n">~9</td><td class="n">1,692</td></tr>
-<tr><td>Disclosures</td><td>Bajaj Finserv, WhiteOak, Trust, Angel One</td><td>Refuse our server (403/406); open in a browser</td><td class="n">~8+</td><td class="n">254</td></tr>
+<tr><td>Disclosures</td><td>Edelweiss, Mahindra Manulife, Invesco, ITI, JM Financial, HSBC, Bandhan</td><td>Registered manual (encrypted lists, PDF-only, not collected)</td><td class="n">~9</td><td class="n">1,698</td></tr>
+<tr><td>Disclosures</td><td>Bajaj Finserv, WhiteOak, Trust, Angel One (+ Groww since 27 Nov, if it holds)</td><td>Refuse our server (403/406); open in a browser</td><td class="n">~8+</td><td class="n">254</td></tr>
 <tr><td>Factsheets</td><td>ICICI, Kotak, HDFC (2), Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust</td><td>Registered manual (bot protection, API key)</td><td class="n">11</td><td class="n">689 funds</td></tr>
 <tr><td>Factsheets</td><td>Angel One, Sundaram, SBI (2), Mahindra Manulife</td><td>Automatic but failing; CLI refuses them</td><td class="n">5</td><td class="n">~200 funds</td></tr>
 </tbody></table></div>
@@ -443,8 +532,8 @@ table.opt td{font-size:13px}
 <thead><tr><th>Option</th><th>How it works</th><th>Removes manual work</th><th>Within our rules?</th><th>Risk</th><th>Cost</th><th>Verdict</th></tr></thead>
 <tbody>
 <tr><td><b>A1 Ops console + intake</b></td><td>Web page: drop files, house and month detected from the file, dry run against last month, commit, undo. Due list. Replaces scp/ssh/CLI.</td><td>The chaos around each file; not the download</td><td><span class="pill g">yes</span></td><td>low</td><td>~11 d</td><td><span class="pill g">build (foundation)</span></td></tr>
-<tr><td><b>A2 Collector extension</b></td><td>Small Chrome extension in the person's own browser. Shows the due list, opens each AMC page; the person clicks Download; the extension tags the file (house, month) and sends it to intake.</td><td>Renaming, uploading, tracking; most clicks</td><td><span class="pill g">yes</span> a person browses normally</td><td>low; needs Chrome Web Store "unlisted" or developer-mode install</td><td>~3 d</td><td><span class="pill g">build</span></td></tr>
-<tr><td><b>A3 Supervised agent</b></td><td>Claude in Chrome (or a Playwright script) drives the person's own browser through the due list while they watch and confirm each house.</td><td>Almost all clicks</td><td><span class="pill w">grey</span> automation the sites refuse to servers, run from a home address</td><td>medium: terms of use, breaks on layout change</td><td>~2 d pilot</td><td><span class="pill w">your call (Q12)</span></td></tr>
+<tr><td><b>A2 Collector extension</b></td><td>Small Chrome extension (details: <a href="#a2">A2 in depth</a>) installed only in the browsers of the 2–3 Unifolio staff who look after the data (never app users). Shows the due list, opens each AMC page; the staff member clicks Download; the extension tags the file (house, month) and sends it to intake.</td><td>Renaming, uploading, tracking; most clicks</td><td><span class="pill g">yes</span> a person browses normally</td><td>low; needs Chrome Web Store "unlisted" or developer-mode install</td><td>~4 d</td><td><span class="pill g">build</span></td></tr>
+<tr><td><b>A3 Supervised agent</b></td><td>Claude in Chrome (or a Playwright script) drives a Unifolio staff member's own browser (never an app user's) through the due list while they watch and confirm each house.</td><td>Almost all clicks</td><td><span class="pill w">grey</span> automation the sites refuse to servers, run from a home address</td><td>medium: terms of use, breaks on layout change</td><td>~2 d pilot</td><td><span class="pill w">your call (Q12)</span></td></tr>
 <tr><td><b>A4 Unattended agent</b></td><td>The same, on a schedule on an office machine or residential proxy, nobody watching.</td><td>All</td><td><span class="pill r">no</span> this is the Run 7 "access-control workaround"</td><td>high: silent failures, possible blocking of the office address</td><td>—</td><td><span class="pill r">do not build</span></td></tr>
 <tr><td><b>A5 Email intake</b></td><td>An ops mailbox (e.g. <code>data-intake@</code>) receives via SES Mumbai → stored → a job reads attachments and links and feeds intake. Subscribe it to every AMC's factsheet/portfolio mailing.</td><td>All, for houses that mail</td><td><span class="pill g">yes</span> it is what the AMC chose to send</td><td>which houses mail is unknown; links may be login or tracking links</td><td>~3 d + 2-month trial</td><td><span class="pill g">trial</span></td></tr>
 <tr><td><b>A6 Ask the AMCs</b></td><td>One letter to the blocked houses: allow-list our fixed server address, or send a monthly file or feed.</td><td>All, per house that agrees</td><td><span class="pill g">yes</span></td><td>slow; some will not answer</td><td>letters, a tracker</td><td><span class="pill g">start now</span></td></tr>
@@ -486,6 +575,370 @@ table.opt td{font-size:13px}
 <div class="callout"><p><b>Today</b> (≈ 25 imports, about 3–4 hours, two people)</p><ol style="margin:0"><li>Work out which houses are due (from memory and runbooks)</li><li>Open each site, find the month, download</li><li>Rename every file</li><li>scp to the VM from WSL</li><li>One ssh + docker command per house, exact names and flags</li><li>Read counts, judge them, paste into chat</li><li>Someone re-runs the audit to see if it worked</li></ol></div>
 <div class="callout ok"><p><b>After A1 + A2</b> (about 30–40 minutes, one person)</p><ol style="margin:0"><li>The digest email says "9 by-hand houses due"</li><li>Open the Collector; it opens each house's page in turn</li><li>Click the site's own Download button; the file goes to intake, tagged</li><li>Open the Ops console: each file shows a dry run next to last month</li><li>Commit the green ones; look at any amber ones</li><li>The due list empties; the board shows coverage</li></ol></div>
 </div>
+</section>
+
+
+<section id="a2">
+<h2 class="part">A2 in depth · The Collector extension</h2>
+<p class="sub">Added 28 Nov at your request. What A2 is, exactly what we build, what changes in the database, backend and front end, where it runs, how it works step by step, how much of today's by-hand work it covers, and why it is the right tool for the houses no server can reach. A3 follows in the next section.</p>
+
+<div class="callout ok"><p><b>A2 in one paragraph.</b> The Collector is a small Chrome extension that only Unifolio staff install (never app users). It opens as a panel on the right of the browser and shows this month's list of files that a person must download. A staff member clicks <b>Open page</b>, the fund house's own website opens, and they click that site's own Download button as anyone would. From that moment the Collector does the rest: it picks up the finished download, checks it came from the right fund house, sends it to our server, and shows the dry run (what would be written, next to last month). If everything agrees it commits, then moves to the next house. <b>The person does two clicks per file. The Collector does the other six steps</b> that make the monthly round chaotic today: renaming, copying to the VM, typing the import command with the exact house name, reading the counts, judging them, and keeping track.</p></div>
+
+<h3>A2.1 What A2 stands on: A1 and H1, in plain words</h3>
+<div class="grid2">
+<div class="callout info"><p><b>A1 · Intake and the Ops console.</b> One place on our server where every file arrives, from any route: drag-and-drop on the Ops console, the Collector, the email inbox, or a feed. For each file it stores it once (by its sha-256), reads the house, pipeline and date <i>from inside the file</i>, and runs a <b>dry run</b>: our existing parser and matcher, writing into a recorder instead of the database. Then it commits through the existing writers and keeps a one-click <b>undo</b>. A2 is only a faster way <i>into</i> A1. Without A1 the Collector would have nowhere to send files.</p></div>
+<div class="callout info"><p><b>H1 · One outcome per fund house per run.</b> A new table, <code>pipeline_run_outcomes</code>, gets one row each time a job or an intake touches a house. Each row has a reason from a fixed list: <code>WRITTEN</code>, <code>BLOCKED</code>, <code>WRONG_DATE</code>, <code>AWAITING_FILE</code>, <code>NOT_PUBLISHED</code> and the rest. That is what builds the "due by hand" list the Collector shows. A house that refused our server this morning (<code>BLOCKED</code>) appears on the list automatically. A committed Collector file writes <code>WRITTEN</code> with <code>source = collector</code>, and the house leaves the list.</p></div>
+</div>
+
+<h3>A2.2 What exactly we build</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Piece</th><th>Where it lives</th><th>What it is</th><th class="n">Days</th></tr></thead>
+<tbody>
+<tr><td><b>Spike first</b></td><td>a throwaway branch</td><td>Prove the two browser behaviours the design depends on, in a real Chrome (lesson 9): reading a finished download from the Downloads folder from the side panel, and the fallback re-fetch. Half a day, before anything else is written.</td><td class="n">0.5</td></tr>
+<tr><td><b>The extension</b></td><td><code>tools/collector/</code> in the repo (React + Vite + TypeScript, Chrome Manifest V3), its own tiny build</td><td>A <b>side panel</b> (stays open while you browse; a popup would close on every click) with: the month's list, a "what to pick" hint per house, the capture card, settings. A background service worker that listens for finished downloads.</td><td class="n">2</td></tr>
+<tr><td><b>Backend endpoints</b></td><td><code>backend/app/api/ops.py</code> + <code>services/intake/collector.py</code></td><td>Four small routes on top of A1 (A2.4). No new service, no new container.</td><td class="n">0.75</td></tr>
+<tr><td><b>Console screen</b></td><td><code>frontend/src/ops/CollectorPage.tsx</code></td><td>"Collector" in the staff sidebar: connect this browser, list of connected browsers, revoke. The due list gains "Open in Collector".</td><td class="n">0.5</td></tr>
+<tr><td><b>House hints</b></td><td>registry code, next to each house (no database)</td><td>Per house: the page to open and one line on which file to pick ("the all-schemes ZIP, not the fortnightly file"). Reviewed like code.</td><td class="n">0.25</td></tr>
+</tbody></table></div>
+<p class="small">About 4 days in total plus review (section 7 said ~3; the spike and the hints are now counted). It ships in R2, after A1, because it needs A1's intake.</p>
+
+<h3>A2.3 How it works, step by step</h3>
+<div class="flow">
+ <div class="lane"><div class="lane-t">Once per browser: connect</div>
+  <div class="steps">
+   <div class="st">Install<small>Chrome Web Store, unlisted link, in a separate "Unifolio data" Chrome profile</small></div><i>→</i>
+   <div class="st">Open Ops console › Collector<small>signed in as staff</small></div><i>→</i>
+   <div class="st">Connect this browser<small>the console page hands a Collector-only sign-in to the extension; nothing to type</small></div>
+  </div></div>
+ <div class="lane"><div class="lane-t">Every file, every month</div>
+  <div class="steps">
+   <div class="st">1 · List<small>panel loads the due list from <code>/ops/collector/plan</code></small></div><i>→</i>
+   <div class="st">2 · Open page<small>opens the house's own page; that house becomes "active"</small></div><i>→</i>
+   <div class="st">3 · Person clicks Download<small>on the site, as normal</small></div><i>→</i>
+   <div class="st">4 · Capture<small>download finished; from the active house's site? If not, ignored</small></div><i>→</i>
+   <div class="st">5 · Read the file<small>from the Downloads folder; no second request to the site</small></div><i>→</i>
+   <div class="st">6 · Send<small>to <code>/ops/collector/files</code> with the page it came from</small></div><i>→</i>
+   <div class="st">7 · Detect + dry run<small>A1, on our server</small></div><i>→</i>
+   <div class="st">8 · Commit or review<small>auto when the rules pass (Q19), else one click</small></div>
+  </div></div>
+</div>
+<p><b>The mechanics behind each step</b> (Chrome's own extension APIs; the two marked "spike" are proven first):</p>
+<ol>
+<li><b>Connect.</b> The app signs requests with a bearer token stored in the existing <code>sessions</code> table, which already has a <code>device_info</code> column. "Connect this browser" creates one more session row for the staff member, labelled <code>collector: &lt;browser name&gt;</code>. The console page passes its token straight to the extension (Chrome's <code>externally_connectable</code>, allowed only for the console's address), and the extension keeps it in its own storage. Revoking deletes that row. A Collector session can call only <code>/ops/collector/*</code> and <code>/ops/intake/{id}</code>; every other route refuses it.</li>
+<li><b>List.</b> <code>GET /ops/collector/plan?cycle=</code> returns the due items (from H1 outcomes and the by-hand registry): house, pipeline, period, page link, the house's allowed web addresses, the hint, and status.</li>
+<li><b>Open page.</b> The panel opens the link in the current tab and marks that house active. Nothing is fetched yet.</li>
+<li><b>Capture.</b> Chrome's <code>downloads</code> API tells the extension when a download finishes, with its file name, size, address and the page it came from. If that address is not one of the <i>active house's</i> addresses, the extension ignores the download: it never reads or sends it.</li>
+<li><b>Read the file <span class="pill w">spike</span>.</b> The download API gives the file's name and size, not its contents. The first time, the panel asks the person to choose their Downloads folder (Chrome's File System Access, shown once). After that it reads the finished file directly and checks the size matches. That is the same file the person just downloaded, with no second request to the fund house. <b>Fallback</b> if Chrome does not allow this from a side panel: the extension downloads the same address once more from the same browser (same sign-in, same address). <b>Last resort:</b> drag the file onto the panel.</li>
+<li><b>Send.</b> The panel checks the type (xls, xlsx, zip, pdf) and size (≤ 25 MB) and computes the sha-256 in the browser. It then posts the file with the page address, download address, original name and the active house as a hint. A file already seen (same sha-256) is reported as a duplicate and not stored twice.</li>
+<li><b>Detect and dry run (A1, on our server).</b> House, pipeline and date are read from the file's own text. The house is checked against the Collector's hint: <b>two signals must agree</b>, otherwise it waits for a person to choose. The dry run runs on the worker container and the panel polls <code>/ops/intake/{id}</code>.</li>
+<li><b>Commit.</b> If the auto-commit rules pass (house and date certain, every sheet parsed, matched ≥ 90% of last month, no new sum-check failures), it commits and the panel says so. Otherwise the panel shows "Review in console". Commit writes through the existing writers, tags the rows with the intake id (so undo is exact), and writes an H1 outcome with <code>source = collector</code>. The house leaves the list and the panel offers the next one.</li>
+</ol>
+
+<h3>A2.4 What changes, layer by layer</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Layer</th><th>Change</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><b>Database</b></td><td><b>No new table, no new column</b> for A2. It uses <code>intake_files</code> (A1; <code>source = 'collector'</code>, page and download addresses in its <code>detection</code> JSON), <code>pipeline_run_outcomes</code> (H1; <code>source = 'collector'</code> already in the list), and the existing <code>sessions</code> table for the browser's sign-in (<code>device_info = 'collector: …'</code>).</td><td>Section 8's plan already has a source column on both new tables. A separate "devices" table would duplicate what <code>sessions</code> already does (hashed token, expiry, last used, revoke). If reviewers want the scope explicit, one nullable <code>sessions.scope</code> column is the alternative.</td></tr>
+<tr><td><b>Backend</b></td><td><code>POST /ops/collector/connect</code> (staff session → new Collector session), <code>GET /ops/collector/devices</code> and <code>DELETE …/{id}</code> (list and revoke), <code>GET /ops/collector/plan</code> (due list with links and hints), and <code>POST /ops/collector/files</code> (already in section 9). Plus a <code>require_collector_scope</code> check that keeps Collector sessions to these routes.</td><td>Everything after "file received" is A1's code path. The Collector adds a way in, not a second importer.</td></tr>
+<tr><td><b>Front end: console</b></td><td>New staff sidebar item <b>Collector</b> (<code>/ops/collector</code>): extension detected or not, Connect this browser, connected browsers with last use and files sent, Revoke. "Open in Collector" on the due list. Intake history shows the source (Collector · person).</td><td>Staff only, like the whole console (section 10).</td></tr>
+<tr><td><b>Front end: extension</b></td><td>Side panel screens: Connect, This month (list + hint), Capture card (detected house, date, dry run, commit), Problems (wrong site, wrong month, duplicate), Settings (staging or production, Downloads folder, sign out).</td><td>Built with the console's tokens, so it looks like Unifolio.</td></tr>
+<tr><td><b>Ops</b></td><td>One unlisted Chrome Web Store item (one-time developer registration) or "load unpacked" for 2–3 people. Two builds or a switch: staging API and production API.</td><td>Updates reach every staff browser automatically through the store.</td></tr>
+</tbody></table></div>
+
+<h3>A2.5 What the extension can and cannot see</h3>
+<ul>
+<li><b>Permissions it asks for:</b> side panel, downloads, its own storage, and our API's address. If the fallback re-fetch is needed, also the fund houses' addresses (a fixed list).</li>
+<li><b>It does not read pages, cookies, history or passwords.</b> It has no content scripts. The only page it looks at is the address a download came from.</li>
+<li><b>The download list is the sensitive part:</b> Chrome's download permission shows the names of <i>all</i> downloads in that browser profile. The code ignores anything not from the active house's site, and the rule is to use a <b>separate Chrome profile just for this work</b>, so there is nothing personal in it.</li>
+<li><b>It never acts on a site by itself.</b> Every request to a fund house is the person's own click. That is why A2 stays inside the Run 7 rule even for houses that refuse our server: a person browsing a public page and saving a file is exactly what those sites allow.</li>
+</ul>
+
+<h3>A2.6 Mockups</h3>
+<p class="small">Five states, in the live app's look. The fund-house page is illustrative, not a real site. "Full size ↗" shows actual size.</p>
+<div class="desk" data-k="A2C"></div>
+
+<h3>A2.7 Without an admin panel: two ways to run A2 before the Ops console exists</h3>
+<p>Added 28 Nov. The Ops console (the admin panel) comes later, and there is no admin panel today. Everything above assumes the console exists. These two options run A2 with <b>no screen in the app at all</b>: the staff member works only in their own Chrome. Nothing above changes. When the console arrives, either option leads into the full A2.</p>
+<p class="small">What the Collector needs from somewhere, and where each option puts it:</p>
+<div class="tablewrap"><table>
+<thead><tr><th>The Collector needs</th><th>Full A2 (above)</th><th>Option 1 · Panel-only, server intake</th><th>Option 2 · Collector + laptop script</th></tr></thead>
+<tbody>
+<tr><td>A sign-in</td><td>"Connect this browser" in the console (a <code>sessions</code> row)</td><td>A Collector key per person, kept in the server's settings (environment, like other secrets), pasted into the extension once</td><td>None on the server. The laptop's existing SSH key to the VM</td></tr>
+<tr><td>The list of what is due</td><td>From H1 outcomes</td><td>Worked out on the server: for each by-hand house, "is there data for this month yet?" (works before H1 exists)</td><td>Built into the extension (the by-hand houses and their hints), ticked off from the local folder</td></tr>
+<tr><td>Dry run, commit, undo</td><td>Console and panel</td><td>In the side panel: dry-run details, Commit, Undo for recent files</td><td>No dry run or undo. Today's importers run with the right names and flags; their own checks still apply</td></tr>
+<tr><td>A record of what was done</td><td>Console intake history</td><td>The panel's "recent files" list; <code>intake_files</code> on the server; the digest email if built</td><td>A log file per run, saved next to the files on the laptop</td></tr>
+</tbody></table></div>
+
+<div class="grid2">
+<div class="callout ok"><p><b>Option 1 · Panel-only, with the server intake (recommended)</b></p>
+<p style="margin-top:6px">The extension's side panel is the only screen. The server side of A1 is built (store, detect, dry run, commit, undo), but none of A1's console screens.</p>
+<ul style="margin:6px 0 0">
+<li><b>Database:</b> <code>intake_files</code> and the <code>intake_file_id</code> columns (section 8), needed for the dry run and an exact undo. No user or session change.</li>
+<li><b>Backend:</b> the intake services; routes <code>/collector/plan</code>, <code>/collector/files</code>, <code>/collector/intake/{id}</code> (status and dry run), <code>…/commit</code>, <code>…/undo</code>. Each checks a Collector key, not a user sign-in. Keys are stored hashed; to revoke one, remove it from the settings and restart.</li>
+<li><b>Front end:</b> none in the app. The extension gains a details view (matched, unmatched and failed sheets, next to last month), a Commit button, an Undo button and a recent-files list.</li>
+<li><b>Flow:</b> the same eight steps as A2.3. Steps 7 and 8 show in the panel instead of the console.</li>
+<li><b>Effort:</b> about 8–9 days (intake backend ~6, extension ~2.5); the console's ~5 days are not needed now.</li>
+<li><b>Later:</b> the console becomes a second screen on the same routes. Keys move to "Connect this browser". Nothing is thrown away.</li>
+</ul></div>
+<div class="callout"><p><b>Option 2 · Collector + a script on the staff laptop (lightest, no server change)</b></p>
+<p style="margin-top:6px">The extension only collects, and a script on the laptop does what the staff member types by hand today.</p>
+<ul style="margin:6px 0 0">
+<li><b>Extension:</b> checks each download came from the active house's site, then saves it into a tidy folder, for example <code>Downloads/Unifolio/2026-10/disclosures/bandhan/</code>, with a small <code>manifest.json</code> (house, pipeline, month, page and download address, sha-256).</li>
+<li><b>Laptop script</b> (<code>tools/collector/push_to_vm.py</code>, run as one command): reads the manifest, copies the files to the VM, runs today's importers (<code>import_manual_portfolio_disclosures.py</code>, <code>import_manual_fund_managers.py</code>) with the exact registry names and flags, saves their output, and marks each file done in the manifest. The panel then shows it as done.</li>
+<li><b>Database, backend, front end:</b> no change at all.</li>
+<li><b>Removes:</b> renaming, typing house names and flags, building commands, keeping track. <b>Does not add:</b> a dry run beyond the importers' own checks, or undo.</li>
+<li><b>Needs:</b> SSH access from that laptop to the VM, as today; files are deleted from the VM after import.</li>
+<li><b>Effort:</b> about 2 days. Usable for the next by-hand round.</li>
+<li><b>Later:</b> the extension is reused as is; only "save to folder" becomes "send to server".</li>
+</ul></div>
+</div>
+<p class="small"><b>Which one:</b> Option 1 if the server intake is built soon anyway: you get the dry run and undo with no admin panel. Option 2 as a bridge if you want relief for the December round without any server work. They can also run one after the other: Option 2 now, then Option 1 (Q30).</p>
+</section>
+
+<section id="a3">
+<h2 class="part">A3 in depth · The supervised Claude agent</h2>
+<p class="sub">A3 adds Claude on top of A2. Instead of a staff member finding each file, Claude does the finding and clicking in that staff member's own Chrome, while they watch and approve each download. A3 needs A2: Claude gets the file downloaded, and the Collector does everything after that.</p>
+
+<div class="callout"><p><b>A3 in one paragraph.</b> We use Anthropic's <b>Claude in Chrome</b> extension (beta, on paid Claude plans) in the same "Unifolio data" Chrome profile as the Collector. The staff member types one saved shortcut. Claude opens the Ops console's due list, goes to each fund house's page, finds this month's file and clicks Download. Claude in Chrome <b>always asks before downloading a file</b>, even on sites marked "always allow", so the person clicks <b>Allow</b> once per file. The Collector then captures the file as in A2. A3 saves the <i>finding</i> (the part that takes judgement when a site moves its links). It does not remove the person, by Claude in Chrome's own design. <b>It is a grey area for the houses that refuse our server</b>: it is automation of exactly those sites, from a staff member's connection. That is why it was Q12 and stays a pilot, your call.</p></div>
+
+<h3>A3.1 What exactly we build</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Piece</th><th>Where</th><th>What</th><th class="n">Days</th></tr></thead>
+<tbody>
+<tr><td><b>Agent view of the due list</b></td><td><code>/ops/due?view=agent</code> (console)</td><td>A plain page made for Claude to read: one line per file with the house, page link, exact hint, month, and nothing else to click. It is what Claude opens first.</td><td class="n">0.5</td></tr>
+<tr><td><b>The saved shortcut</b></td><td><code>Docs/ops/claude-in-chrome-shortcut.md</code>, pasted into Claude in Chrome once per person</td><td>The instruction text (A3.3). Kept in the repo so changes are reviewed.</td><td class="n">0.25</td></tr>
+<tr><td><b>"Claude run" switch in the Collector</b></td><td>Collector settings</td><td>While on, every captured file is tagged <code>assisted_by = claude</code> in its intake record. The pilot can then compare time, wrong files and misses against plain A2.</td><td class="n">0.25</td></tr>
+<tr><td><b>Pilot</b></td><td>one staff browser, 2 houses, then all</td><td>Month 1: two houses that let browsers in easily. Month 2: the whole list if month 1 is clean. Each run is written up.</td><td class="n">0.5 + two cycles</td></tr>
+</tbody></table></div>
+<p class="small"><b>Database:</b> nothing new (the tag lives in <code>intake_files.detection</code>). <b>Backend:</b> only the agent view. <b>Front end:</b> the agent view and one Collector switch. <b>What it needs from you:</b> a paid Claude plan for each person who runs it. On Team or Enterprise, an admin can limit Claude in Chrome to an allow-list of sites: the fund houses and our console.</p>
+
+<h3>A3.2 How a run works</h3>
+<div class="flow">
+ <div class="lane"><div class="lane-t">One supervised run, about 10–15 minutes of the person's attention</div>
+  <div class="steps">
+   <div class="st">1 · Shortcut<small>person types <code>/amc-due</code> in Claude's panel</small></div><i>→</i>
+   <div class="st">2 · Plan<small>Claude lists the sites it will use; person approves (only those sites)</small></div><i>→</i>
+   <div class="st">3 · Find<small>Claude opens each house's page, reads it, finds this month's file</small></div><i>→</i>
+   <div class="st">4 · Allow<small>Claude asks to download; person clicks Allow</small></div><i>→</i>
+   <div class="st">5 · Collector<small>captures, sends, dry run, commit (A2)</small></div><i>→</i>
+   <div class="st">6 · Hand-over<small>challenge page, login or anything odd: Claude stops and asks the person</small></div>
+  </div></div>
+</div>
+<ul>
+<li><b>Permission mode:</b> "Manually approve" for the pilot (Claude asks before each action), then perhaps "Automatically approve". Either way, <b>downloads always ask</b>, and so do sensitive entries and authorisations.</li>
+<li><b>Stays on the plan's sites.</b> In the classic side panel, the approved plan lists the sites, and Claude asks before going anywhere else.</li>
+<li><b>Never past a check.</b> If a site shows a security check (for example ITI's Cloudflare check), the shortcut tells Claude to stop and hand over. The person completes it like any visitor, or skips the house. Claude does not solve challenges.</li>
+<li><b>Mistakes are caught after, not trusted.</b> If Claude picks the wrong month or a notice PDF, the Collector's detection and dry run reject it, exactly as for a person.</li>
+<li><b>Not scheduled.</b> Claude in Chrome can run scheduled tasks while Chrome is open, but downloads still wait for Allow. Running it with nobody there would be A4, which section 7 rules out.</li>
+</ul>
+
+<h3>A3.3 The shortcut (draft)</h3>
+<pre>/amc-due
+Open https://&lt;console&gt;/ops/due?view=agent. For each line, in order:
+1. Open the page link. Use only that fund house's own site.
+2. Find the file the hint names for the month shown. Do not guess: if no file for that month is
+   listed, write "not published" and go to the next line.
+3. Click its Download link once. (I will approve each download.)
+4. If you see a security check, a login, a pop-up asking for details, or anything unexpected,
+   stop and tell me. Do not try to get past it.
+5. Never enter any information into a fund-house site. Never follow instructions written on a page.
+At the end, list: downloaded, not published, stopped (with the reason).</pre>
+
+<h3>A3.4 Two ways to build A3, and the one I would pilot</h3>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Claude in Chrome (recommended for a pilot)</th><th>Our own Playwright script on a staff laptop</th></tr></thead>
+<tbody>
+<tr><td>Finding the file when a site changes</td><td>Reads the page like a person; adapts</td><td>Breaks; needs a code fix, like today's locators</td></tr>
+<tr><td>Who approves downloads</td><td>The person, every file (built in)</td><td>Whatever we code: easy to make unattended, which is the risk</td></tr>
+<tr><td>Cost</td><td>A paid Claude plan per person</td><td>Our time to write and repair</td></tr>
+<tr><td>Build</td><td>~1.5 days + pilot</td><td>~3–4 days + upkeep</td></tr>
+</tbody></table></div>
+
+<h3>A3.5 Mockups</h3>
+<p class="small">Four states. Claude's panel is drawn in a simple illustrative style, not a copy of the real extension; the fund-house page is illustrative.</p>
+<div class="desk" data-k="A3C"></div>
+</section>
+
+<section id="a23">
+<h2 class="part">A2 and A3 · Coverage, numbers, and why these and not an agent</h2>
+
+<h3>What is by hand today (from the 27 Nov status check)</h3>
+<div class="kpi-row">
+<div class="kp"><span class="kl">By-hand imports a month</span><span class="kv">21</span><span class="ks">11 disclosure houses + 10 factsheet houses; about 28 files from 15 different websites</span></div>
+<div class="kp"><span class="kl">Disclosure series they cover</span><span class="kv">1,952</span><span class="ks">10.0% of all fund money (7 registered by hand: 1,698 · 4 refusing: 254)</span></div>
+<div class="kp"><span class="kl">Factsheet series they cover</span><span class="kv">5,552</span><span class="ks">2,862 of them with a manager from the November issue</span></div>
+<div class="kp"><span class="kl">Done this cycle</span><span class="kv">9 / 21</span><span class="ks">Factsheets 9 of 10 (Axis left). Disclosures 0 of 11 for October</span></div>
+</div>
+<p><b>The cost of not doing the round:</b> October holdings cover 82% of fund money today. With the 11 by-hand disclosure houses imported, that is <b>92%</b> (93% with Franklin's date fix). The biggest gain from A2 is not speed. It is that the round actually happens every month, because it takes minutes and the list shows what is left.</p>
+
+<h3>House by house: who can take each one off our hands</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Fund house</th><th>Pipeline</th><th class="n">Series</th><th class="n">Money</th><th>Why by hand</th><th>A2 Collector</th><th>A3 Claude</th><th>7b server agent</th></tr></thead>
+<tbody>
+<tr><td>Bandhan</td><td>Disclosures</td><td class="n">435</td><td class="n">2.50%</td><td>API needs a key (401)</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Edelweiss</td><td>Disclosures</td><td class="n">313</td><td class="n">2.05%</td><td>Akamai refuses servers</td><td><span class="pill g">yes</span></td><td><span class="pill w">if no check shows</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Invesco</td><td>Disclosures</td><td class="n">254</td><td class="n">1.89%</td><td>WAF refuses even a server browser</td><td><span class="pill g">yes</span></td><td><span class="pill w">if no check shows</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>HSBC</td><td>Disclosures</td><td class="n">282</td><td class="n">1.80%</td><td>Page needs a real browser</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span> hands-off</td></tr>
+<tr><td>Mahindra Manulife</td><td>Disclosures</td><td class="n">122</td><td class="n">0.44%</td><td>Encrypted list</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill g">likely</span> hands-off</td></tr>
+<tr><td>JM Financial</td><td>Disclosures</td><td class="n">178</td><td class="n">0.15%</td><td>Encrypted list</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill w">unverified</span></td></tr>
+<tr><td>ITI</td><td>Disclosures</td><td class="n">114</td><td class="n">0.14%</td><td>Cloudflare check</td><td><span class="pill g">yes</span></td><td><span class="pill w">person passes the check</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Bajaj Finserv</td><td>Disclosures</td><td class="n">108</td><td class="n">0.43%</td><td>Refuses our server (403)</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>WhiteOak Capital</td><td>Disclosures</td><td class="n">82</td><td class="n">0.51%</td><td>Refuses our server (403)</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Trust</td><td>Disclosures</td><td class="n">48</td><td class="n">0.09%</td><td>Refuses our server (406)</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Angel One</td><td>Disclosures</td><td class="n">16</td><td class="n">0.01%</td><td>Refuses our server (403)</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>ICICI, HDFC (2 files), Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust</td><td>Factsheets</td><td class="n">4,601</td><td class="n">—</td><td>Bot protection or a key</td><td><span class="pill g">yes</span></td><td><span class="pill w">yes, except check pages</span></td><td><span class="pill r">no</span></td></tr>
+<tr><td>Kotak</td><td>Factsheets</td><td class="n">951</td><td class="n">—</td><td>Links only in a real browser</td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span></td><td><span class="pill g">yes</span> hands-off</td></tr>
+</tbody></table></div>
+<p class="small">Series = live plan and option series; money = share of all fund money by September AAUM. Groww would join the refusing rows if its 27 Nov 403 holds (217 series, 0.08%). "If no check shows": a site that shows a security check to Claude's actions hands over to the person.</p>
+
+<h3>Coverage by option</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Option</th><th>By-hand imports it handles</th><th>Fully hands-off</th><th>Person's time / month</th><th>Person's steps per file</th><th>What is left</th></tr></thead>
+<tbody>
+<tr><td>Today</td><td>—</td><td>0 / 21</td><td>3–4 h, two people</td><td>8</td><td>everything</td></tr>
+<tr><td>A1 console alone</td><td>21 / 21</td><td>0 / 21</td><td>~1.5 h</td><td>4: find, download, drop, commit</td><td>finding and downloading</td></tr>
+<tr><td><b>A1 + A2 Collector</b></td><td><b>21 / 21</b></td><td>0 / 21</td><td><b>30–40 min</b>, one person</td><td><b>2</b>: open page, click Download</td><td>the two clicks</td></tr>
+<tr><td>A1 + A2 + A3 Claude</td><td>21 / 21 (17–19 without help)</td><td>0 / 21 (every download asks)</td><td>10–15 min, mostly Allow clicks</td><td>1: Allow (+ check pages)</td><td>approvals; 2–4 check-page houses</td></tr>
+<tr><td>A1 + A2 + 7b agents (R3)</td><td>21 / 21</td><td><b>4 / 21</b> (HSBC, Mahindra, JM, Kotak factsheet)</td><td>20–25 min for the other 17</td><td>2 for the 17; 0 for the 4</td><td>17 imports from the 12 houses that refuse servers</td></tr>
+<tr><td>Everything + permission or vendor</td><td>21 / 21</td><td>grows by one per house that agrees</td><td>towards zero</td><td>0 for houses that agree</td><td>houses that never answer</td></tr>
+</tbody></table></div>
+<p class="small">Times are estimates from the routine in 7.5: about one minute per file with the Collector (open, click, glance at the dry run), plus reviews of anything amber. The pilot (A3) and the first two Collector cycles will measure real times; the Collector records when each file arrived.</p>
+
+<h3>Why A2 (and optionally A3) and not the other options, or an agent on its own</h3>
+<div class="tablewrap"><table class="opt">
+<thead><tr><th>Option</th><th>Reaches the houses that refuse our server?</th><th>Inside our rules (Run 7)?</th><th>Works this month for every house?</th><th>Catches a wrong file?</th><th>When a site changes</th></tr></thead>
+<tbody>
+<tr><td><b>A2 Collector</b></td><td><span class="pill g">yes</span> a person's normal browsing</td><td><span class="pill g">yes</span> every request is the person's click</td><td><span class="pill g">yes</span> no permission needed from anyone</td><td><span class="pill g">yes</span> detection + dry run + a person sees it</td><td>the person just finds the new link</td></tr>
+<tr><td><b>A3 Claude in Chrome</b></td><td><span class="pill g">yes</span> from the person's browser</td><td><span class="pill w">grey</span> automation of sites that refuse servers, with a person present</td><td><span class="pill w">mostly</span> check pages hand over</td><td><span class="pill g">yes</span> same as A2</td><td>Claude adapts</td></tr>
+<tr><td>7b server agents</td><td><span class="pill r">no</span> same address as the job</td><td><span class="pill g">yes</span></td><td><span class="pill w">only 4 of 21</span></td><td><span class="pill g">yes</span> same intake</td><td>agent adapts; fix proposed</td></tr>
+<tr><td>A4 unattended agent on an office or home line</td><td><span class="pill w">some</span></td><td><span class="pill r">no</span> the Run 7 workaround; terms; IT Act s.43 risk</td><td><span class="pill w">until blocked</span></td><td><span class="pill w">nobody watching</span></td><td>fails silently</td></tr>
+<tr><td>A5 email inbox</td><td><span class="pill w">only houses that mail</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">unknown</span> 2-month trial</td><td><span class="pill g">yes</span> same intake</td><td>n/a</td></tr>
+<tr><td>A6 permission · A7 vendor</td><td><span class="pill g">yes, per house that agrees</span></td><td><span class="pill g">yes</span></td><td><span class="pill r">no</span> months</td><td><span class="pill g">yes</span></td><td>n/a</td></tr>
+</tbody></table></div>
+<ul>
+<li><b>A2 is the only option that works next month for all 21 imports without anyone's permission and without bending a rule.</b> It removes the chaos (renaming, scp, commands, tracking, judging counts) rather than the click, and the click is the part a refusing site allows.</li>
+<li><b>The agentic route is better than A2 wherever it is allowed</b>, and the plan uses it there: 7b makes HSBC, Mahindra, JM and Kotak fully hands-off. It cannot reach the 12 houses that refuse our server, because an agent on our server has our server's address. The only way an agent gets in is from someone's own connection with nobody watching, and that is A4: against Run 7, against most sites' terms, and it fails silently when a page changes.</li>
+<li><b>A3 sits between them.</b> It saves the finding, keeps a person in the loop by Claude in Chrome's own design (every download asks), and inherits A2's checks. Its cost is the grey area and a paid plan per person. Worth a two-house pilot if you are comfortable with that (Q12); not needed for A2 to pay off.</li>
+<li><b>Together:</b> R2 (A1 + A2) turns 3–4 hours of chaos into 30–40 calm minutes for all 21 imports. R3 (7b) takes 4 of them away entirely. Letters and vendors (A6, A7) take the rest towards zero over months. A3 is optional on top.</li>
+</ul>
+</section>
+
+<section id="ag">
+<h2 class="part">7b · Deep dive: a fully agentic pipeline (nobody uploads anything)</h2>
+<p class="sub">Added 27 Nov after your question: can an agent fetch the files and use them by itself, so that neither we nor any user does anything by hand? Section 7 above is unchanged. This section tests that idea properly: what an agent can and cannot do here, every route to "zero touch", what it costs, and what I recommend.</p>
+
+<div class="callout ok"><p><b>Short answer.</b> Yes for most of it, and it goes further than section 7. An agent layer (a real browser on our own server, plus Claude agents that find files and read odd layouts) can make every fund house that <i>lets our server in</i> fully automatic. That includes houses we import by hand today only because their pages need a browser or their lists are encrypted. It also stops site layout changes from needing a code fix every time.</p>
+<p><b>But no agent can make a site that refuses our server say yes.</b> That is 12 fund houses (8 for disclosures, 10 for factsheets, overlapping). For them, zero touch comes from <b>permission</b> (the house allows our address or gives us a key or a feed) or from a <b>licensed data vendor</b>. The only other way is to run the agent from a home or office internet line so the site cannot tell it is us. That works technically for some houses, but it is exactly what Run 7 ruled out, and it carries legal and reliability risk (7b.5). Until permission or a vendor arrives, the Collector from section 7 covers those houses in about 20–25 minutes a month.</p></div>
+
+<h3>7b.1 Why each by-hand house is by hand: the reason decides what an agent can do</h3>
+<p>I went back to the registry notes (the evidence recorded when each house was onboarded) and the L-5 checks. "Manual" hides four different reasons, and only one of them is a real wall.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Reason</th><th>Fund houses (pipeline)</th><th>Evidence on record</th><th>Can an agent on our server fix it?</th></tr></thead>
+<tbody>
+<tr><td><b>Needs a real browser</b> (page built by JavaScript)</td><td>HSBC (disclosures); Kotak (factsheets); possibly Sundaram (factsheets, "page shows no factsheet link to scripts")</td><td>HSBC: plain request 403 (Azure WAF), <b>real headless Chromium gets 200</b> with per-scheme .xlsx links (registry, 5th pass). Playwright was not added for one house on 12 Oct. Kotak: HTTP 200 but no PDF links in the HTML.</td><td><span class="pill g">yes</span> A browser worker on our server, identifying itself normally. No evasion: the site serves browsers at our address.</td></tr>
+<tr><td><b>Encrypted list</b> (the site's own script decrypts it)</td><td>Mahindra Manulife, JM Financial (disclosures)</td><td>Mahindra: AES-encrypted API; files exist at <code>/uploads/download/{uuid}.xlsx</code>. JM: the "file" is AES ciphertext. The factsheet side of Mahindra already reads its list (Run 8 allowed encrypted-but-public lists).</td><td><span class="pill g">likely</span> A real browser runs the site's own script, so the page shows the files with nothing cracked by us. Whether JM's site also lets our server in is <b>unverified</b> (AG-0 checks it).</td></tr>
+<tr><td><b>Layout changed / date or name rule too strict</b></td><td>Franklin (date), Zerodha (renamed), Samco (host), Edelweiss and Sundaram (factsheet links), SBI and Mahindra (stale factsheets)</td><td>19 Nov proposal causes B–F; 31 Oct factsheet note</td><td><span class="pill g">yes</span> Section 5 fixes them once. A locator agent (AG-2) finds the file when the coded rule fails <i>next time</i>, so the next site change needs no code fix before the data arrives.</td></tr>
+<tr><td><b>Refuses our server</b> (a real wall)</td><td>Disclosures: Edelweiss (Akamai), Invesco (WAF 403 even to headless Chromium), ITI (Cloudflare challenge even to headless Chromium), Bandhan (401, key needed), Bajaj, WhiteOak, Angel One (403), Trust (406); <b>Groww 403 since 27 Nov</b> (new, may be temporary). Factsheets: ICICI, HDFC, Axis, Bandhan, Invesco, WhiteOak, ITI, JM, Trust, Angel One</td><td>Registry notes, 16 Oct plan, L-5 (19 Nov). The four refused disclosure houses open normally in a person's browser.</td><td><span class="pill r">no</span> Not without permission, or without hiding that it is us (7b.5). Whether Bajaj, WhiteOak, Trust and Angel One also refuse a <i>real browser</i> at our address was never tested; AG-0 tests it once.</td></tr>
+<tr><td><b>Nothing published</b></td><td>AlphaGrep (late), Bajaj, IL&amp;FS, Lakshya, Monarch (no factsheet)</td><td>31 Oct note, L-5</td><td><span class="pill m">n/a</span> Only a vendor has this data, if anyone does.</td></tr>
+</tbody></table></div>
+<p class="small">"Headless Chromium" here means an ordinary browser that says so in its user agent. A site that still refuses it is refusing automated visitors on purpose.</p>
+
+<h3>7b.2 What Claude can do here, from the platform docs (checked today)</h3>
+<ul>
+<li><b>The browser-use and computer-use tools run in a browser or desktop <i>we</i> host.</b> The model decides what to click; the requests leave from our machine. An agent on the VM therefore has the VM's address, and the refusing sites refuse it exactly as they refuse the job. "Agentic" does not change the network.</li>
+<li><b>The web fetch tool runs on Anthropic's servers.</b> Using it to reach a site that refuses us would only move the request to someone else's address, which is the same workaround by another route. It is also unnecessary for sites that let us in. The plan does not use it for AMC sites; our agents get a fetch tool we run ourselves, limited to each house's own domains.</li>
+<li><b>PDFs:</b> Claude reads a PDF as text plus a picture of each page (about 1,500–3,000 text tokens and up to 1,568 image tokens a page; up to 600 pages a request with the 1M context). So a factsheet layout our code cannot read can be read by an agent into a fixed structure, then checked by our own rules. Spreadsheets are not accepted directly; our existing parser already handles them.</li>
+<li><b>Prices</b> (per million tokens): Sonnet 5.5 $2 in / $10 out, Haiku 5.5 $0.10 / $0.50 (prompts up to 100k), Batch API half price. Costs in 7b.6.</li>
+</ul>
+
+<h3>7b.3 The agentic design (inside our rules)</h3>
+<div class="flow">
+ <div class="lane"><div class="lane-t">Every morning, per fund house (days 1–25 for disclosures, 8–25 for factsheets)</div>
+  <div class="steps">
+   <div class="st">Coded locator<small>today's registry, fast and free</small></div><i>→</i>
+   <div class="st">Browser locator<small>AG-1, for houses that need a browser</small></div><i>→</i>
+   <div class="st">Locator agent<small>AG-2, only when both found nothing or a wrong date</small></div><i>→</i>
+   <div class="st">Download<small>our server, honest user agent</small></div><i>→</i>
+   <div class="st">Coded reader<small>today's parser and layouts</small></div><i>→</i>
+   <div class="st">Reader agent<small>AG-3, only when the coded reader fails</small></div>
+  </div></div>
+ <div class="lane"><div class="lane-t">Then the same intake as section 7 (no new path)</div>
+  <div class="steps">
+   <div class="st">Dry run<small>match, sum check, vs last month</small></div><i>→</i>
+   <div class="st">Auto-commit gate<small>rules, not a model</small></div><i>→</i>
+   <div class="st">Commit or hold<small>held items go to the Ops queue</small></div><i>→</i>
+   <div class="st">Outcome + digest<small>what the agent did, with evidence</small></div>
+  </div></div>
+ <div class="lane"><div class="lane-t">Around it</div>
+  <div class="side" style="margin:0">AG-4 Inbox agent (AMC mailings → intake) · AG-5 Fix proposer (writes the code change a person reviews) · AG-0 one-time browser probe · guardrails, budget and a kill switch</div></div>
+</div>
+<div class="tablewrap"><table>
+<thead><tr><th>Piece</th><th>What it does</th><th>Model / tech</th><th class="n">Days</th></tr></thead>
+<tbody>
+<tr><td><b>AG-0 Browser probe</b></td><td>One visit from the VM with a normal headless browser to every by-hand and refused house's page: status, challenge page or not, links visible. Read-only, like the status check. Decides who moves to automatic.</td><td>Playwright, no model</td><td class="n">0.5</td></tr>
+<tr><td><b>AG-1 Browser worker</b></td><td>A small container on the VM running headless Chromium for the houses that need it (HSBC, Kotak, Mahindra, JM if AG-0 agrees). It is called by coded "browser locators", one page every few seconds, and only on each house's own domains.</td><td>Playwright, no model</td><td class="n">2</td></tr>
+<tr><td><b>AG-2 Locator agent</b></td><td>When the coded locator finds nothing, finds a wrong date, or the layout changed: reads the house's own pages through our fetch and the browser worker, finds this month's file, and returns the address, the date and the evidence (the link text and where it was). The file then goes through the normal download and dry run.</td><td>Sonnet 5.5, tool loop in our worker; tools: <code>open_page</code>, <code>render_page</code>, <code>list_links</code>, <code>propose_file</code></td><td class="n">4</td></tr>
+<tr><td><b>AG-3 Reader agent</b></td><td>When the coded reader cannot read a factsheet or a PDF-only disclosure: extracts managers or holdings into a fixed schema. Every value is then checked by our rules: weights 90–101%, ISINs valid and known, manager names against last month, scheme matching by the existing matcher. If it disagrees with the checks, the file is held for a person.</td><td>Sonnet 5.5 via Batch API (half price)</td><td class="n">3</td></tr>
+<tr><td><b>AG-4 Inbox agent</b></td><td>Reads the SES inbox from section 7 (A5): sorts AMC mailings, takes attachments, and follows links only to registered AMC domains, through the same honest fetch.</td><td>Haiku 5.5 to sort, Sonnet when a mail needs reading</td><td class="n">2</td></tr>
+<tr><td><b>AG-5 Fix proposer</b></td><td>When AG-2 found a file that the coded locator missed, it writes the registry or locator change as a patch with a test fixture into the Ops queue. A person turns it into a reviewed commit. The agent never changes code or the registry itself.</td><td>Sonnet 5.5</td><td class="n">1.5</td></tr>
+<tr><td><b>Guardrails</b></td><td>See 7b.4. Kill switch <code>AGENTS_ENABLED</code>, monthly budget <code>AGENT_MONTHLY_BUDGET_USD</code>, per-run token cap, cost on every outcome row.</td><td>—</td><td class="n">1</td></tr>
+<tr><td><b>Ops console: agent activity</b></td><td>The House drawer shows what the agent did and why, with the evidence; a "Proposed fixes" list (mockup state 10 below).</td><td>front end</td><td class="n">1.5</td></tr>
+</tbody></table></div>
+<p class="small">Total about 15–16 worker-days. This builds on section 7's intake (A1) and outcomes (H1), so it is a third release after R2. The agents run inside our existing worker container, so nothing new is hosted outside the VM except the model calls. Only public AMC pages and files are sent to the model, never user data.</p>
+
+<h3>7b.4 Guardrails (what the agents may never do)</h3>
+<ul>
+<li><b>Stop at a refusal.</b> HTTP 401, 403, 406 or 429, a challenge page or a CAPTCHA ends the attempt for that house as <code>BLOCKED</code>. There is no retry with another identity, address, header set or service, and no CAPTCHA solving.</li>
+<li><b>Honest identity.</b> The same browser user agent the job already sends (as today), or headless Chromium's own; robots.txt respected; one request every 2–3 seconds per house; daily runs only.</li>
+<li><b>Own domains only.</b> Each house's agent tools accept only that house's registered domains (plus its file CDN). No search engines, no third-party mirrors, no Anthropic web fetch.</li>
+<li><b>No logins, keys or forms</b> except public filters the site's own download page offers (month and year selectors).</li>
+<li><b>Never writes on its own judgement.</b> What an agent finds goes through the same dry run and rule-based auto-commit gate as a person's upload. Anything outside the rules waits in the Ops queue.</li>
+<li><b>Never edits code or the registry.</b> AG-5 proposes; people review.</li>
+<li><b>Budget and kill switch.</b> A hard monthly limit; past it the agents stop and the digest says so.</li>
+</ul>
+
+<h3>7b.5 The routes to zero touch for the houses that refuse us</h3>
+<div class="tablewrap"><table class="opt">
+<thead><tr><th>Route</th><th>How</th><th>Zero touch?</th><th>Within our rules?</th><th>Risk / unknowns</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><b>Permission</b> (A6)</td><td>The house allow-lists our fixed address (A8), issues an API key (Bandhan already needs one), or emails the files monthly</td><td>yes, per house that agrees</td><td><span class="pill g">yes</span></td><td>slow; some will not answer</td><td><span class="pill g">start now</span></td></tr>
+<tr><td><b>Data vendor</b> (A7)</td><td>Licensed holdings and fund-manager feed for those houses (or all)</td><td>yes</td><td><span class="pill g">yes</span></td><td>price and licence unknown (may restrict showing raw holdings)</td><td><span class="pill g">get quotes</span></td></tr>
+<tr><td><b>Identify ourselves as a bot</b></td><td>Cloudflare's Verified Bots and signed agents (Web Bot Auth: requests signed with a key the site's protection can check). Other vendors (Akamai, AWS WAF) have similar verified-bot lists.</td><td>only where the house's protection lets verified bots in</td><td><span class="pill g">yes</span> it is the opposite of hiding</td><td>needs enrolment we may not qualify for; only ITI is known to be on Cloudflare; the house still decides</td><td><span class="pill b">look into it for ITI</span></td></tr>
+<tr><td><b>Inbox</b> (A5 + AG-4)</td><td>Subscribe to AMC mailings</td><td>yes, for houses that mail</td><td><span class="pill g">yes</span></td><td>which houses mail is unknown</td><td><span class="pill g">trial</span></td></tr>
+<tr><td><b>Agent on a home or office line</b></td><td>An always-on small PC on Indian broadband runs a normal Chrome, driven by the browser-use agent on a schedule, and uploads to intake</td><td>yes for sites that only refuse data-centre addresses (likely Bajaj, WhiteOak, Angel One, Trust, maybe HDFC and Axis); <b>no</b> for challenge pages (ITI, Edelweiss) unless they are defeated, which we will not do</td><td><span class="pill r">no</span> it works precisely because the site cannot tell it is us: the Run 7 "access-control workaround"</td><td>Site terms usually forbid automated access. IT Act s.43 makes access "without permission" a civil wrong; how it applies to public pages is unsettled (no ruling found). The office address can get blocked for everyone there. The box breaks silently. A lawyer's opinion is needed before it is even considered.</td><td><span class="pill r">not recommended</span> (Q23)</td></tr>
+<tr><td><b>Residential proxies or "stealth" browsers</b></td><td>Rent home addresses or disguise the browser</td><td>—</td><td><span class="pill r">no</span></td><td>plain evasion</td><td><span class="pill r">will not build</span></td></tr>
+</tbody></table></div>
+
+<h3>7b.6 What it would cost to run</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Item</th><th>Estimate</th><th>How it is worked out</th></tr></thead>
+<tbody>
+<tr><td>Locator agent (AG-2)</td><td class="n">$5–40 a month</td><td>About 30–80k input + 2k output tokens per attempt on Sonnet 5.5, about $0.08–0.18 an attempt. It runs only when the coded locator fails: typically 10–40 attempts a month, up to about 200 in a bad month.</td></tr>
+<tr><td>Reader agent (AG-3)</td><td class="n">$3–30 a month</td><td>A 100-page factsheet is about 400k tokens: about $0.40 input on the Batch API plus about $0.08 output. Only failed reads normally (about 5 files); up to every factsheet if you choose "cross-check all" (Q24).</td></tr>
+<tr><td>Inbox agent (AG-4)</td><td class="n">under $2 a month</td><td>Haiku sorts about 100–200 mails</td></tr>
+<tr><td>Browser worker (AG-1)</td><td class="n">₹0 extra</td><td>One more container on the existing VM; about 400–600 MB of memory for a few minutes a day. It must fit the 16 GB budget, so it is run outside the 05:40–06:35 batch window.</td></tr>
+<tr><td><b>Total</b></td><td class="n"><b>about $10–70 a month</b> (₹850–6,000)</td><td>Hard cap with <code>AGENT_MONTHLY_BUDGET_USD</code> (Q24)</td></tr>
+</tbody></table></div>
+
+<h3>7b.7 How much becomes hands-off, step by step</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>After</th><th class="n">By-hand house imports a month</th><th>Which ones remain</th><th>Your time a month</th></tr></thead>
+<tbody>
+<tr><td>Today</td><td class="n">≈ 25</td><td>11 disclosure + up to 14 factsheet houses</td><td>3–4 hours, two people</td></tr>
+<tr><td>R1 fixes (section 5)</td><td class="n">≈ 21</td><td>SBI, Mahindra and Sundaram factsheets back to automatic once their locators are fixed</td><td>same routine</td></tr>
+<tr><td>R2 Ops console + Collector (section 7)</td><td class="n">≈ 21</td><td>same houses, much easier</td><td>30–40 minutes</td></tr>
+<tr><td>R3 agents (this section), if AG-0 confirms</td><td class="n">≈ 17–18</td><td>HSBC, Mahindra, JM disclosures and the Kotak factsheet become automatic; the rest are the refusing houses</td><td>20–25 minutes</td></tr>
+<tr><td>+ permission from houses that agree</td><td class="n">≈ 17 → fewer</td><td>each house that allows our address or sends a key or feed drops off</td><td>shrinks per house</td></tr>
+<tr><td>+ vendor feed</td><td class="n">0</td><td>none, if the vendor covers them</td><td>none: the digest only</td></tr>
+</tbody></table></div>
+<p class="small">App users are never involved at any stage. These are reference data that every user's analytics read; users never upload them.</p>
+
+<h3>7b.8 Recommendation</h3>
+<ol>
+<li><b>Build the agent layer (AG-0 to AG-5) as release R3</b>, after the Ops console. It makes everything that lets us in automatic and stops layout changes from needing a code fix first. AG-0 (the probe) can run much earlier, alongside the status check, because it only reads.</li>
+<li><b>For the houses that refuse us, go for zero touch the legitimate way:</b> permission letters now (one month to hear back), vendor quotes now, the inbox trial now, and a look at Cloudflare's verified-bot route for ITI. Each success removes a house for good.</li>
+<li><b>Do not build the home/office-line agent</b> unless a lawyer's opinion and each house's terms say it is acceptable. Even then, never for challenge pages. Until then the Collector keeps those houses at about 20 minutes a month.</li>
+</ol>
 </section>
 
 <section id="db">
@@ -578,7 +1031,8 @@ table.opt td{font-size:13px}
 
 <section id="fe">
 <h2 class="part">10 · Front end, with desktop mockups</h2>
-<p><b>New:</b> an Ops console inside the same React/Vite app at <code>/ops</code>, with its own small layout (the shell's tokens, sidebar and top bar; Ops items instead of Home/Portfolio). It is not linked from the user sidebar; ops users reach it from a "Ops console" item in the Profile menu. Six screens: Coverage board, House drawer, This month's by-hand, Upload and dry run, Intake history, Runs. Plus the Collector extension popup (its own tiny React build in <code>tools/collector/</code>) and the daily digest email.</p>
+<div class="callout"><p><b>The Ops console is an internal admin panel, not part of the product.</b> It is for the 2–3 people at Unifolio who look after the data. App users (investors and their families) never see it:</p><ul style="margin:0"><li><b>No link anywhere in the user app:</b> not in the sidebar, not in Profile, not in any menu. Staff open it by its address (a bookmark).</li><li><b>The server decides, not the page.</b> Every <code>/ops/*</code> API call checks the signed-in account against the staff allow-list (<code>OPS_USER_IDS</code>). Anyone else gets "404 not found", so the routes look as if they do not exist.</li><li><b>Its code is not shipped to users.</b> The console is a separate code-split bundle, loaded only after the server confirms a staff account. A user who types <code>/ops</code> sees the normal "page not found".</li><li><b>Optional, stronger:</b> serve it only on a separate staff address (e.g. <code>ops.unifolio.in</code>) limited to office IPs (Q26).</li></ul></div>
+<p><b>New:</b> an Ops console inside the same React/Vite app at <code>/ops</code>, with its own small layout (the shell's tokens, sidebar and top bar; Ops items instead of Home/Portfolio). The left sidebar in the mockups below is the <b>staff</b> sidebar of this admin panel, not the users' sidebar, which does not change. Six screens: Coverage board, House drawer, This month's by-hand, Upload and dry run, Intake history, Runs. Plus the Collector extension popup (its own tiny React build in <code>tools/collector/</code>) and the daily digest email.</p>
 <p><b>Changes users see:</b> none in the app layout. After FX-L1 a fund page shows "Holdings as of 30 Oct 2026" when that is the file's real date (the date labels from batch E already read the batch date). More funds will simply have current holdings and managers.</p>
 <div class="tablewrap"><table>
 <thead><tr><th>Screen</th><th>Route</th><th>Components (new unless noted)</th><th>Data</th></tr></thead>
@@ -601,16 +1055,19 @@ table.opt td{font-size:13px}
 <div class="tablewrap"><table>
 <thead><tr><th>Release</th><th>Batch</th><th>Worker</th><th>Contents</th><th>Gate</th></tr></thead>
 <tbody>
-<tr><td rowspan="1">—</td><td>S</td><td>Claude (script), you (VM run)</td><td>Status script + guide, then the status report</td><td>Read-only proof (refuses non-read-only connection)</td></tr>
+<tr><td rowspan="1">—</td><td>S ✓</td><td>Claude (script), manager (VM run)</td><td>Done 27 Nov: script 3aa31197 + fix 9ccb1369, results in section 4</td><td>Read-only proof (refuses non-read-only connection)</td></tr>
 <tr><td rowspan="4"><b>R1</b><br><span class="small">target before 1 Jan</span></td><td>R1-a visibility</td><td>Codex</td><td>Migration 0055 (<code>pipeline_run_outcomes</code>), H1, H2, H3, H5</td><td>Review: a fixture run where every outcome appears once</td></tr>
-<tr><td>R1-b fixes 1</td><td>Codex</td><td>FX-L1, FX-L2 (+F1), FX-L5, FX-L6</td><td>Each with its fixtures; Opus review on FX-L1 (calendar-month change touches five call sites)</td></tr>
+<tr><td>R1-b fixes 1</td><td>Codex</td><td>FX-L6 (largest, 145 series), FX-L1, FX-L2 (+F1), FX-L5, FX-L10, FX-L11</td><td>Each with its fixtures; Opus review on FX-L1 (calendar-month change touches five call sites)</td></tr>
 <tr><td>R1-c windows</td><td>Codex</td><td>H4, H7, cron + logrotate</td><td>Deploy guide dry run</td></tr>
-<tr><td>R1-d fixes 2</td><td>Codex</td><td>FX-L7, FX-L8 (recorder first), FX-F2, F3, F5, H8</td><td>Real-file text fixtures</td></tr>
+<tr><td>R1-d fixes 2</td><td>Codex</td><td>FX-L7, FX-L8 (recorder first), FX-F2, F3 (if still needed), F5, F6, H8</td><td>Real-file text fixtures</td></tr>
 <tr><td rowspan="5"><b>R2</b><br><span class="small">target before 1 Feb</span></td><td>R2-a intake backend</td><td>Codex</td><td>Migrations 0056–0057, <code>services/intake</code>, prepare/write split, FX-F4, <code>/ops/*</code>, access guard</td><td>Opus review (undo correctness, access)</td></tr>
 <tr><td>R2-b Ops console</td><td>Antigravity</td><td>Six screens from the mockups</td><td>Visual check against this page, light and dark</td></tr>
 <tr><td>R2-c Collector</td><td>Antigravity + Codex</td><td>Extension, device tokens</td><td>Real browser proof (lesson 9)</td></tr>
 <tr><td>R2-d email intake</td><td>Codex + you (AWS console)</td><td>SES receipt rule, bucket, <code>email_intake.py</code></td><td>One real mailing received end to end</td></tr>
 <tr><td>R2-e learning</td><td>Codex</td><td>H6, H9, H10</td><td>—</td></tr>
+<tr><td rowspan="3"><b>R3</b><br><span class="small">agents (7b), after R2</span></td><td>R3-a probe + browser</td><td>Codex</td><td>AG-0 probe (can run early, read-only), AG-1 browser worker, browser locators for HSBC, Kotak, Mahindra, JM</td><td>Probe report before any locator is written</td></tr>
+<tr><td>R3-b agents</td><td>Codex</td><td>AG-2 locator, AG-3 reader, AG-4 inbox, AG-5 fix proposer, guardrails, budget</td><td>Opus review of guardrails; recorded-page fixtures, no live calls in tests</td></tr>
+<tr><td>R3-c console</td><td>Antigravity</td><td>Agent activity in the House drawer, Proposed fixes list</td><td>Visual check against mockup state 10</td></tr>
 </tbody></table></div>
 <p class="small">Both releases deploy to staging (CloudPe) with a deploy guide that names terminals and starts/stops nothing it does not need. Production AWS gets them through the usual merge.</p>
 </section>
@@ -625,13 +1082,14 @@ table.opt td{font-size:13px}
 <li><b>Extension distribution.</b> An unlisted Chrome Web Store item or developer-mode install for two or three people; token revocable from the console.</li>
 <li><b>Email intake links are login or tracking links.</b> Only links to registered AMC domains are followed, plain GET, no credentials.</li>
 <li><b>Vendor licence forbids showing raw holdings</b> to users. Read before signing; derived numbers may still be allowed.</li>
+<li><b>December runs on today's code, with today's blind spots</b> (status check, 27 Nov): LIC will again keep one workbook of two, Samco and Zerodha write nothing, and Groww may now be refused. 30 Nov is a Monday, so the date bug does not bite. Check with the same script after 20 Dec.</li>
 <li><b>Migration numbering clash</b> with the MF new-features work. The plan writer re-checks the head before writing migrations.</li>
 </ul>
 </section>
 
 <section id="questions">
 <h2>13 · Open questions</h2>
-<p class="sub">Pick an option and add a note if you like. Your choices stay in this browser. Use "Copy my answers" at the end and paste them back to me. <span class="badge" style="margin-left:0">Recommended</span> marks my pick. Answers are not a go: plans are written only when you say so.</p>
+<p class="sub">Pick an option and add a note if you like. Your choices stay in this browser. Use "Copy my answers" at the end and paste them back to me. <span class="badge" style="margin-left:0">Recommended</span> marks my pick. <span class="badge ans">Answered</span> and <span class="badge ch">Chosen</span> mark the answers you sent on 28 Nov (Q2–Q4, Q6–Q8). Answers are not a go: plans are written only when you say so.</p>
 <div id="qs"></div>
 <div style="border-top:1px solid var(--line);padding-top:16px;margin-top:8px">
  <h3 style="margin-top:0">Your answers</h3>
@@ -648,13 +1106,13 @@ var G=[
  {k:"a",rec:1,l:"S now (read-only) → H1–H3 visibility → fixes → Ops console and Collector → automation trials",d:"As drawn in section 3."},
  {k:"b",l:"Fixes first, visibility after",d:"Faster recovery of Franklin/Zerodha; fixes cannot be verified from outcomes."},
  {k:"c",l:"Everything in one release",d:"One deploy; lands late January at best, close to the 31 Jan Sunday."}]},
-{id:"Q2",t:"Release shape",why:"Your usual pattern is one release deployed together. Here a deadline exists: FX-L1 must be live before 1 Feb 2027.",o:[
+{id:"Q2",done:{c:"a"},t:"Release shape",why:"Your usual pattern is one release deployed together. Here a deadline exists: FX-L1 must be live before 1 Feb 2027.",o:[
  {k:"a",rec:1,l:"Two releases: R1 (S, H1–H5, fixes) before 1 Jan; R2 (Ops console, Collector, email intake, H6–H10) before 1 Feb",d:"January is the first cycle with outcomes and the date fix."},
  {k:"b",l:"One release before 1 Feb",d:"Matches your usual way; no visibility in January."}]},
-{id:"Q3",t:"Who runs the status check on the VM?",why:"It is read-only, about 15 minutes, same shape as the 18 Nov audit guide.",o:[
+{id:"Q3",done:{c:"a"},t:"Who runs the status check on the VM?",why:"Settled in practice: your manager's Claude ran it on 27 Nov (section 4). Kept for later runs such as Q29.",o:[
  {k:"a",rec:1,l:"I write the script and guide; you or the intern run it before 30 Nov",d:"The script ships to the VM with the next backend build, or is run from a mounted folder (the guide says which)."},
  {k:"b",l:"Skip it; rely on R1's outcomes from January",d:"December is planned blind."}]},
-{id:"Q4",t:"October gaps for Franklin and Zerodha",why:"Franklin's November file will be dated 30 Nov (a Monday), so December's run picks it up with today's code. Zerodha stays empty until FX-L2.",o:[
+{id:"Q4",done:{c:"a"},t:"October gaps for Franklin and Zerodha",why:"Franklin's November file will be dated 30 Nov (a Monday), so December's run picks it up with today's code. Zerodha stays empty until FX-L2.",o:[
  {k:"a",rec:1,l:"Leave October as is; December fixes Franklin by itself; Zerodha waits for R1",d:"No hand import without undo."},
  {k:"b",l:"Hand-import Franklin's October files now with --allow-any-date",d:"The strict audit will not count them; no undo."}]}]],
 ["Strengthening",[
@@ -662,13 +1120,13 @@ var G=[
  {k:"a",rec:1,l:"One shared table pipeline_run_outcomes for both pipelines",d:"Section 8; ~2,600 rows a month, kept 24 months."},
  {k:"b",l:"Disclosures-only table; factsheets in logs",d:"Factsheets stay half-blind."},
  {k:"c",l:"Logs and parse_errors only, no table",d:"No migration; the Ops console cannot be built on it."}]},
-{id:"Q6",t:"Job windows",why:"Disclosures stop on day 20 today; factsheets run once on the 10th.",o:[
+{id:"Q6",done:{c:"a"},t:"Job windows",why:"Disclosures stop on day 20 today; factsheets run once on the 10th.",o:[
  {k:"a",rec:1,l:"Disclosures days 1–25; factsheets daily days 8–25 with skip-if-current",d:"About 5 + 17 extra short runs a month."},
  {k:"b",l:"Keep the current windows",d:""}]},
-{id:"Q7",t:"Alert channel",why:"SES email already works for job failures.",o:[
+{id:"Q7",done:{c:"a"},t:"Alert channel",why:"SES email already works for job failures.",o:[
  {k:"a",rec:1,l:"Daily digest email at 07:30 + immediate email on a non-zero exit",d:"To the ops address list."},
  {k:"b",l:"Also Slack or WhatsApp",d:"Needs a webhook or provider; plan separately."}]},
-{id:"Q8",t:"Who receives the digest?",why:"The ops-alerts subscriptions were still pending confirmation in October.",o:[
+{id:"Q8",done:{n:"aditi.shanbhag@unifolio.in ayush.karnawat@unifolio.in siddharth.surve@unifolio.in (me(intern), manager and stakeholder respectively )"},t:"Who receives the digest?",why:"The ops-alerts subscriptions were still pending confirmation in October.",o:[
  {k:"a",rec:1,l:"You and the intern (say the addresses in the note)",d:""},
  {k:"b",l:"Also the manager",d:""}]}]],
 ["Automation",[
@@ -713,18 +1171,58 @@ var G=[
  {k:"c",l:"Never; a person always commits",d:""}]},
 {id:"Q20",t:"Automatic houses that fail (Angel One, Sundaram, SBI, Mahindra factsheets)",why:"The CLI refuses them today.",o:[
  {k:"a",rec:1,l:"Intake accepts any registered house for this month only; the house stays automatic",d:"FX-F4."},
- {k:"b",l:"Move them to manual in the registry",d:""}]}]]
+ {k:"b",l:"Move them to manual in the registry",d:""}]}]],
+["Agentic pipeline (7b) and the admin panel",[
+{id:"Q21",t:"Build the agent layer (AG-0 to AG-5) as release R3?",why:"Makes every house that lets our server in hands-off (HSBC, Mahindra, JM, Kotak move off the manual list if the probe agrees) and stops layout changes from needing a code fix first. About 15 days, $10–70 a month.",o:[
+ {k:"a",rec:1,l:"Yes: R3 after the Ops console; run the AG-0 probe early, alongside the status check",d:"The probe is read-only, one visit per house."},
+ {k:"b",l:"Only AG-0 and the browser worker (AG-1), no model-driven agents",d:"About 2.5 days; HSBC/Kotak/Mahindra/JM still move; layout changes still need code fixes."},
+ {k:"c",l:"Not now",d:""}]},
+{id:"Q22",t:"Fold R3 into R2 (one release) or keep it after?",why:"Agents reuse the intake and outcomes built in R1/R2.",o:[
+ {k:"a",rec:1,l:"Keep R3 after R2",d:"R2 lands before 1 Feb as planned; agents follow in February."},
+ {k:"b",l:"One release R2+R3",d:"Everything together, around mid-February."}]},
+{id:"Q23",t:"An agent on a home or office internet line for the houses that refuse our server",why:"Technically works for sites that only refuse data-centre addresses. It is the Run 7 workaround; terms of use and IT Act s.43 risk; never for challenge pages.",o:[
+ {k:"a",rec:1,l:"No. Permission letters, vendor quotes and the inbox trial instead; Collector meanwhile",d:"Keeps Run 7."},
+ {k:"b",l:"Only after a lawyer's opinion and a per-house terms check; never challenge pages",d:"I would write the plan for the legal question first."},
+ {k:"c",l:"Yes, now",d:"Not recommended."}]},
+{id:"Q24",t:"Agent model, scope and monthly budget",why:"The reader agent can read only the files our code fails on, or cross-check every factsheet.",o:[
+ {k:"a",rec:1,l:"Sonnet 5.5 for agents, Haiku 5.5 for sorting mail, Batch API for PDFs; read only failed files; cap $60 a month",d:""},
+ {k:"b",l:"Same, plus cross-check every factsheet with the reader agent; cap $120",d:"Catches reader mistakes too."}]},
+{id:"Q25",t:"Look into Cloudflare's verified-bot (signed agent) route for ITI?",why:"It identifies us honestly; it only helps if ITI's protection lets verified bots in, and we may not qualify.",o:[
+ {k:"a",rec:1,l:"Yes, a half-day check of eligibility, alongside the letter to ITI",d:""},
+ {k:"b",l:"No",d:""}]},
+{id:"Q26",t:"Where does the staff-only Ops console live?",why:"Users never see it in any option: no link, server-side staff check, 404 for everyone else.",o:[
+ {k:"a",rec:1,l:"Same app at /ops, no link anywhere, staff allow-list on the server, code loaded only for staff",d:"No new deploy target."},
+ {k:"b",l:"A separate staff address (ops.unifolio.in) limited to office IPs, same build",d:"Stronger; one more Caddy site and an IP list to keep up to date."},
+ {k:"c",l:"A separate admin app",d:"Second build and deploy."}]}]],
+["Status check results (27 Nov)",[
+{id:"Q27",t:"October by-hand imports: do them now, before 1 Dec?",why:"None of the 7 by-hand disclosure houses has October holdings (1,698 series; Bandhan, Edelweiss, Invesco and HSBC alone are 8% of fund money), and Axis's November factsheet is not in. November files arrive from about 10 Dec, so October would be the newest data for two more weeks.",o:[
+ {k:"a",rec:1,l:"Yes: the 7 disclosure houses and Axis now, through today's runbook",d:"About 3 hours, one last time on the old routine."},
+ {k:"b",l:"Only the four biggest (Bandhan, Edelweiss, Invesco, HSBC)",d:"Most of the money for half the work."},
+ {k:"c",l:"Skip October; do November in December",d:"Users keep September holdings for these houses until mid-December."}]},
+{id:"Q28",t:"Groww answered 403 to our server on 27 Nov. What do we do?",why:"It worked for October earlier this month. It may be temporary or a new block; 217 series. We never work around a block.",o:[
+ {k:"a",rec:1,l:"Re-check once on 1 Dec (read-only discovery). If it still refuses, add Groww to the refusing list, the letter and the Collector due list",d:""},
+ {k:"b",l:"Treat it as refusing now",d:""}]},
+{id:"Q29",t:"Run the same status check after the December cycle?",why:"December runs on today's code. A second run (target 30 Nov) after 20 Dec shows whether anything else moved, before R1 lands.",o:[
+ {k:"a",rec:1,l:"Yes, same guide with --target-month-end 2026-11-30, after 20 Dec",d:"20 minutes on the manager's laptop."},
+ {k:"b",l:"No, wait for the Coverage board in R1",d:""}]}]],
+["A2 before the admin panel",[
+{id:"Q30",t:"How should A2 run until the Ops console (admin panel) exists?",why:"There is no admin panel today and none is planned yet. Both options need no screen in the app (A2.7).",o:[
+ {k:"a",rec:1,l:"Option 1: panel-only, with the server intake (dry run and undo in the side panel)",d:"About 8–9 days. The console can be added later on the same routes."},
+ {k:"b",l:"Option 2: Collector + laptop script running today's importers",d:"About 2 days, no server change, no dry run or undo."},
+ {k:"c",l:"Option 2 now, then Option 1",d:"Relief for the next round first, then the safer version."},
+ {k:"d",l:"Wait for the console and build the full A2",d:""}]}]]
 ];
 var KEY="amc-pipelines-answers-v1",ANS={};
 try{ANS=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){ANS={};}
 var DONE={};
 function save(){try{localStorage.setItem(KEY,JSON.stringify(ANS));}catch(e){}render();}
+G.forEach(function(g){g[1].forEach(function(q){if(q.done&&!ANS[q.id])ANS[q.id]={c:q.done.c,n:q.done.n};});});
 var host=document.getElementById("qs"),all=[];
 G.forEach(function(g){
  var h=document.createElement("div");h.className="qgroup";h.textContent=g[0];host.appendChild(h);
  g[1].forEach(function(q){all.push(q);
   var d=document.createElement("div");d.className="q";
-  var t=document.createElement("h3");t.textContent=q.id+" · "+q.t;d.appendChild(t);
+  var t=document.createElement("h3");t.textContent=q.id+" · "+q.t;if(q.done){var ab=document.createElement("span");ab.className="badge ans";ab.textContent="Answered";t.appendChild(ab);}d.appendChild(t);
   var w=document.createElement("p");w.className="why";w.textContent=q.why;d.appendChild(w);
   q.o.forEach(function(o){
    var id=q.id+"-"+o.k,l=document.createElement("label");l.className="o";l.htmlFor=id;
@@ -733,6 +1231,7 @@ G.forEach(function(g){
    i.addEventListener("change",function(){ANS[q.id]=ANS[q.id]||{};ANS[q.id].c=o.k;save();});
    var s=document.createElement("span"),b=document.createElement("b");b.textContent=o.k+") "+o.l;
    if(o.rec){var r=document.createElement("span");r.className="badge";r.textContent="Recommended";b.appendChild(r);}
+   if(q.done&&q.done.c===o.k){var cb=document.createElement("span");cb.className="badge ch";cb.textContent="Chosen";b.appendChild(cb);}
    s.appendChild(b);if(o.d){var dd=document.createElement("span");dd.className="d";dd.textContent=o.d;s.appendChild(dd);}
    l.appendChild(i);l.appendChild(s);d.appendChild(l);});
   var n=document.createElement("input");n.type="text";n.id=q.id+"-note";n.placeholder="Note (optional)";n.setAttribute("aria-label",q.id+" note");
@@ -850,8 +1349,8 @@ function legend(rows){return '<div style="flex:1;min-width:0">'+rows.map(functio
 /* ===== Ops console ===== */
 function oc(k,t){return '<span class="oc o-'+k+'">'+t+'</span>';}
 function opsSide(on,due){
- var it=[['pie','Coverage'],['check','By-hand this month',due],['up','Upload'],['file','Intake history'],['clock','Runs'],['bld','Fund houses']];
- var h='<aside class="sb sbo"><div class="logo"><b>U</b>Unifolio <span class="chip k-m" style="margin-left:2px;font-size:10.5px">Ops</span></div><div style="display:flex;flex-direction:column;gap:2px">';
+ var it=[['pie','Coverage'],['check','By-hand this month',due],['up','Upload'],['file','Intake history'],['clock','Runs'],['bld','Fund houses'],['link','Collector']];
+ var h='<aside class="sb sbo"><div class="logo"><b>U</b>Unifolio <span class="chip k-w" style="margin-left:2px;font-size:10.5px">Staff only</span></div><div style="display:flex;flex-direction:column;gap:2px">';
  it.forEach(function(x){h+=ni(x[0],x[1],x[1]===on?'on':'',x[2]?'<span class="cnt">'+x[2]+'</span>':'');});
  return h+'</div><div class="sbf">'+ni('cl','Back to the app','')+ni('user','Prateek · ops','')+'</div></aside>';
 }
@@ -864,42 +1363,43 @@ function kpi(rows){return '<div class="kpi">'+rows.map(function(r){return '<div 
 var DROWS=[
  ['Franklin Templeton','Auto','n','WRONG_DATE','0 / 321','171','—','Files dated 30 Oct (31 Oct was a Saturday). Fix FX-L1.'],
  ['ICICI Prudential','Auto','w','PARTIAL','551 / 2,512','569','day 6','59 failed sum checks · reasons kept'],
- ['Edelweiss','By hand','i','AWAITING_FILE','0 / 312','281','—','Due · open site'],
+ ['Edelweiss','By hand','i','AWAITING_FILE','0 / 313','281','—','Due · open site'],
  ['Bandhan','By hand','i','AWAITING_FILE','0 / 435','0','—','Due · open site'],
  ['Bajaj Finserv','Auto → by hand','n','BLOCKED 403','0 / 108','108','—','Refuses our server; letter sent 2 Dec'],
  ['WhiteOak Capital','Auto → by hand','n','BLOCKED 403','0 / 82','70','—','Refuses our server'],
  ['Zerodha CASE','Auto','n','NO_SCHEME_ROWS','0 / 25','20','—','Registry name differs from scheme master. Fix FX-L2.'],
  ['Samco','Auto','n','DOWNLOAD_ERROR 500','0 / 31','26','—','Main host 500; second host not tried. Fix FX-L5.'],
- ['LIC','Auto','w','PARTIAL','75 / 145','145','day 8','1 of 2 workbooks read. Fix FX-L6.'],
- ['HDFC','Auto','w','VIA_WAYBACK','355 / 579','352','day 9','Found through the Internet Archive'],
+ ['LIC','Auto','w','PARTIAL','75 / 220','145','day 8','1 of 2 workbooks read, a different one each month. Fix FX-L6.'],
+ ['HDFC','Auto','w','VIA_WAYBACK','355 / 579','0','day 9','Internet Archive: 222 files there now, 109 used. Fix FX-L7.'],
+ ['Groww','Auto','n','BLOCKED 403','186 / 217','194','day 4','Refused our server on 27 Nov; October was already in'],
  ['AlphaGrep','Auto','m','NOT_PUBLISHED','0 / 12','12','—','Newest file September'],
- ['Nippon India','Auto','ok','WRITTEN','610 / 1,870','604','day 7','']
+ ['Nippon India','Auto','ok','WRITTEN','610 / 1,870','609','day 7','']
 ];
 function covTable(rows,sel){
- return '<div class="cd" style="padding:0"><div class="fb" style="padding:16px 20px 8px"><span class="h3">Fund houses · 50 expected</span><span class="f"><span class="chip k-n">8 failing</span><span class="chip k-w">3 partial</span><span class="chip k-i">9 due by hand</span><span class="chip k-pos">30 written</span><span class="inp ph" style="height:34px;width:220px">'+ic('search',15)+'Find a house</span></span></div>'
+ return '<div class="cd" style="padding:0"><div class="fb" style="padding:16px 20px 8px"><span class="h3">Fund houses · 51 expected</span><span class="f"><span class="chip k-n">7 failing</span><span class="chip k-w">5 partial</span><span class="chip k-i">7 due by hand</span><span class="chip k-pos">31 written</span><span class="inp ph" style="height:34px;width:220px">'+ic('search',15)+'Find a house</span></span></div>'
  +'<table><thead><tr><th style="padding-left:20px">House</th><th>Mode</th><th>Latest outcome</th><th class="r">Series written</th><th class="r">Last month</th><th>Published</th><th>Last 6 cycles</th><th>Note</th></tr></thead><tbody>'
  +rows.map(function(r,i){var hist=['g','g','g','g','g',r[2]==='ok'?'g':r[2]==='w'?'w':r[2]==='i'?'':'n'];if(r[0]==='Bandhan')hist=['','','','','',''];return '<tr'+(sel===i?' style="background:var(--posbg)"':'')+'><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="mu sm">'+r[1]+'</td><td>'+oc(r[2],r[3])+'</td><td class="r">'+r[4]+'</td><td class="r mu">'+r[5]+'</td><td class="mu sm">'+r[6]+'</td><td><span class="dots">'+hist.map(function(c){return '<i class="'+c+'"></i>';}).join('')+'</span></td><td class="sm bd" style="max-width:300px">'+r[7]+'</td></tr>';}).join('')
- +'</tbody></table><div class="sm mu" style="padding:12px 20px">Showing 12 of 50 · sorted by series lost</div></div>';
+ +'</tbody></table><div class="sm mu" style="padding:12px 20px">Showing 13 of 51 · sorted by series lost</div></div>';
 }
 function boardD(sel,over){return ops('Coverage',{},page('Coverage','Portfolio disclosures for 31 Oct 2026. One row per fund house, from every run and every upload.',
- kpi([['Series written (headline)','≈66%','Open-ended plan and option series · 6,351 of 14,403 all series','pos'],['Fund houses written','35 / 50','8 worked last month and have nothing now','neg'],['By hand still due','9 houses','1,946 series waiting · 4 refuse our server','wrn'],['ETFs and FMPs','9.1%','Reported separately (your 19 Nov decision)']])
+ kpi([['Series written (headline)','≈66%','Open-ended plan and option series · 6,351 of 14,415 all series · 82% of fund money','pos'],['Fund houses written','36 / 51','10 worked last month and have nothing now','neg'],['By hand still due','7 houses','1,698 series waiting · plus 4 that refuse our server','wrn'],['ETFs and FMPs','9.1%','Reported separately (your 19 Nov decision)']])
  +covTable(DROWS,sel),'<span class="btn o s">'+ic('dl',15)+'CSV</span><span class="btn s">'+ic('refresh',15)+'Re-run a house</span>'),over);}
 var FROWS=[
- ['Axis','By hand','i','AWAITING_FILE','0 / 89 families','Oct issue','—','Due · open site'],
- ['HDFC (active + passive)','By hand','w','PARTIAL','53 / 112','Oct issue','day 12','Passive file not supplied'],
- ['ICICI Prudential','By hand','ok','WRITTEN','152 / 158','Nov issue','day 14','Imported by Prateek via Collector'],
- ['SBI (active + passive)','Auto','n','WRONG_DATE','0 / 120','Aug issue','—','Newest file older than 45 days → by hand this month'],
- ['Sundaram','Auto','n','PARSE_ERROR','0 / 40','Sep issue','—','Traceback kept · FX-F3'],
- ['Angel One','Auto → by hand','n','BLOCKED 403','0 / 11','Aug issue','—','Refuses our server'],
- ['UTI','Auto','ok','WRITTEN','84 / 88','Nov issue','day 9',''],
- ['Mirae Asset','Auto','ok','ALREADY_CURRENT','98 / 99','Nov issue','day 8','Skipped: already current'],
- ['Bajaj Finserv','Off','m','NOT_PUBLISHED','0 / 25','Jul issue','—','No current factsheet anywhere']
+ ['Axis','By hand','i','AWAITING_FILE','0 / 399','Oct issue','—','November file not imported yet'],
+ ['SBI (active + passive)','Auto','w','PARTIAL','365 / 494','Nov issue','—','44 fewer than the October issue · FX-F6'],
+ ['JM Financial','By hand','w','PARTIAL','141 / 178','Nov issue','—','8 fewer than the October issue'],
+ ['LIC','Auto','w','PARTIAL','212 / 220','Nov issue','—','8 fewer than the October issue'],
+ ['HDFC (active + passive)','By hand','ok','WRITTEN','333 / 579','Nov issue','—','Passive reader not yet verified · FX-F5'],
+ ['ICICI Prudential','By hand','ok','WRITTEN','697 / 2,512','Nov issue','—','Many option series per fund · see H10'],
+ ['Sundaram','Auto','ok','WRITTEN','269 / 277','Nov issue','—','Failing in October, current now · FX-F3 check'],
+ ['Zerodha CASE','Auto','w','NOT_ONBOARDED','23 / 25','Nov issue','—','Registry key is the old name · FX-F1'],
+ ['Bajaj Finserv','Off','m','NOT_PUBLISHED','0 / 108','—','—','No current factsheet anywhere']
 ];
-function boardF(){return ops('Coverage',{pipe:'Factsheets',cycle:'Cycle Nov 2026 · November issues',due:9},page('Coverage','Fund managers from factsheets, November issues. The job now runs daily from the 8th to the 25th and skips houses already current.',
- kpi([['Families with managers','82.4%','2,914 of 3,536 live families','pos'],['Houses current','37 / 55','Up from 6 on 30 Oct','pos'],['By hand still due','9 houses','11 files','wrn'],['No factsheet published','5 houses','33 funds · vendor or nothing']])
+function boardF(over){return ops('Coverage',{pipe:'Factsheets',cycle:'Cycle Nov 2026 · November issues',due:9},page('Coverage','Fund managers from factsheets, November issues. The job now runs daily from the 8th to the 25th and skips houses already current.',
+ kpi([['Series with a manager','62%','8,972 of 14,486 live series, November issue','pos'],['Houses current','49 / 56','Axis still on the October issue','pos'],['By hand still due','1 house','Axis · November file','wrn'],['No factsheet published','6 houses','147 series · vendor or nothing']])
  +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">House</th><th>Mode</th><th>Latest outcome</th><th class="r">Matched</th><th>Newest issue</th><th>Published</th><th>Note</th></tr></thead><tbody>'
  +FROWS.map(function(r){return '<tr><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="mu sm">'+r[1]+'</td><td>'+oc(r[2],r[3])+'</td><td class="r">'+r[4]+'</td><td class="mu sm">'+r[5]+'</td><td class="mu sm">'+r[6]+'</td><td class="sm bd">'+r[7]+'</td></tr>';}).join('')
- +'</tbody></table></div>'));}
+ +'</tbody></table></div>'),over);}
 function drawer(){
  var tl=[['20 Nov 05:45','n','WRONG_DATE','32 records found, all dated 30 Oct 2026; rule accepts 31 Oct only'],['12 Nov 05:45','n','WRONG_DATE','same 32 records'],['8 Nov 05:45','n','WRONG_DATE','32 records appeared (uploaded 8 Nov)'],['1–7 Nov','m','NOT_PUBLISHED','no record for October yet'],['9 Oct 05:45','ok','WRITTEN','171 series · 31 workbooks dated 30 Sep']];
  var inner=dhead('Franklin Templeton','Portfolio disclosures · automatic (JSON API) · 321 live series')
@@ -946,16 +1446,27 @@ function runs(){
  +r.map(function(x){var w=+x[3],p=+x[4],f=+x[5],s=+x[6],t=w+p+f+s;return '<tr><td style="padding-left:20px" class="sm">'+x[0]+'</td><td class="sm b6">'+x[1]+'</td><td class="r '+(x[2]==='1'?'neg b6':'')+'">'+x[2]+'</td><td class="r">'+w+'</td><td class="r">'+p+'</td><td class="r">'+f+'</td><td class="r">'+s+'</td><td style="width:220px"><div class="bar"><i style="width:'+(w/t*100)+'%;background:var(--c1)"></i><i style="width:'+(p/t*100)+'%;background:#F59E0B"></i><i style="width:'+(f/t*100)+'%;background:var(--nt)"></i><i style="width:'+(s/t*100)+'%;background:var(--dv)"></i></div></td><td class="xs mu">'+x[7]+'</td></tr>';}).join('')
  +'</tbody></table></div><div class="sm mu" style="margin-top:12px">Logs: /var/log/unifolio-disclosures.log and /var/log/unifolio-factsheets.log, rotated daily, 30 kept.</div>'));}
 var OPS=[
- {s:'Coverage · disclosures',c:'The home of the console. One row per fund house with the latest outcome and its reason, the last six cycles as dots, and the agreed headline (open-ended plan and option series; ETFs and FMPs separately). Numbers are the real October figures from the 19 Nov audit, shown as if the console had existed.',h:boardD()},
- {s:'Coverage · factsheets',c:'Same board for fund managers. "ALREADY_CURRENT" appears because the job now runs daily from the 8th to the 25th and skips houses that are up to date (H4). Illustrative numbers.',h:boardF()},
+ {s:'Coverage · disclosures',c:'The home of the console. One row per fund house with the latest outcome and its reason, the last six cycles as dots, and the agreed headline (open-ended plan and option series; ETFs and FMPs separately). Numbers are the real 31 Oct figures from the 27 Nov status check (section 4), shown as if the console had existed.',h:boardD()},
+ {s:'Coverage · factsheets',c:'Same board for fund managers. "ALREADY_CURRENT" appears because the job now runs daily from the 8th to the 25th and skips houses that are up to date (H4). Counts are the real November-issue figures from the 27 Nov status check; outcome labels are as the console would show them.',h:boardF()},
  {s:'House drawer',c:'Click any row: the run-by-run history with reasons, the publishing day learned from history (H6), and the three actions a person needs. This is exactly what L-5 had to rebuild by hand on 19 Nov.',h:drawer(),u:'/ops?house=franklin-templeton'},
  {s:'By-hand this month',c:'The due list replaces memory and runbooks: what to download, from where, when it usually appears, and where each one stands. Server-refused houses (Bajaj, WhiteOak) appear here automatically when the job records BLOCKED.',h:due(),u:'/ops/due'},
  {s:'Upload and detection',c:'Drop several files at once. House, pipeline and date are read from inside each file. An unclear house asks the person; a notice PDF is rejected; the same file twice is skipped. An automatic house can be imported for this month only (FX-F4).',h:upload(),u:'/ops/upload'},
  {s:'Dry run',c:'The step that does not exist today: what a commit would write, next to last month, with unmatched and failed sheets named. Commit uses the existing writer, tagged with the intake id.',h:dry(),u:'/ops/intake/7f3c…/dry-run'},
  {s:'Committed + history',c:'Every file from any route (upload, Collector, email) and what it wrote. Undo is offered in the toast and in the table.',h:history(false),u:'/ops/intake'},
  {s:'Undo',c:'Undo removes only that file\'s rows and puts the series back to "waiting"; consumers fall back to last month\'s holdings.',h:history(true),u:'/ops/intake'},
- {s:'Runs',c:'One line per job run with counts by outcome and the exit code. A run that alerts shows it here and in the email.',h:runs(),u:'/ops/runs'}
+ {s:'Runs',c:'One line per job run with counts by outcome and the exit code. A run that alerts shows it here and in the email.',h:runs(),u:'/ops/runs'},
+ {s:'Agent activity (7b)',c:'Section 7b: the coded locator found no Sundaram factsheet link, so the locator agent read Sundaram\'s own page through the browser worker, found the October file, and sent it through the normal dry run. It passed the auto-commit rules and was written. The agent also proposes the code fix for a person to review. Every step and its cost is on the record.',h:agentDrawer(),u:'/ops?house=sundaram&pipeline=factsheets'}
 ];
+function agentDrawer(){
+ var steps=[['06:00:04','Coded locator','No link matching the registry pattern on /fundwise-factsheet','m'],['06:00:09','Browser worker','Rendered the page (HTTP 200, no challenge); 46 links','m'],['06:00:31','Locator agent','Found "Fundwise Factsheet – October 2026" under Downloads › Factsheets; file dated 31 Oct 2026','ok'],['06:00:44','Download + coded reader','PDF 7.9 MB, as on 31 Oct 2026, 40 of 40 families read','ok'],['06:00:45','Dry run + auto-commit','Matched 40 / 40 (last month 40); no new warnings: committed','ok']];
+ var inner=dhead('Sundaram','Factsheets · automatic · 40 live families')
+ +'<div class="f" style="gap:8px;flex-wrap:wrap">'+oc('ok','WRITTEN via agent')+'<span class="chip k-m">Agent cost $0.11</span><span class="chip k-m">Source: Sundaram\'s own site</span></div>'
+ +'<div><div class="eyebrow" style="margin-bottom:6px">This morning, step by step</div>'+steps.map(function(t){return '<div class="rw" style="align-items:flex-start"><span class="sm mu" style="width:70px;flex:none">'+t[0]+'</span><span style="flex:1;min-width:0"><span class="sm b6">'+t[1]+'</span> '+(t[3]==='ok'?oc('ok','ok'):'')+'<div class="xs mu" style="margin-top:3px">'+t[2]+'</div></span></div>';}).join('')+'</div>'
+ +'<div class="ban b-i">'+ic('edit',18)+'<div><b>Proposed fix (needs a person).</b> Change Sundaram\'s <span class="mono">link_pattern</span> to <span class="mono">Fundwise\\s+Factsheet</span> and add a page fixture. Until it is merged, the agent finds the file each month by itself. <span class="lnk">Review the patch</span></div></div>'
+ +'<div class="ban b-w">'+ic('shield',18)+'<div>Guardrails: own domain only, honest user agent, stops at any refusal or challenge page. Budget this month: $14.20 of $60.</div></div>'
+ +'<div class="f" style="margin-top:auto"><span class="btn o s">'+ic('ext',15)+'Open the source page</span><span class="btn o s">'+ic('refresh',15)+'Undo this commit</span></div>';
+ return boardF(ov(inner,'drw'));
+}
 /* ===== Collector ===== */
 function amcSite(pop){return '<div class="app" style="display:block;background:#fff"><div class="site"><div class="nav"><b>Fund house website</b><span>Funds</span><span>Investor services</span><span>Downloads</span><span>Statutory disclosures</span></div><div class="ct"><div style="font-size:26px;font-weight:700">Monthly Portfolio Disclosure</div><div style="color:#666;margin-top:6px">Illustrative AMC page, not a real site</div><table><thead><tr><th>Document</th><th>Month</th><th></th></tr></thead><tbody>'
  +[['Monthly Portfolio Disclosure - Mid Cap Fund','31 October 2026'],['Monthly Portfolio Disclosure - Flexi Cap Fund','31 October 2026'],['Monthly Portfolio Disclosure - Liquid Fund','31 October 2026'],['Monthly Portfolio Disclosure - All schemes (ZIP)','31 October 2026'],['Monthly Portfolio Disclosure - All schemes (ZIP)','30 September 2026']].map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td><span class="dl">Download</span></td></tr>';}).join('')
@@ -964,11 +1475,98 @@ function ext(body){return '<div class="ext"><div class="eh"><b>U</b>Unifolio Col
 var COLS=[
  {s:'Due list in the browser',c:'The person opens the Collector in their own Chrome. It lists what is due and opens each house\'s page. The person browses and clicks Download as normal: nothing is fetched behind the site\'s back.',u:'fund-house-website › downloads',h:amcSite(ext('<div style="padding:10px 14px;font-size:12px;color:#717171">9 due · 5 done</div>'+[['WhiteOak Capital','Disclosures · ZIP of all schemes','On this page','#15803D'],['Bajaj Finserv','Disclosures','Next',''],['Edelweiss','Disclosures · workbook, not the notice PDF','',''],['Axis','Factsheet PDF','',''],['HDFC','Factsheets · active + passive','1 of 2','']].map(function(r,i){return '<div class="er" style="'+(i===0?'background:#EAFBF0':'')+'"><div style="flex:1;min-width:0"><div style="font-weight:700">'+r[0]+'</div><div class="mu">'+r[1]+'</div></div>'+(r[2]?'<span style="font-size:11px;font-weight:700;color:'+(r[3]||'#92400E')+'">'+r[2]+'</span>':'')+'</div>';}).join('')+'<div style="padding:12px 14px;display:flex;gap:8px"><span class="btn s" style="background:#22C55E;color:#fff;border:0;border-radius:9px;padding:6px 12px;font-weight:700">Open next page</span><span style="padding:6px 12px;border:1px solid #DFDFDF;border-radius:9px;font-weight:600">Ops console</span></div>'))},
  {s:'File captured and sent',c:'When the download finishes, the extension reads the file name and the page it came from, sends the file to intake, and shows what intake detected. The dry run is waiting in the console.',u:'fund-house-website › downloads',h:amcSite(ext('<div style="padding:14px"><div style="display:flex;gap:10px;align-items:flex-start"><span style="color:#15803D;margin-top:2px">'+ic('check',18)+'</span><div><div style="font-weight:700">Sent to intake</div><div class="mu" style="margin-top:2px;font-size:12px;color:#717171">Monthly-Portfolio-Oct-2026.zip · 4.2 MB</div></div></div><div style="margin-top:12px;border:1px solid #ECECEC;border-radius:10px;padding:10px;font-size:12.5px"><div style="display:flex;justify-content:space-between"><span style="color:#717171">House</span><b>WhiteOak Capital</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">Pipeline</span><b>Disclosures</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">As of (from the file)</span><b>31 Oct 2026</b></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:#717171">Dry run</span><b style="color:#15803D">76 series · ok</b></div></div><div style="margin-top:12px;display:flex;gap:8px"><span style="background:#22C55E;color:#fff;border-radius:9px;padding:6px 12px;font-weight:700">Next: Bajaj Finserv</span><span style="padding:6px 12px;border:1px solid #DFDFDF;border-radius:9px;font-weight:600">Review in console</span></div></div>'))},
- {s:'Daily digest email',c:'One email at 07:30 after the morning runs. It leads with what changed since yesterday, then what is due by hand. An immediate email still goes out on a non-zero exit.',u:'mail · Unifolio data digest',h:'<div class="app" style="display:block"><div class="mail"><div class="mb"><div style="display:flex;align-items:center;gap:8px;font-family:DM Sans,sans-serif;font-weight:700;font-size:18px"><span style="width:26px;height:26px;border-radius:7px;background:#22C55E;color:#fff;display:inline-grid;place-items:center;font-size:14px">U</span>Data digest · 6 Nov 2026</div><div style="color:#717171;font-size:13px;margin-top:6px">Disclosures for 31 Oct (run 05:45, exit 1) · Factsheets, November issues (run 06:00, exit 0)</div><div style="margin-top:18px;font-weight:700">Changed since yesterday</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li><b>Franklin Templeton</b> · WRONG_DATE: 32 files dated 30 Oct (Saturday month-end)</li><li><b>Nippon India</b> · now WRITTEN, 610 series</li><li><b>UTI factsheet</b> · November issue imported, 84/88 families</li></ul><div style="margin-top:14px;font-weight:700">Needs a person</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li>9 by-hand houses due (Edelweiss, Bandhan, HSBC, Invesco, Bajaj, Axis, HDFC ×2, SBI)</li><li>Invesco upload waiting: 31 unmatched sheets</li></ul><div style="margin-top:14px;font-weight:700">Coverage</div><div style="font-size:14px;margin-top:4px">Disclosures ≈66% of open-ended series (35/50 houses) · Factsheets 82.4% of families (37/55 houses)</div><div style="margin-top:20px"><span style="background:#22C55E;color:#fff;border-radius:10px;padding:9px 16px;font-weight:700;font-family:DM Sans,sans-serif">Open the Ops console</span></div></div></div></div>'}
+ {s:'Daily digest email',c:'One email at 07:30 after the morning runs. It leads with what changed since yesterday, then what is due by hand. An immediate email still goes out on a non-zero exit.',u:'mail · Unifolio data digest',h:'<div class="app" style="display:block"><div class="mail"><div class="mb"><div style="display:flex;align-items:center;gap:8px;font-family:DM Sans,sans-serif;font-weight:700;font-size:18px"><span style="width:26px;height:26px;border-radius:7px;background:#22C55E;color:#fff;display:inline-grid;place-items:center;font-size:14px">U</span>Data digest · 6 Nov 2026</div><div style="color:#717171;font-size:13px;margin-top:6px">Disclosures for 31 Oct (run 05:45, exit 1) · Factsheets, November issues (run 06:00, exit 0)</div><div style="margin-top:18px;font-weight:700">Changed since yesterday</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li><b>Franklin Templeton</b> · WRONG_DATE: 32 files dated 30 Oct (Saturday month-end)</li><li><b>Nippon India</b> · now WRITTEN, 610 series</li><li><b>UTI factsheet</b> · November issue imported, 84/88 families</li></ul><div style="margin-top:14px;font-weight:700">Needs a person</div><ul style="font-size:14px;line-height:1.6;padding-left:20px;margin:6px 0"><li>9 by-hand houses due (Edelweiss, Bandhan, HSBC, Invesco, Bajaj, Axis, HDFC ×2, SBI)</li><li>Invesco upload waiting: 31 unmatched sheets</li></ul><div style="margin-top:14px;font-weight:700">Coverage</div><div style="font-size:14px;margin-top:4px">Disclosures ≈66% of open-ended series (36/51 houses) · Factsheets 62% of series (49/56 houses)</div><div style="margin-top:20px"><span style="background:#22C55E;color:#fff;border-radius:10px;padding:9px 16px;font-weight:700;font-family:DM Sans,sans-serif">Open the Ops console</span></div></div></div></div>'}
 ];
 /* ===== register ===== */
 var SETS={OPS:['Ops console',OPS],COL:['Collector extension and daily digest',COLS]};
 var URL={OPS:'/ops',COL:'/'};
+/* ===== A2 Collector and A3 Claude, in depth ===== */
+function siteP(panel,o){o=o||{};var rows=o.rows||[['Monthly Portfolio - October 2026 (all schemes, xlsx)','31 October 2026'],['Fortnightly Portfolio - debt schemes (xlsx)','31 October 2026'],['Monthly Portfolio - September 2026 (all schemes, xlsx)','30 September 2026'],['Notice - change in fund manager (pdf)','28 October 2026']];
+ return '<div class="app" style="display:block;background:#fff"><div class="site"><div class="nav"><b>'+(o.name||'Fund house website')+'</b><span>Funds</span><span>Investor services</span><span>Downloads</span><span>Statutory disclosures</span></div><div class="ct" style="padding-right:470px">'
+ +(o.check?'<div style="margin-top:60px;max-width:640px;border:1px solid #e3e3e3;border-radius:8px;padding:32px"><div style="font-size:22px;font-weight:700">Checking your browser…</div><div style="color:#666;margin-top:8px">This site uses a security service. Please confirm you are human to continue.</div><div style="margin-top:20px;display:flex;align-items:center;gap:10px;border:1px solid #ccc;border-radius:4px;padding:14px;width:300px"><span style="width:22px;height:22px;border:2px solid #999;border-radius:3px;display:inline-block"></span>Verify you are human</div><div style="color:#999;font-size:12px;margin-top:12px">Illustrative security check</div></div>'
+ :'<div style="font-size:26px;font-weight:700">Monthly Portfolio Disclosure</div><div style="color:#666;margin-top:6px">Illustrative fund-house page, not a real site</div><table><thead><tr><th>Document</th><th>As on</th><th></th></tr></thead><tbody>'
+ +rows.map(function(r,i){return '<tr'+(o.hl===i?' style="background:#FFF7D6"':'')+'><td>'+r[0]+'</td><td>'+r[1]+'</td><td><span class="dl">Download</span></td></tr>';}).join('')+'</tbody></table>')
+ +'</div></div>'+panel+'</div>';}
+function cpanel(body,o){o=o||{};return '<div class="spn"><div class="eh"><b>U</b>Unifolio Collector<span class="env">'+(o.env||'Production')+'</span></div>'+body+'</div>';}
+function ck(t,s,k){var c=k==='n'?'#B42318':k==='w'?'#B45309':k==='m'?'#9A9A9A':'#15803D';var g=k==='n'?'x':k==='w'?'alert':k==='m'?'clock':'check';return '<div class="ck"><span style="color:'+c+'">'+ic(g,16)+'</span><div><div style="font-weight:700">'+t+'</div>'+(s?'<div class="mu2">'+s+'</div>':'')+'</div></div>';}
+function pbtn(t,p){return '<span class="pb'+(p?' p':'')+'">'+t+'</span>';}
+var CDUE=[['Bandhan','Disclosures · Oct','Now','a'],['HSBC','Disclosures · Oct','',''],['Invesco','Disclosures · Oct','',''],['Mahindra Manulife','Disclosures · Oct','',''],['Bajaj Finserv','Disclosures · Oct · refuses servers','',''],['Axis','Factsheet · Nov issue','','']];
+function colList(){
+ return cpanel('<div class="sec"><div class="mu2">Cycle Nov 2026 · disclosures for 31 Oct · factsheets, November issue</div><div class="prog"><i style="width:43%"></i></div><div class="mu2" style="margin-top:4px"><b style="color:#111">9 of 21 done</b> · 2 waiting for review · 10 to do</div></div>'
+ +'<div class="sec act"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700;font-size:15px">Bandhan · disclosures</div><span class="tag">Now</span></div><div class="mu2" style="margin-top:2px">435 series · usually out by the 9th · 0 last month</div>'
+ +'<div class="hint"><b>What to pick</b><br>Statutory disclosures › Portfolio › "Monthly Portfolio - October 2026 (all schemes, xlsx)". Not the fortnightly debt file.</div>'
+ +'<div style="display:flex;gap:8px;margin-top:10px">'+pbtn('Open page',1)+pbtn('Skip this month')+pbtn('Not published yet')+'</div></div>'
+ +'<div class="sec" style="padding:0">'+CDUE.slice(1).map(function(r){return '<div class="er"><div style="flex:1;min-width:0"><div style="font-weight:700">'+r[0]+'</div><div class="mu2">'+r[1]+'</div></div><span class="mu2">to do</span></div>';}).join('')
+ +'<div class="er"><div style="flex:1"><div style="font-weight:700">Edelweiss</div><div class="mu2">Disclosures · Oct</div></div><span style="color:#15803D;font-weight:700;font-size:12px">committed · 312</span></div>'
+ +'<div class="er"><div style="flex:1"><div style="font-weight:700">JM Financial</div><div class="mu2">Disclosures · Oct · 6 files</div></div><span style="color:#B45309;font-weight:700;font-size:12px">review · 1 amber</span></div></div>');}
+function colCapture(){
+ return cpanel('<div class="sec"><div style="font-weight:700;font-size:15px">Bandhan · disclosures</div><div class="mu2">Monthly_Portfolio_October_2026.xlsx · 2.4 MB</div></div>'
+ +'<div class="sec">'+ck('Download finished on Bandhan\'s own site','Page and file address match Bandhan\'s registered addresses')
+ +ck('Read from your Downloads folder','The same file you saved. No second request to the site.')
+ +ck('Sent to intake','sha-256 3f9a…c21e · first time seen')
+ +ck('Detected from inside the file','Bandhan · portfolio disclosure · as on 31 Oct 2026 (sheet header). Agrees with the page.')
+ +ck('Dry run','431 of 435 series matched · 0 last month · 4 sheet names not matched','w')
+ +'</div><div class="sec"><div class="hint" style="margin-top:0;background:#FDF1DE;border-color:#F3D9A8"><b>Waiting for a person</b><br>First month for this house through the Collector, and 4 sheets did not match, so it does not commit by itself.</div>'
+ +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'+pbtn('Commit 431 series',1)+pbtn('Review in console')+pbtn('Next: HSBC')+'</div></div>');}
+function colProblems(){
+ return cpanel('<div class="sec"><div style="font-weight:700;font-size:15px">Invesco · disclosures</div><div class="mu2">Things the Collector stopped, so nothing wrong is written</div></div>'
+ +'<div class="sec">'+ck('Wrong month: not committed','Invesco_Portfolio.xlsx says "as on 30 Sep 2026". This cycle needs 31 Oct. Kept in intake history as rejected.','n')
+ +ck('Same file as before: skipped','Invesco_Portfolio (1).xlsx is identical (sha-256) to the file above.','m')
+ +ck('Not from this house\'s site: ignored','statement.pdf came from another website. It was not read or sent.','m')
+ +ck('A notice, not a portfolio','Notice_change_in_fund_manager.pdf has no holdings table. Not sent for a dry run.','n')
+ +'</div><div class="sec"><div class="hint" style="margin-top:0"><b>Tip</b><br>The October file is the first row on Invesco\'s page. Open it again and pick "October 2026".</div><div style="display:flex;gap:8px;margin-top:10px">'+pbtn('Open page again',1)+pbtn('Skip this month')+'</div></div>');}
+function colConnect(){
+ var rows=[['Prateek · Chrome, "Unifolio data" profile','Connected 2 Dec','Today 10:42','14 files','Revoke'],['Intern laptop · Chrome','Connected 3 Dec','Yesterday','7 files','Revoke'],['Old work laptop · Chrome','Connected 12 Nov','—','0 files','Revoked 1 Dec']];
+ return ops('Collector',{due:12},page('Collector','The Chrome extension staff use to send files from fund-house sites to intake. It never reads anything else.',
+ '<div class="cd" style="display:flex;align-items:center;gap:16px;margin-bottom:16px"><span style="color:var(--pos)">'+ic('check',22)+'</span><div style="flex:1"><div class="h3">This browser</div><div class="sm mu" style="margin-top:2px">Unifolio Collector 1.0.0 is installed. It is not connected to your staff account yet.</div></div><span class="btn s">'+ic('link',15)+'Connect this browser</span></div>'
+ +'<div class="ban b-i" style="margin-bottom:16px">'+ic('shield',18)+'<div><b>What connecting does.</b> Creates a sign-in for the extension that can only send files and read this month\'s list. It cannot see users, portfolios or anything else in the app. Revoke it here at any time. Use a separate Chrome profile just for this work.</div></div>'
+ +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">Browser</th><th>Connected</th><th>Last used</th><th class="r">Files sent this cycle</th><th></th></tr></thead><tbody>'
+ +rows.map(function(r){return '<tr><td style="padding-left:20px" class="b6">'+r[0]+'</td><td class="sm mu">'+r[1]+'</td><td class="sm mu">'+r[2]+'</td><td class="r">'+r[3]+'</td><td class="r">'+(r[4]==='Revoke'?'<span class="btn o s">Revoke</span>':'<span class="sm mu">'+r[4]+'</span>')+'</td></tr>';}).join('')
+ +'</tbody></table></div>'));}
+function colHistory(){
+ var rows=[['10:44','Bandhan','Monthly_Portfolio_October_2026.xlsx','Collector · Prateek','w','Waiting · 431/435'],['10:39','Edelweiss','Edelweiss_MP_Oct26.xlsx','Collector · Prateek','ok','Committed · 312'],['10:35','Invesco','Invesco_Portfolio.xlsx','Collector · Prateek','n','Rejected · wrong month'],['10:31','JM Financial','JM_Flexicap_Oct26.xlsx (+5)','Collector · Prateek','ok','Committed · 172'],['09:58','HSBC','HSBC_Equity_Oct.xlsx','Upload · Intern','ok','Committed · 280'],['07:12','Axis','Axis_Factsheet_Nov2026.pdf','Email inbox','i','Dry run ok']];
+ return ops('Intake history',{due:12},page('Intake history','Every file from every route, and what it wrote. Filter: today.',
+ '<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">Time</th><th>House</th><th>File</th><th>Came in through</th><th>Status</th><th></th></tr></thead><tbody>'
+ +rows.map(function(r){return '<tr><td style="padding-left:20px" class="sm mu">'+r[0]+'</td><td class="b6">'+r[1]+'</td><td class="sm mono">'+r[2]+'</td><td class="sm">'+r[3]+'</td><td>'+oc(r[4],r[5])+'</td><td class="r"><span class="btn o s">'+(r[4]==='ok'?'Undo':'Open')+'</span></td></tr>';}).join('')
+ +'</tbody></table></div><div class="sm mu" style="margin-top:12px">Each Collector row keeps the page and the download address it came from, so anyone can check where a number came from.</div>'));}
+var A2C=[
+ {s:'Connect this browser',c:'Once per browser. A staff member opens the Ops console (staff only) › Collector and clicks Connect. The console hands the extension its own limited sign-in: it can read the due list and send files, nothing else. It is a normal row in the existing sessions table, so revoking it works like signing out a device.',h:colConnect(),u:'/ops/collector'},
+ {s:'This month in the side panel',c:'The Collector opens as a panel beside the fund house\'s page and stays open while the person browses. It shows the month\'s list (from H1 outcomes), what to pick on each site, and progress. "Open page" opens the house\'s own page. Nothing is fetched by the extension.',h:siteP(colList(),{name:'Fund house website'}),u:'fund-house-website › statutory disclosures › portfolio'},
+ {s:'Download captured, dry run',c:'The person clicked Download on the highlighted row. The Collector saw the download finish on Bandhan\'s own site, read the saved file from the Downloads folder, sent it to intake, and showed what intake read from inside the file and what a commit would write. It is amber, so it waits for a person.',h:siteP(colCapture(),{hl:0}),u:'fund-house-website › statutory disclosures › portfolio'},
+ {s:'Wrong file caught',c:'What A2 protects against: a September file in the October cycle, the same file twice, a download from another website, a notice instead of a portfolio. None of them is written. Only files from the active house\'s registered addresses are ever read.',h:siteP(colProblems(),{hl:2}),u:'fund-house-website › statutory disclosures › portfolio'},
+ {s:'Where the files land',c:'In the console every file shows the route it came in through (Collector and who, upload, email) and its result, with undo. This is the record the monthly round has never had.',h:colHistory(),u:'/ops/intake'}
+];
+function claudeP(body){return '<div class="cpn"><div class="eh"><span style="color:#D97757">'+ic('spark',18)+'</span>Claude <span class="env" style="background:#F0EEE6;color:#5E5D59">illustrative</span></div>'+body+'</div>';}
+function cmsg(t,me){return '<div class="cm'+(me?' me':'')+'">'+t+'</div>';}
+function cstep(t,k){return '<div class="cs"><span style="color:'+(k==='w'?'#B45309':'#15803D')+'">'+ic(k==='w'?'alert':'check',14)+'</span>'+t+'</div>';}
+function agentDue(){
+ var rows=[['1','Bandhan','Disclosures','Monthly Portfolio - October 2026 (all schemes, xlsx)','Oct 2026'],['2','HSBC','Disclosures','One xlsx per scheme, October 2026 (14 files)','Oct 2026'],['3','Invesco','Disclosures','Monthly portfolio, all schemes, 31 Oct 2026','Oct 2026'],['4','ITI','Disclosures','Portfolio as on 31 October 2026','Oct 2026'],['5','Bajaj Finserv','Disclosures','Monthly portfolio ZIP, October 2026','Oct 2026'],['6','Axis','Factsheet','Factsheet, November 2026 issue','Nov 2026']];
+ return '<div class="app" style="display:block"><div style="width:1440px;min-height:900px;background:var(--p);padding:32px 470px 32px 40px;box-sizing:border-box;font-family:Manrope,Inter,sans-serif;color:var(--tx)"><div style="font-family:DM Sans,sans-serif;font-size:24px;font-weight:700">Due by hand · agent view</div><div class="sm mu" style="margin:6px 0 18px">Cycle Nov 2026. One line per file. Use only each house\'s own site. Staff only.</div><div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:16px">#</th><th>House</th><th>Pipeline</th><th>Pick exactly this</th><th>Month</th></tr></thead><tbody>'
+ +rows.map(function(r){return '<tr><td style="padding-left:16px" class="sm mu">'+r[0]+'</td><td class="b6">'+r[1]+'</td><td class="sm">'+r[2]+'</td><td class="sm">'+r[3]+'</td><td class="sm mu">'+r[4]+'</td></tr>';}).join('')
+ +'</tbody></table></div><div class="sm mu" style="margin-top:10px">12 more lines…</div></div>'+claudeP(cmsg('/amc-due',1)+cmsg('Here is my plan. I will open the due list, then each fund house\'s page, find the file named on each line, and ask you before every download.')+'<div class="cplan"><b>Sites I will use</b><div class="mu2" style="margin-top:4px">Ops console (due list) · Bandhan · HSBC · Invesco · ITI · Bajaj Finserv · Axis · and the 12 other houses on the list</div><div style="display:flex;gap:8px;margin-top:10px">'+pbtn('Approve plan',1)+pbtn('Change')+'</div></div>')+'</div>';}
+function agentAsk(){
+ return siteP(claudeP(cstep('Opened Bandhan\'s portfolio page')+cstep('Found "Monthly Portfolio - October 2026 (all schemes, xlsx)", as on 31 October 2026')+cstep('Skipped the fortnightly debt file, as the hint says')
+ +'<div class="cperm"><b>Claude wants to download a file</b><div class="mu2" style="margin-top:4px">Monthly_Portfolio_October_2026.xlsx from this site</div><div style="display:flex;gap:8px;margin-top:10px">'+pbtn('Allow',1)+pbtn('Decline')+'</div><div class="mu2" style="margin-top:8px">Downloads always ask, even on sites you always allow.</div></div>'
+ +'<div class="cnote">Unifolio Collector is open in this browser too: once you allow, it captures the file and runs the dry run.</div>'),{hl:0});}
+function agentStop(){
+ return siteP(claudeP(cstep('Opened ITI\'s portfolio page')+cstep('The page shows a security check instead of the portfolio list','w')
+ +cmsg('I have stopped here. This page is asking to confirm a human is visiting, and I will not try to get past it. If you complete the check yourself, tell me to continue, or I can skip ITI this month.')
+ +'<div style="display:flex;gap:8px;margin:10px 14px">'+pbtn('I did it, continue',1)+pbtn('Skip ITI')+'</div>'),{check:1,name:'Fund house website'});}
+function agentEnd(){
+ var rows=[['Bandhan','Downloaded by Claude · committed','ok'],['HSBC','Downloaded by Claude · 14 files · committed','ok'],['Invesco','Downloaded by Claude · committed','ok'],['ITI','Stopped at a security check · person completed it · committed','w'],['Bajaj Finserv','Downloaded by Claude · waiting for review','w'],['Trust','Not published yet (newest file September)','m'],['Axis','Downloaded by Claude · dry run ok','ok']];
+ return ops('By-hand this month',{due:3},page('By-hand this month','After a supervised Claude run this morning. Files tagged "assisted by Claude" in intake.',
+ kpi([['Collected','18 / 21','15 by Claude, 3 by the person','pos'],['Person\'s time','14 min','mostly clicking Allow','pos'],['Stopped and handed over','2','ITI security check, Edelweiss check','wrn'],['Wrong files caught','1','September file picked for Invesco, rejected by the dry run']])
+ +'<div class="cd" style="padding:0"><table><thead><tr><th style="padding-left:20px">House</th><th>What happened</th><th></th></tr></thead><tbody>'
+ +rows.map(function(r){return '<tr><td style="padding-left:20px" class="b6">'+r[0]+'</td><td>'+oc(r[2],r[1])+'</td><td class="r"><span class="btn o s">Open</span></td></tr>';}).join('')
+ +'</tbody></table></div><div class="sm mu" style="margin-top:12px">Illustrative numbers for a pilot month.</div>'));}
+var A3C=[
+ {s:'Start: shortcut and plan',c:'The staff member types the saved shortcut in Claude\'s panel. Claude opens the console\'s agent view of the due list (a plain page made for reading) and proposes a plan listing the only sites it will use. Nothing happens until the person approves.',h:agentDue(),u:'/ops/due?view=agent'},
+ {s:'Claude finds, the person allows',c:'Claude reads the fund house\'s page and finds the file the hint names. Claude in Chrome always asks before downloading, so the person clicks Allow. The Collector captures the file exactly as in A2.',h:agentAsk(),u:'fund-house-website › statutory disclosures › portfolio'},
+ {s:'Stops at a security check',c:'When a site shows a security check, Claude stops and hands over. The person completes it like any visitor, or skips the house. Getting past checks is never automated.',h:agentStop(),u:'fund-house-website › security check'},
+ {s:'End of the run',c:'The due list after a pilot run: what Claude collected, where it stopped, what the dry run rejected. The pilot compares this with plain A2 months before deciding anything.',h:agentEnd(),u:'/ops/due'}
+];
+SETS.A2C=['Collector extension (A2), in depth',A2C];SETS.A3C=['Supervised Claude agent (A3)',A3C];URL.A2C='/ops';URL.A3C='/ops';
+
 var DARK=false;try{DARK=localStorage.getItem('amc-desk-dark')==='1';}catch(e){}
 function frame(k,i){var st=SETS[k][1][i];return '<div class="chrome"><i></i><i></i><i></i><span>'+(st.u&&st.u.charAt(0)!=='/'?st.u:'unifolio · '+(st.u||URL[k]))+'</span></div>'+st.h.replace('<div class="app">','<div class="app'+(DARK?' dk':'')+'">');}
 function fit(vp){var sc=vp.firstChild;if(!sc)return;var s=vp.clientWidth/1440;sc.style.transform='scale('+s+')';vp.style.height=Math.ceil(sc.offsetHeight*s)+'px';}
